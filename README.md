@@ -1,6 +1,6 @@
 # 易知道
 
-原生 SwiftUI iOS App：数字起卦（三数 / 时间）与六爻金钱卦，记录占时并展示卦象、卦辞、动爻爻辞。
+原生 SwiftUI iOS App：数字起卦（三数 / 时间）与六爻金钱卦，记录占时并展示卦象与经文。
 
 ## 要求
 
@@ -23,16 +23,23 @@ xcodebuild test -scheme Yizhidao -destination 'platform=iOS Simulator,name=iPhon
 
 ## 功能
 
-- **数字起卦 · 三数**：三个输入框 + 各自独立随机按钮，再起卦
-- **数字起卦 · 时间**：农历年支、月、日 + **十二时辰**（子=1 … 亥=12）取数；界面用中文 DatePicker 选占问时刻
-- **金钱卦**：逐爻摇或一键摇满（上爻在上、初爻在下）
-- 自动保存占卦时间与结果到「历史」；结果页展示本卦/之卦、**卦辞、大象、动爻爻辞与小象**（经文据《易经证释》所引）
+- **数字起卦 · 三数**：三个输入框 + 各自独立随机 / 清空
+- **数字起卦 · 时间**：默认农历年支、月、日 + **十二时辰**；可开「公历取数」（公历月日 + 1–24 时）；占问时刻选择框显示 `yyyy-MM-dd HH:mm`，弹层为中文日历
+- **金钱卦**：逐爻或一键摇满（上爻在上、初爻在下）
+- **结果**：本卦 / 之卦分 tab；各含卦辞、大象、六爻（上→初）；动爻红字；多动按规则标「主看」；经文据《易经证释》所引
+- **历史**：SwiftData 保存占时与结果
+
+## 协作
+
+- 远端：https://github.com/zhiyi199501-creator/yizhidao
+- `main` 受保护：勿直推，经 PR 合并
 
 ## 目录
 
 | 路径 | 内容 |
 |---|---|
-| `Yizhidao/Engines/` | 数字 / 金钱起卦、京房卦序、农历时辰 |
+| `Yizhidao/Engines/` | 数字 / 金钱起卦、京房卦序、农历／公历时辰 |
+| `Yizhidao/Domain/` | 模型与 `ReadingGuide` 解卦焦点 |
 | `Yizhidao/Features/` | 起卦 UI、结果、历史 |
-| `Yizhidao/Resources/Hexagrams.json` | 64 卦名、卦辞、爻辞 |
-| `YizhidaoTests/` | 起卦与时辰单测 |
+| `Yizhidao/Resources/Hexagrams.json` | 64 卦：卦辞、大象、爻辞、小象 |
+| `YizhidaoTests/` | 起卦、时辰、`ReadingGuide` 单测 |

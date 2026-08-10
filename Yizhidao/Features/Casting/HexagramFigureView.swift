@@ -53,21 +53,19 @@ struct YaoBarView: View {
                 Capsule()
                     .fill(barColor)
                     .frame(width: 44, height: 10)
-                if line.isChanging {
-                    Text("×")
-                        .font(.caption.weight(.bold))
-                        .foregroundStyle(barColor)
-                } else {
-                    Color.clear.frame(width: 10, height: 10)
-                }
+                Color.clear
+                    .frame(width: 10, height: 10)
                 Capsule()
                     .fill(barColor)
                     .frame(width: 44, height: 10)
             }
-            if line.isYang && line.isChanging {
-                Text("○")
+            if line.isChanging {
+                Text(line.isYang ? "○" : "×")
                     .font(.caption.weight(.bold))
                     .foregroundStyle(barColor)
+                    .frame(width: 12, alignment: .center)
+            } else {
+                Color.clear.frame(width: 12, height: 10)
             }
         }
         .frame(maxWidth: 160)
