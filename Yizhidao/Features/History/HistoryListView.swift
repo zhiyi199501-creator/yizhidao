@@ -2,6 +2,7 @@ import SwiftUI
 import SwiftData
 
 struct HistoryListView: View {
+    @Environment(\.modelContext) private var modelContext
     @Query(sort: \ReadingRecord.createdAt, order: .reverse)
     private var records: [ReadingRecord]
 
@@ -17,17 +18,27 @@ struct HistoryListView: View {
                         description: Text("起卦后会自动保存在这里")
                     )
                 } else {
-                    List(records) { record in
-                        NavigationLink {
-                            ResultView(result: record.toCastResult(), isNew: false)
-                        } label: {
-                            HistoryRow(record: record, store: store)
+                    List {
+                        ForEach(records) { record in
+                            NavigationLink {
+                                ResultView(result: record.toCastResult(), isNew: false)
+                            } label: {
+                                HistoryRow(record: record, store: store)
+                            }
                         }
+                        .onDelete(perform: deleteRecords)
                     }
                 }
             }
             .navigationTitle("历史")
         }
+    }
+
+    private func deleteRecords(at offsets: IndexSet) {
+        for index in offsets {
+            modelContext.delete(records[index])
+        }
+        try? modelContext.save()
     }
 }
 
