@@ -119,7 +119,7 @@ struct ResultView: View {
         let hex: Hexagram? = tab == .primary ? primary : resulting
         if let hex {
             VStack(alignment: .leading, spacing: 16) {
-                section(title: "卦辞 · \(hex.name)") {
+                section(title: "卦辞 · \(hex.name)", showLead: shouldShowGuaciLead(tab: tab)) {
                     Text(hex.guaci)
                         .font(.body)
                         .lineSpacing(4)
@@ -141,6 +141,18 @@ struct ResultView: View {
         }
     }
 
+    /// 三爻变：本卦卦辞主看；六爻变：之卦卦辞主看。
+    private func shouldShowGuaciLead(tab: HexTab) -> Bool {
+        switch focus.kind {
+        case .bothGuaci:
+            return tab == .primary
+        case .resultingGuaci:
+            return tab == .resulting
+        default:
+            return false
+        }
+    }
+
     private func lineBlock(hex: Hexagram, tab: HexTab, position: Int) -> some View {
         let moving = result.movingPositions.contains(position)
         let showLead = shouldShowLead(tab: tab, position: position)
@@ -148,12 +160,7 @@ struct ResultView: View {
 
         return VStack(alignment: .leading, spacing: 6) {
             if showLead {
-                Text("主看")
-                    .font(.caption.weight(.bold))
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 2)
-                    .background(Color.red, in: Capsule())
+                leadBadge
             }
             Text(trimmedYaoCi(hex: hex, position: position))
                 .font(.body)
@@ -164,6 +171,15 @@ struct ResultView: View {
                 .foregroundStyle(accent)
                 .lineSpacing(4)
         }
+    }
+
+    private var leadBadge: some View {
+        Text("主看")
+            .font(.caption.weight(.bold))
+            .foregroundStyle(.white)
+            .padding(.horizontal, 6)
+            .padding(.vertical, 2)
+            .background(Color.red, in: Capsule())
     }
 
     private func trimmedYaoCi(hex: Hexagram, position: Int) -> String {
@@ -204,10 +220,19 @@ struct ResultView: View {
         }
     }
 
-    private func section(title: String, @ViewBuilder content: () -> some View) -> some View {
+    private func section(
+        title: String,
+        showLead: Bool = false,
+        @ViewBuilder content: () -> some View
+    ) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(title)
-                .font(.headline)
+            HStack(spacing: 8) {
+                Text(title)
+                    .font(.headline)
+                if showLead {
+                    leadBadge
+                }
+            }
             content()
         }
         .frame(maxWidth: .infinity, alignment: .leading)
