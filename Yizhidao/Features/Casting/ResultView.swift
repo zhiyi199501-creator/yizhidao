@@ -103,23 +103,28 @@ struct ResultView: View {
                         .font(.body)
                         .lineSpacing(4)
                 }
+
+                section(title: "大象 · \(primary.name)") {
+                    Text(primary.daxiang)
+                        .font(.body)
+                        .lineSpacing(4)
+                }
             }
 
             if !result.movingPositions.isEmpty, let primary {
-                section(title: "动爻爻辞") {
-                    VStack(alignment: .leading, spacing: 12) {
+                section(title: "动爻爻辞与小象") {
+                    VStack(alignment: .leading, spacing: 16) {
                         ForEach(result.movingPositions, id: \.self) { pos in
-                            VStack(alignment: .leading, spacing: 4) {
+                            VStack(alignment: .leading, spacing: 8) {
                                 Text(result.movingPositions.count == 1 ? "主看 · \(yaoName(pos))" : yaoName(pos))
                                     .font(.subheadline.weight(.semibold))
                                     .foregroundStyle(.orange)
-                                Text(primary.yaoCi(at: pos))
-                                    .font(.body)
-                                    .lineSpacing(4)
+                                labeledBlock(title: "爻辞", text: primary.yaoCi(at: pos))
+                                labeledBlock(title: "小象", text: primary.xiaoXiang(at: pos))
                             }
                         }
                         if result.movingPositions.count >= 2 {
-                            Text("说明：多爻发动时，本期列出全部动爻爻辞；完整朱熹多变爻读法可后续增强。")
+                            Text("说明：多爻发动时列出全部动爻爻辞与小象；完整朱熹多变爻读法可后续增强。")
                                 .font(.caption2)
                                 .foregroundStyle(.secondary)
                         }
@@ -133,7 +138,28 @@ struct ResultView: View {
                         .font(.body)
                         .lineSpacing(4)
                 }
+                section(title: "之卦大象 · \(resulting.name)") {
+                    Text(resulting.daxiang)
+                        .font(.body)
+                        .lineSpacing(4)
+                }
             }
+
+            Text("经文版本：《易经证释》所引")
+                .font(.caption2)
+                .foregroundStyle(.tertiary)
+                .frame(maxWidth: .infinity, alignment: .trailing)
+        }
+    }
+
+    private func labeledBlock(title: String, text: String) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(title)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.secondary)
+            Text(text)
+                .font(.body)
+                .lineSpacing(4)
         }
     }
 

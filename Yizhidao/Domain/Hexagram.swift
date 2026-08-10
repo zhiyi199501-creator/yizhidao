@@ -7,12 +7,21 @@ struct Hexagram: Codable, Identifiable, Hashable, Sendable {
     let binary: String
     let guaci: String
     let yaoci: [String]
+    /// 大象辞（《象》曰总释）
+    let daxiang: String
+    /// 小象辞，初爻→上爻共六条
+    let xiaoxiang: [String]
 
     var id: Int { number }
 
     func yaoCi(at position: Int) -> String {
         guard position >= 1, position <= 6, yaoci.count >= position else { return "" }
         return yaoci[position - 1]
+    }
+
+    func xiaoXiang(at position: Int) -> String {
+        guard position >= 1, position <= 6, xiaoxiang.count >= position else { return "" }
+        return xiaoxiang[position - 1]
     }
 }
 

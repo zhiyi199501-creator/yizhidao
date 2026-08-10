@@ -35,6 +35,26 @@ final class DigitalCastingEngineTests: XCTestCase {
         XCTAssertEqual(LunarCalendarHelper.shichen(fromHour: 22), 12) // 亥
     }
 
+    func testSolarComponentsUsesGregorianMonthDayAndHour24() {
+        var cal = Calendar(identifier: .gregorian)
+        cal.timeZone = TimeZone(secondsFromGMT: 8 * 3600)!
+        var comps = DateComponents()
+        comps.year = 2026
+        comps.month = 8
+        comps.day = 10
+        comps.hour = 16
+        comps.minute = 0
+        let date = cal.date(from: comps)!
+        let solar = LunarCalendarHelper.solarComponents(from: date, calendar: cal)
+        XCTAssertEqual(solar.month, 8)
+        XCTAssertEqual(solar.day, 10)
+        XCTAssertEqual(solar.hourBranch, 16)
+
+        comps.hour = 0
+        let midnight = cal.date(from: comps)!
+        XCTAssertEqual(LunarCalendarHelper.solarComponents(from: midnight, calendar: cal).hourBranch, 24)
+    }
+
     func testThreeNumbersUpperLowerMoving() {
         // number1=6 → 坎上, number2=2 → 兑下, number3=6 → 上爻
         let result = DigitalCastingEngine.cast(number1: 6, number2: 2, number3: 6)
@@ -80,5 +100,23 @@ final class KingWenTableTests: XCTestCase {
             seen.insert(b)
             XCTAssertEqual(KingWenTable.number(fromBits: b.map { Int(String($0))! }), n)
         }
+    }
+}
+
+final class HexagramStoreTests: XCTestCase {
+    func testAllHexagramsHaveXiangTexts() {
+        let store = HexagramStore(bundle: Bundle(for: HexagramStore.self))
+        XCTAssertEqual(store.hexagrams.count, 64)
+        for h in store.hexagrams {
+            XCTAssertFalse(h.daxiang.isEmpty, "missing daxiang #\(h.number)")
+            XCTAssertEqual(h.xiaoxiang.count, 6, "xiaoxiang count #\(h.number)")
+            XCTAssertEqual(h.yaoci.count, 6, "yaoci count #\(h.number)")
+        }
+        guard let qian = store.hexagram(number: 1) else {
+            return XCTFail("missing hexagram 1")
+        }
+        XCTAssertTrue(qian.daxiang.contains("自强不息"))
+        XCTAssertTrue(qian.xiaoXiang(at: 1).contains("阳在下"))
+        XCTAssertTrue(qian.guaci.contains("元"))
     }
 }

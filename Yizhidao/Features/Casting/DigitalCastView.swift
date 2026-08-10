@@ -16,6 +16,7 @@ struct DigitalCastView: View {
     @State private var n3 = ""
     @State private var selectedDate = Date()
     @State private var showDatePicker = false
+    @State private var useSolarNumbers = false
     @State private var errorMessage: String?
 
     var body: some View {
@@ -141,12 +142,23 @@ struct DigitalCastView: View {
                 .presentationDetents([.large])
                 .presentationDragIndicator(.visible)
             }
-            let comps = LunarCalendarHelper.components(from: selectedDate)
-            Text(
-                "取数：\(LunarCalendarHelper.branchName(comps.yearBranch))年(\(comps.yearBranch)) + 农历\(comps.month)月\(comps.day)日 + \(LunarCalendarHelper.branchName(comps.hourBranch))时(\(comps.hourBranch))"
-            )
-            .font(.caption)
-            .foregroundStyle(.secondary)
+            Toggle("公历取数", isOn: $useSolarNumbers)
+            let comps = useSolarNumbers
+                ? LunarCalendarHelper.solarComponents(from: selectedDate)
+                : LunarCalendarHelper.components(from: selectedDate)
+            if useSolarNumbers {
+                Text(
+                    "取数：\(LunarCalendarHelper.branchName(comps.yearBranch))年(\(comps.yearBranch)) + 公历\(comps.month)月\(comps.day)日 + \(comps.hourBranch)时(1–24)"
+                )
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            } else {
+                Text(
+                    "取数：\(LunarCalendarHelper.branchName(comps.yearBranch))年(\(comps.yearBranch)) + 农历\(comps.month)月\(comps.day)日 + \(LunarCalendarHelper.branchName(comps.hourBranch))时(\(comps.hourBranch))"
+                )
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            }
             Text("上卦=(年+月+日)÷8余；下卦与动爻=(年+月+日+时)分别÷8、÷6取余。")
                 .font(.caption2)
                 .foregroundStyle(.secondary)
@@ -194,7 +206,9 @@ struct DigitalCastView: View {
             )
             onResult(result)
         case .time:
-            let comps = LunarCalendarHelper.components(from: selectedDate)
+            let comps = useSolarNumbers
+                ? LunarCalendarHelper.solarComponents(from: selectedDate)
+                : LunarCalendarHelper.components(from: selectedDate)
             let result = DigitalCastingEngine.cast(
                 yearBranch: comps.yearBranch,
                 month: comps.month,

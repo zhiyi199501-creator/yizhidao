@@ -50,6 +50,21 @@ enum LunarCalendarHelper {
         )
     }
 
+    /// 公历取数：年支仍取干支年，月/日用公历，时用 1...24（0 点记为 24）。
+    static func solarComponents(from date: Date, calendar: Calendar = .current) -> LunarTimeComponents {
+        let yearBranch = components(from: date, calendar: calendar).yearBranch
+        let month = calendar.component(.month, from: date)
+        let day = calendar.component(.day, from: date)
+        let hour24 = calendar.component(.hour, from: date)
+        let hour = hour24 == 0 ? 24 : hour24
+        return LunarTimeComponents(
+            yearBranch: yearBranch,
+            month: month,
+            day: day,
+            hourBranch: hour
+        )
+    }
+
     static func summary(from date: Date, calendar: Calendar = .current) -> String {
         let c = components(from: date, calendar: calendar)
         let formatter = DateFormatter()
