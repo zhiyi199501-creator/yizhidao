@@ -15,6 +15,7 @@ struct DigitalCastView: View {
     @State private var n2 = ""
     @State private var n3 = ""
     @State private var selectedDate = Date()
+    @State private var showDatePicker = false
     @State private var errorMessage: String?
 
     var body: some View {
@@ -63,17 +64,83 @@ struct DigitalCastView: View {
             numberRow(title: "动爻数", text: $n3) {
                 n3 = String(Int.random(in: 10...999))
             }
-            Text("三个数分别对应上卦、下卦、动爻；可手输或点随机。")
-                .font(.caption)
-                .foregroundStyle(.secondary)
+            HStack {
+                Text("三个数分别对应上卦、下卦、动爻；可手输或点随机。")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Spacer(minLength: 8)
+                Button("清空") {
+                    n1 = ""
+                    n2 = ""
+                    n3 = ""
+                    errorMessage = nil
+                }
+                .buttonStyle(.bordered)
+                .disabled(n1.isEmpty && n2.isEmpty && n3.isEmpty)
+            }
         }
     }
 
     private var timeForm: some View {
         VStack(alignment: .leading, spacing: 12) {
-            DatePicker("占问时刻", selection: $selectedDate)
-                .environment(\.locale, Locale(identifier: "zh_CN"))
-                .environment(\.calendar, Calendar(identifier: .gregorian))
+            HStack {
+                Text("占问时刻")
+                Spacer()
+                Button {
+                    showDatePicker = true
+                } label: {
+                    Text(hyphenDateTime(selectedDate))
+                        .font(.body.monospacedDigit())
+                        .foregroundStyle(.primary)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 7)
+                        .background(Color(.tertiarySystemFill), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                }
+                .buttonStyle(.plain)
+            }
+            .sheet(isPresented: $showDatePicker) {
+                NavigationStack {
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: 16) {
+                            DatePicker(
+                                "日期",
+                                selection: $selectedDate,
+                                displayedComponents: [.date]
+                            )
+                            .datePickerStyle(.graphical)
+                            .environment(\.locale, Locale(identifier: "zh_CN"))
+                            .environment(\.calendar, Calendar(identifier: .gregorian))
+                            .labelsHidden()
+
+                            Text("时间")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                                .padding(.horizontal, 4)
+
+                            DatePicker(
+                                "时间",
+                                selection: $selectedDate,
+                                displayedComponents: [.hourAndMinute]
+                            )
+                            .datePickerStyle(.wheel)
+                            .environment(\.locale, Locale(identifier: "zh_CN"))
+                            .environment(\.calendar, Calendar(identifier: .gregorian))
+                            .labelsHidden()
+                            .frame(maxWidth: .infinity)
+                        }
+                        .padding()
+                    }
+                    .navigationTitle("选择时刻")
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar {
+                        ToolbarItem(placement: .confirmationAction) {
+                            Button("完成") { showDatePicker = false }
+                        }
+                    }
+                }
+                .presentationDetents([.large])
+                .presentationDragIndicator(.visible)
+            }
             let comps = LunarCalendarHelper.components(from: selectedDate)
             Text(
                 "取数：\(LunarCalendarHelper.branchName(comps.yearBranch))年(\(comps.yearBranch)) + 农历\(comps.month)月\(comps.day)日 + \(LunarCalendarHelper.branchName(comps.hourBranch))时(\(comps.hourBranch))"
@@ -84,6 +151,14 @@ struct DigitalCastView: View {
                 .font(.caption2)
                 .foregroundStyle(.secondary)
         }
+    }
+
+    private func hyphenDateTime(_ date: Date) -> String {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "en_US_POSIX")
+        f.timeZone = .current
+        f.dateFormat = "yyyy-MM-dd HH:mm"
+        return f.string(from: date)
     }
 
     private func numberRow(title: String, text: Binding<String>, onRandom: @escaping () -> Void) -> some View {
