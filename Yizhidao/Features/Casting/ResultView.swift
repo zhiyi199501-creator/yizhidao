@@ -141,10 +141,10 @@ struct ResultView: View {
         }
     }
 
-    /// 三爻变：本卦卦辞主看；六爻变：之卦卦辞主看。
+    /// 无动／三爻变：本卦卦辞主看；六爻变：之卦卦辞主看。
     private func shouldShowGuaciLead(tab: HexTab) -> Bool {
         switch focus.kind {
-        case .bothGuaci:
+        case .primaryGuaci, .bothGuaci:
             return tab == .primary
         case .resultingGuaci:
             return tab == .resulting

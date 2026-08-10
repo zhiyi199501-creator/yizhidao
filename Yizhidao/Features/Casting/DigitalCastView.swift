@@ -27,6 +27,9 @@ struct DigitalCastView: View {
                 }
             }
             .pickerStyle(.segmented)
+            .onChange(of: mode) { _, _ in
+                errorMessage = nil
+            }
 
             switch mode {
             case .threeNumbers:

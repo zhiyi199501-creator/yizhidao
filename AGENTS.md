@@ -21,7 +21,7 @@ SwiftUI + SwiftData；无第三方依赖。经文在 `Hexagrams.json`（《易�
 - `Engines/`：`DigitalCastingEngine`、`CoinCastingEngine`、`KingWenTable`、`LunarCalendarHelper`
 - `Domain/ReadingGuide`：多动爻主看焦点；`ResultView` 本卦/之卦 tab 展示
 - **经文勿换他本**；改解卦规则先改 `ReadingGuide` 并补测
-- **主看 UI**：2 动→本卦上动爻；3 动→本卦卦辞；4 动→之卦下静爻；5 动→之卦静爻；6 动→之卦卦辞；1 动不标「主看」
+- **主看 UI**：0 动→本卦卦辞；2 动→本卦上动爻；3 动→本卦卦辞；4 动→之卦下静爻；5 动→之卦静爻；6 动→之卦卦辞；1 动不标「主看」
 - 时间起卦默认十二时辰；「公历取数」→公历月日 + 1–24 时
 - 金钱卦／结果六爻：上爻在上 → 初爻在下
 - **`main` 保护**：禁止直推，经 PR 合并（https://github.com/zhiyi199501-creator/yizhidao）

@@ -43,37 +43,47 @@ struct YaoBarView: View {
     let line: LineValue
     var highlighted: Bool = false
 
+    private let barWidth: CGFloat = 110
+    private let gapWidth: CGFloat = 10
+    private let markerWidth: CGFloat = 12
+
     var body: some View {
         HStack(spacing: 6) {
-            if line.isYang {
-                Capsule()
-                    .fill(barColor)
-                    .frame(height: 10)
-            } else {
-                Capsule()
-                    .fill(barColor)
-                    .frame(width: 44, height: 10)
-                Color.clear
-                    .frame(width: 10, height: 10)
-                Capsule()
-                    .fill(barColor)
-                    .frame(width: 44, height: 10)
-            }
+            barContent
+                .frame(width: barWidth, height: 10)
             if line.isChanging {
                 Text(line.isYang ? "○" : "×")
                     .font(.caption.weight(.bold))
                     .foregroundStyle(barColor)
-                    .frame(width: 12, alignment: .center)
+                    .frame(width: markerWidth, alignment: .center)
             } else {
-                Color.clear.frame(width: 12, height: 10)
+                Color.clear.frame(width: markerWidth, height: 10)
             }
         }
-        .frame(maxWidth: 160)
         .padding(4)
         .background(
             RoundedRectangle(cornerRadius: 6)
                 .fill(highlighted ? Color.orange.opacity(0.15) : Color.clear)
         )
+    }
+
+    @ViewBuilder
+    private var barContent: some View {
+        if line.isYang {
+            Capsule()
+                .fill(barColor)
+        } else {
+            HStack(spacing: 0) {
+                Capsule()
+                    .fill(barColor)
+                    .frame(width: (barWidth - gapWidth) / 2)
+                Color.clear
+                    .frame(width: gapWidth)
+                Capsule()
+                    .fill(barColor)
+                    .frame(width: (barWidth - gapWidth) / 2)
+            }
+        }
     }
 
     private var barColor: Color {
