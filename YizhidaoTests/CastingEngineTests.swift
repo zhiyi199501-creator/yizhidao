@@ -103,6 +103,44 @@ final class KingWenTableTests: XCTestCase {
     }
 }
 
+final class ReadingGuideTests: XCTestCase {
+    func testZeroMovingUsesPrimaryGuaci() {
+        let f = ReadingGuide.focus(movingPositions: [])
+        XCTAssertEqual(f.kind, .primaryGuaci)
+    }
+
+    func testOneMovingUsesThatLine() {
+        let f = ReadingGuide.focus(movingPositions: [3])
+        XCTAssertEqual(f.kind, .primaryLines(positions: [3], lead: 3))
+    }
+
+    func testTwoMovingUpperIsLead() {
+        let f = ReadingGuide.focus(movingPositions: [2, 5])
+        XCTAssertEqual(f.kind, .primaryLines(positions: [2, 5], lead: 5))
+    }
+
+    func testThreeMovingBothGuaci() {
+        let f = ReadingGuide.focus(movingPositions: [1, 3, 6])
+        XCTAssertEqual(f.kind, .bothGuaci)
+    }
+
+    func testFourMovingResultingStaticLowerIsLead() {
+        let f = ReadingGuide.focus(movingPositions: [1, 2, 4, 6])
+        // static: 3, 5 → lower lead = 3
+        XCTAssertEqual(f.kind, .resultingLines(positions: [3, 5], lead: 3))
+    }
+
+    func testFiveMovingResultingStatic() {
+        let f = ReadingGuide.focus(movingPositions: [1, 2, 3, 4, 6])
+        XCTAssertEqual(f.kind, .resultingLines(positions: [5], lead: 5))
+    }
+
+    func testSixMovingResultingGuaci() {
+        let f = ReadingGuide.focus(movingPositions: [1, 2, 3, 4, 5, 6])
+        XCTAssertEqual(f.kind, .resultingGuaci)
+    }
+}
+
 final class HexagramStoreTests: XCTestCase {
     func testAllHexagramsHaveXiangTexts() {
         let store = HexagramStore(bundle: Bundle(for: HexagramStore.self))

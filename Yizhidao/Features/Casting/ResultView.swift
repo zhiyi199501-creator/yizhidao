@@ -2,11 +2,18 @@ import SwiftUI
 import SwiftData
 
 struct ResultView: View {
+    private enum HexTab: String, CaseIterable, Identifiable {
+        case primary = "本卦"
+        case resulting = "之卦"
+        var id: String { rawValue }
+    }
+
     let result: CastResult
     var isNew: Bool = true
 
     @Environment(\.modelContext) private var modelContext
     @State private var didSave = false
+    @State private var selectedTab: HexTab = .primary
 
     private var store: HexagramStore { .shared }
     private var primary: Hexagram? { store.hexagram(number: result.primaryNumber) }
@@ -15,18 +22,39 @@ struct ResultView: View {
         return store.hexagram(number: n)
     }
 
+    private var focus: ReadingFocus {
+        ReadingGuide.focus(movingPositions: result.movingPositions)
+    }
+
+    private var availableTabs: [HexTab] {
+        resulting == nil ? [.primary] : HexTab.allCases
+    }
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
                 metaSection
                 figuresSection
-                textSection
+                if availableTabs.count > 1 {
+                    Picker("卦", selection: $selectedTab) {
+                        ForEach(availableTabs) { tab in
+                            Text(tab.rawValue).tag(tab)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                }
+                hexagramTextSection(for: selectedTab)
+                Text("经文版本：《易经证释》所引")
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+                    .frame(maxWidth: .infinity, alignment: .trailing)
             }
             .padding()
         }
         .navigationTitle("卦象结果")
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
+            if resulting == nil { selectedTab = .primary }
             guard isNew, !didSave else { return }
             modelContext.insert(ReadingRecord(from: result))
             try? modelContext.save()
@@ -49,15 +77,6 @@ struct ResultView: View {
                 Text("取数：\(numbers.map(String.init).joined(separator: " · "))")
                     .font(.caption)
                     .foregroundStyle(.secondary)
-            }
-            if result.movingPositions.isEmpty {
-                Text("六爻皆静，主看本卦卦辞。")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            } else {
-                Text("动爻：\(result.movingPositions.map(yaoName).joined(separator: "、"))")
-                    .font(.caption)
-                    .foregroundStyle(.orange)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -95,71 +114,93 @@ struct ResultView: View {
         }
     }
 
-    private var textSection: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            if let primary {
-                section(title: "卦辞 · \(primary.name)") {
-                    Text(primary.guaci)
+    @ViewBuilder
+    private func hexagramTextSection(for tab: HexTab) -> some View {
+        let hex: Hexagram? = tab == .primary ? primary : resulting
+        if let hex {
+            VStack(alignment: .leading, spacing: 16) {
+                section(title: "卦辞 · \(hex.name)") {
+                    Text(hex.guaci)
                         .font(.body)
                         .lineSpacing(4)
                 }
-
-                section(title: "大象 · \(primary.name)") {
-                    Text(primary.daxiang)
+                section(title: "大象 · \(hex.name)") {
+                    Text(hex.daxiang)
                         .font(.body)
                         .lineSpacing(4)
                 }
-            }
-
-            if !result.movingPositions.isEmpty, let primary {
-                section(title: "动爻爻辞与小象") {
-                    VStack(alignment: .leading, spacing: 16) {
-                        ForEach(result.movingPositions, id: \.self) { pos in
-                            VStack(alignment: .leading, spacing: 8) {
-                                Text(result.movingPositions.count == 1 ? "主看 · \(yaoName(pos))" : yaoName(pos))
-                                    .font(.subheadline.weight(.semibold))
-                                    .foregroundStyle(.orange)
-                                labeledBlock(title: "爻辞", text: primary.yaoCi(at: pos))
-                                labeledBlock(title: "小象", text: primary.xiaoXiang(at: pos))
-                            }
-                        }
-                        if result.movingPositions.count >= 2 {
-                            Text("说明：多爻发动时列出全部动爻爻辞与小象；完整朱熹多变爻读法可后续增强。")
-                                .font(.caption2)
-                                .foregroundStyle(.secondary)
+                section(title: "六爻") {
+                    VStack(alignment: .leading, spacing: 14) {
+                        // 上爻在上，初爻在下（与卦象图一致）
+                        ForEach((1...6).reversed(), id: \.self) { pos in
+                            lineBlock(hex: hex, tab: tab, position: pos)
                         }
                     }
                 }
             }
-
-            if let resulting {
-                section(title: "之卦卦辞 · \(resulting.name)") {
-                    Text(resulting.guaci)
-                        .font(.body)
-                        .lineSpacing(4)
-                }
-                section(title: "之卦大象 · \(resulting.name)") {
-                    Text(resulting.daxiang)
-                        .font(.body)
-                        .lineSpacing(4)
-                }
-            }
-
-            Text("经文版本：《易经证释》所引")
-                .font(.caption2)
-                .foregroundStyle(.tertiary)
-                .frame(maxWidth: .infinity, alignment: .trailing)
         }
     }
 
-    private func labeledBlock(title: String, text: String) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(title)
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(.secondary)
-            Text(text)
+    private func lineBlock(hex: Hexagram, tab: HexTab, position: Int) -> some View {
+        let moving = result.movingPositions.contains(position)
+        let showLead = shouldShowLead(tab: tab, position: position)
+        let accent = moving ? Color.red : Color.primary
+
+        return VStack(alignment: .leading, spacing: 6) {
+            if showLead {
+                Text("主看")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(Color.red, in: Capsule())
+            }
+            Text(trimmedYaoCi(hex: hex, position: position))
                 .font(.body)
+                .foregroundStyle(accent)
                 .lineSpacing(4)
+            Text(xiangLine(hex: hex, position: position))
+                .font(.body)
+                .foregroundStyle(accent)
+                .lineSpacing(4)
+        }
+    }
+
+    private func trimmedYaoCi(hex: Hexagram, position: Int) -> String {
+        var yao = hex.yaoCi(at: position)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        while yao.hasSuffix("。") || yao.hasSuffix("；") {
+            yao = String(yao.dropLast())
+        }
+        return yao
+    }
+
+    private func xiangLine(hex: Hexagram, position: Int) -> String {
+        var xiang = hex.xiaoXiang(at: position)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        if xiang.hasPrefix("象曰：") {
+            return xiang
+        }
+        if xiang.hasPrefix("象曰") {
+            let rest = xiang.dropFirst(2).trimmingCharacters(in: .whitespaces)
+            if rest.hasPrefix("：") || rest.hasPrefix(":") {
+                return "象曰" + rest
+            }
+            return "象曰：" + rest
+        }
+        return "象曰：" + xiang
+    }
+
+    /// 多动爻且规则指定「为主」之爻时才标「主看」。
+    private func shouldShowLead(tab: HexTab, position: Int) -> Bool {
+        guard result.movingPositions.count >= 2 else { return false }
+        switch focus.kind {
+        case .primaryLines(_, let lead):
+            return tab == .primary && lead == position
+        case .resultingLines(_, let lead):
+            return tab == .resulting && lead == position
+        default:
+            return false
         }
     }
 
@@ -176,18 +217,6 @@ struct ResultView: View {
 
     private func changedLines(from lines: [LineValue]) -> [LineValue] {
         lines.map { $0.isChanging ? $0.changed : $0 }
-    }
-
-    private func yaoName(_ position: Int) -> String {
-        switch position {
-        case 1: return "初爻"
-        case 2: return "二爻"
-        case 3: return "三爻"
-        case 4: return "四爻"
-        case 5: return "五爻"
-        case 6: return "上爻"
-        default: return "爻"
-        }
     }
 
     private func formattedTime(_ date: Date) -> String {
