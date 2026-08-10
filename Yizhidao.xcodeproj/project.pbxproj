@@ -1,0 +1,423 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 60;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		000EE769F18742B3B477D3CF /* LineValue.swift in Sources */ = {isa = PBXBuildFile; fileRef = E353FA2831C245F5A0111574 /* LineValue.swift */; };
+		05FCA4FD8FE7496E8654BB70 /* CastingEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 55D24AD374C54517A647A123 /* CastingEngineTests.swift */; };
+		1242F044DF5942258C78437E /* HexagramStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 260E15D9F01D48DAA9D497EA /* HexagramStore.swift */; };
+		23694EC8A2D14E19869A21DE /* CoinCastView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C7C61C67A8B43748AAC82F1 /* CoinCastView.swift */; };
+		287E6E59BF89490E932CFFC6 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = E1E94CC872B540419C963B30 /* Assets.xcassets */; };
+		3911DF10CA5946C585F2633F /* CoinCastingEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = D342D0677A7543F48A192D75 /* CoinCastingEngine.swift */; };
+		53B6575BFD7B4F319FD3AF72 /* HexagramFigureView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B40D83FECB4427FBDD6C926 /* HexagramFigureView.swift */; };
+		602326EE314B4192A2FEDDD7 /* Hexagrams.json in Resources */ = {isa = PBXBuildFile; fileRef = 2A3A7D3A62474756845AF9BE /* Hexagrams.json */; };
+		6EA3A2C6C4E141448CC28EEB /* ReadingRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BBBD6D39ECE4DD39BEA95EF /* ReadingRecord.swift */; };
+		755BF225FDD14B22AFAE8E49 /* CastingHomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E614E289492B467E8E241148 /* CastingHomeView.swift */; };
+		84A157B65C5A4E9A80DDEC3C /* CastingMethod.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5324BB819C354DE18B32CB01 /* CastingMethod.swift */; };
+		88BB561655D74ABDB96ED617 /* DigitalCastView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DBE934520CE8420597117133 /* DigitalCastView.swift */; };
+		8941F8251B6C44C5854F01A6 /* Hexagram.swift in Sources */ = {isa = PBXBuildFile; fileRef = F9BBA2BE8067493FBBAD0119 /* Hexagram.swift */; };
+		91DE366801B3496FB3F80665 /* YizhidaoApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD28779165054160BE1BD459 /* YizhidaoApp.swift */; };
+		CB1B9E21829342AA97B90B04 /* KingWenTable.swift in Sources */ = {isa = PBXBuildFile; fileRef = ECA85F738BC74E21A5C9073A /* KingWenTable.swift */; };
+		CC351C1DDE89457DA9C2D046 /* HistoryListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D59DC6B79544101AE267222 /* HistoryListView.swift */; };
+		D13A3C208BA540C990E6C366 /* DigitalCastingEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1781F41A2C04E80B1601A9D /* DigitalCastingEngine.swift */; };
+		F4FA069E0E144AD7AD608185 /* ResultView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 78593865F4DD44ABAF281B2A /* ResultView.swift */; };
+		F8C1C3F4E501414DBDDD982A /* LunarCalendarHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DF34D4493C94C639D9DB6BD /* LunarCalendarHelper.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		F2DADE0260AE49BDBA4D1DF2 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = DB7C5B5A2C04434CB1DD61C7 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = D16BB3E7E4CB46899454D44C;
+			remoteInfo = Yizhidao;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		0B40D83FECB4427FBDD6C926 /* HexagramFigureView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = HexagramFigureView.swift; path = Features/Casting/HexagramFigureView.swift; sourceTree = "<group>"; };
+		260E15D9F01D48DAA9D497EA /* HexagramStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = HexagramStore.swift; path = Data/HexagramStore.swift; sourceTree = "<group>"; };
+		2A3A7D3A62474756845AF9BE /* Hexagrams.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; name = Hexagrams.json; path = Resources/Hexagrams.json; sourceTree = "<group>"; };
+		3C7C61C67A8B43748AAC82F1 /* CoinCastView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = CoinCastView.swift; path = Features/Casting/CoinCastView.swift; sourceTree = "<group>"; };
+		4CCA25932BFA4D12AB89EA0B /* YizhidaoTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = YizhidaoTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		4D59DC6B79544101AE267222 /* HistoryListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = HistoryListView.swift; path = Features/History/HistoryListView.swift; sourceTree = "<group>"; };
+		5324BB819C354DE18B32CB01 /* CastingMethod.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = CastingMethod.swift; path = Domain/CastingMethod.swift; sourceTree = "<group>"; };
+		55D24AD374C54517A647A123 /* CastingEngineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CastingEngineTests.swift; sourceTree = "<group>"; };
+		78593865F4DD44ABAF281B2A /* ResultView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ResultView.swift; path = Features/Casting/ResultView.swift; sourceTree = "<group>"; };
+		7BBBD6D39ECE4DD39BEA95EF /* ReadingRecord.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ReadingRecord.swift; path = Data/ReadingRecord.swift; sourceTree = "<group>"; };
+		8B62E39E21164DECB56BDBF2 /* Yizhidao.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Yizhidao.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		9DF34D4493C94C639D9DB6BD /* LunarCalendarHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = LunarCalendarHelper.swift; path = Engines/LunarCalendarHelper.swift; sourceTree = "<group>"; };
+		D342D0677A7543F48A192D75 /* CoinCastingEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = CoinCastingEngine.swift; path = Engines/CoinCastingEngine.swift; sourceTree = "<group>"; };
+		DBE934520CE8420597117133 /* DigitalCastView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = DigitalCastView.swift; path = Features/Casting/DigitalCastView.swift; sourceTree = "<group>"; };
+		DD28779165054160BE1BD459 /* YizhidaoApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = YizhidaoApp.swift; path = App/YizhidaoApp.swift; sourceTree = "<group>"; };
+		E1781F41A2C04E80B1601A9D /* DigitalCastingEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = DigitalCastingEngine.swift; path = Engines/DigitalCastingEngine.swift; sourceTree = "<group>"; };
+		E1E94CC872B540419C963B30 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		E353FA2831C245F5A0111574 /* LineValue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = LineValue.swift; path = Domain/LineValue.swift; sourceTree = "<group>"; };
+		E614E289492B467E8E241148 /* CastingHomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = CastingHomeView.swift; path = Features/Casting/CastingHomeView.swift; sourceTree = "<group>"; };
+		ECA85F738BC74E21A5C9073A /* KingWenTable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = KingWenTable.swift; path = Engines/KingWenTable.swift; sourceTree = "<group>"; };
+		F9BBA2BE8067493FBBAD0119 /* Hexagram.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = Hexagram.swift; path = Domain/Hexagram.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		46B0D4521B744F7CB49CE3D1 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		5B100616D56B459C9E7403A5 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		04D7B1311AD944EF8DA50DAD /* Yizhidao */ = {
+			isa = PBXGroup;
+			children = (
+				DD28779165054160BE1BD459 /* YizhidaoApp.swift */,
+				260E15D9F01D48DAA9D497EA /* HexagramStore.swift */,
+				7BBBD6D39ECE4DD39BEA95EF /* ReadingRecord.swift */,
+				5324BB819C354DE18B32CB01 /* CastingMethod.swift */,
+				F9BBA2BE8067493FBBAD0119 /* Hexagram.swift */,
+				E353FA2831C245F5A0111574 /* LineValue.swift */,
+				D342D0677A7543F48A192D75 /* CoinCastingEngine.swift */,
+				E1781F41A2C04E80B1601A9D /* DigitalCastingEngine.swift */,
+				ECA85F738BC74E21A5C9073A /* KingWenTable.swift */,
+				9DF34D4493C94C639D9DB6BD /* LunarCalendarHelper.swift */,
+				E614E289492B467E8E241148 /* CastingHomeView.swift */,
+				3C7C61C67A8B43748AAC82F1 /* CoinCastView.swift */,
+				DBE934520CE8420597117133 /* DigitalCastView.swift */,
+				0B40D83FECB4427FBDD6C926 /* HexagramFigureView.swift */,
+				78593865F4DD44ABAF281B2A /* ResultView.swift */,
+				4D59DC6B79544101AE267222 /* HistoryListView.swift */,
+				2A3A7D3A62474756845AF9BE /* Hexagrams.json */,
+				E1E94CC872B540419C963B30 /* Assets.xcassets */,
+			);
+			path = Yizhidao;
+			sourceTree = "<group>";
+		};
+		3E6EDF5225ED404EA7C74480 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				8B62E39E21164DECB56BDBF2 /* Yizhidao.app */,
+				4CCA25932BFA4D12AB89EA0B /* YizhidaoTests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		A423B33202D24105AB8005C3 /* YizhidaoTests */ = {
+			isa = PBXGroup;
+			children = (
+				55D24AD374C54517A647A123 /* CastingEngineTests.swift */,
+			);
+			path = YizhidaoTests;
+			sourceTree = "<group>";
+		};
+		F04108618BB2496B9946A514 = {
+			isa = PBXGroup;
+			children = (
+				04D7B1311AD944EF8DA50DAD /* Yizhidao */,
+				A423B33202D24105AB8005C3 /* YizhidaoTests */,
+				3E6EDF5225ED404EA7C74480 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		816A9D505358440BBABEE8AB /* YizhidaoTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 64171B8670044577ABFC8D69 /* Build configuration list for PBXNativeTarget "YizhidaoTests" */;
+			buildPhases = (
+				9CA17A229379465C879ECAFC /* Sources */,
+				5B100616D56B459C9E7403A5 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				C483CB675911416286952343 /* PBXTargetDependency */,
+			);
+			name = YizhidaoTests;
+			productName = YizhidaoTests;
+			productReference = 4CCA25932BFA4D12AB89EA0B /* YizhidaoTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		D16BB3E7E4CB46899454D44C /* Yizhidao */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 99F54D58A7824584816DEB75 /* Build configuration list for PBXNativeTarget "Yizhidao" */;
+			buildPhases = (
+				18DA72ECAA6046AA8C22DC60 /* Sources */,
+				46B0D4521B744F7CB49CE3D1 /* Frameworks */,
+				625186FA12574BC5895BC124 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = Yizhidao;
+			productName = Yizhidao;
+			productReference = 8B62E39E21164DECB56BDBF2 /* Yizhidao.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		DB7C5B5A2C04434CB1DD61C7 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1600;
+				LastUpgradeCheck = 1600;
+				TargetAttributes = {
+					816A9D505358440BBABEE8AB = {
+						CreatedOnToolsVersion = 16.0;
+						TestTargetID = D16BB3E7E4CB46899454D44C;
+					};
+					D16BB3E7E4CB46899454D44C = {
+						CreatedOnToolsVersion = 16.0;
+					};
+				};
+			};
+			buildConfigurationList = 9580D5AC6C654A18BF2D1764 /* Build configuration list for PBXProject "Yizhidao" */;
+			compatibilityVersion = "Xcode 15.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = F04108618BB2496B9946A514;
+			productRefGroup = 3E6EDF5225ED404EA7C74480 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				D16BB3E7E4CB46899454D44C /* Yizhidao */,
+				816A9D505358440BBABEE8AB /* YizhidaoTests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		625186FA12574BC5895BC124 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				602326EE314B4192A2FEDDD7 /* Hexagrams.json in Resources */,
+				287E6E59BF89490E932CFFC6 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		18DA72ECAA6046AA8C22DC60 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				91DE366801B3496FB3F80665 /* YizhidaoApp.swift in Sources */,
+				1242F044DF5942258C78437E /* HexagramStore.swift in Sources */,
+				6EA3A2C6C4E141448CC28EEB /* ReadingRecord.swift in Sources */,
+				84A157B65C5A4E9A80DDEC3C /* CastingMethod.swift in Sources */,
+				8941F8251B6C44C5854F01A6 /* Hexagram.swift in Sources */,
+				000EE769F18742B3B477D3CF /* LineValue.swift in Sources */,
+				3911DF10CA5946C585F2633F /* CoinCastingEngine.swift in Sources */,
+				D13A3C208BA540C990E6C366 /* DigitalCastingEngine.swift in Sources */,
+				CB1B9E21829342AA97B90B04 /* KingWenTable.swift in Sources */,
+				F8C1C3F4E501414DBDDD982A /* LunarCalendarHelper.swift in Sources */,
+				755BF225FDD14B22AFAE8E49 /* CastingHomeView.swift in Sources */,
+				23694EC8A2D14E19869A21DE /* CoinCastView.swift in Sources */,
+				88BB561655D74ABDB96ED617 /* DigitalCastView.swift in Sources */,
+				53B6575BFD7B4F319FD3AF72 /* HexagramFigureView.swift in Sources */,
+				F4FA069E0E144AD7AD608185 /* ResultView.swift in Sources */,
+				CC351C1DDE89457DA9C2D046 /* HistoryListView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9CA17A229379465C879ECAFC /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				05FCA4FD8FE7496E8654BB70 /* CastingEngineTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		C483CB675911416286952343 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = D16BB3E7E4CB46899454D44C /* Yizhidao */;
+			targetProxy = F2DADE0260AE49BDBA4D1DF2 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		0ED320ADA9B44486A7F5054B /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.yizhidao.app.tests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Yizhidao.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Yizhidao";
+			};
+			name = Release;
+		};
+		1E4A70EA52094F6EA027E077 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_TESTABILITY = YES;
+				GCC_DYNAMIC_NO_PIC = NO;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		3F5AC305765849A3A7B7055A /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 4N96M5Z4PM;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "易知道";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.yizhidao.app;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		7A920CE0FD294EB6924CC18F /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 4N96M5Z4PM;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "易知道";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.yizhidao.app;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+		8A014B4CCA4143D5BEAAC63A /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.yizhidao.app.tests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Yizhidao.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Yizhidao";
+			};
+			name = Debug;
+		};
+		A10C05CBE77C4F37A801FF62 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_TESTABILITY = YES;
+				GCC_DYNAMIC_NO_PIC = NO;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				ONLY_ACTIVE_ARCH = NO;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		64171B8670044577ABFC8D69 /* Build configuration list for PBXNativeTarget "YizhidaoTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				8A014B4CCA4143D5BEAAC63A /* Debug */,
+				0ED320ADA9B44486A7F5054B /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		9580D5AC6C654A18BF2D1764 /* Build configuration list for PBXProject "Yizhidao" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				1E4A70EA52094F6EA027E077 /* Debug */,
+				A10C05CBE77C4F37A801FF62 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		99F54D58A7824584816DEB75 /* Build configuration list for PBXNativeTarget "Yizhidao" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				3F5AC305765849A3A7B7055A /* Debug */,
+				7A920CE0FD294EB6924CC18F /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = DB7C5B5A2C04434CB1DD61C7 /* Project object */;
+}

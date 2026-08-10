@@ -1,0 +1,6 @@
+.derivedData/
+.firecrawl/
+*.xcuserstate
+xcuserdata/
+.DS_Store
+Yizhidao/Resources/AppIcon-source.png
