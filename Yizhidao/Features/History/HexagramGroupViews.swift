@@ -167,7 +167,7 @@ struct HexagramGroupDetailView: View {
                             ReadingRecordRow(
                                 record: record,
                                 store: store,
-                                showPrimaryTitle: false
+                                showPrimaryTitle: true
                             )
                         }
                     }
@@ -271,7 +271,10 @@ enum MovingCountFilter: String, CaseIterable, Identifiable, Hashable {
     case zero
     case one
     case two
-    case threePlus
+    case three
+    case four
+    case five
+    case six
 
     var id: String { rawValue }
 
@@ -281,7 +284,10 @@ enum MovingCountFilter: String, CaseIterable, Identifiable, Hashable {
         case .zero: return "0 动"
         case .one: return "1 动"
         case .two: return "2 动"
-        case .threePlus: return "3+"
+        case .three: return "3 动"
+        case .four: return "4 动"
+        case .five: return "5 动"
+        case .six: return "6 动"
         }
     }
 
@@ -291,7 +297,10 @@ enum MovingCountFilter: String, CaseIterable, Identifiable, Hashable {
         case .zero: return movingCount == 0
         case .one: return movingCount == 1
         case .two: return movingCount == 2
-        case .threePlus: return movingCount >= 3
+        case .three: return movingCount == 3
+        case .four: return movingCount == 4
+        case .five: return movingCount == 5
+        case .six: return movingCount == 6
         }
     }
 
@@ -300,7 +309,11 @@ enum MovingCountFilter: String, CaseIterable, Identifiable, Hashable {
         case 0: return .zero
         case 1: return .one
         case 2: return .two
-        default: return movingCount >= 3 ? .threePlus : .all
+        case 3: return .three
+        case 4: return .four
+        case 5: return .five
+        case 6: return .six
+        default: return .all
         }
     }
 }
