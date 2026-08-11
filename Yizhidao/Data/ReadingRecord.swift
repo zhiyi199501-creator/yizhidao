@@ -1,6 +1,24 @@
 import Foundation
 import SwiftData
 
+enum VerificationStatus: String, CaseIterable, Identifiable, Sendable {
+    case none = "none"
+    case fulfilled = "fulfilled"
+    case partial = "partial"
+    case unfulfilled = "unfulfilled"
+
+    var id: String { rawValue }
+
+    var displayName: String {
+        switch self {
+        case .none: return "未验证"
+        case .fulfilled: return "应验"
+        case .partial: return "部分应验"
+        case .unfulfilled: return "未应验"
+        }
+    }
+}
+
 @Model
 final class ReadingRecord {
     var id: UUID
@@ -12,6 +30,8 @@ final class ReadingRecord {
     var resultingNumber: Int?
     var linesJSON: String
     var movingPositionsJSON: String
+    var verificationStatusRaw: String = VerificationStatus.none.rawValue
+    var verificationNote: String?
 
     init(from result: CastResult) {
         self.id = UUID()
@@ -33,10 +53,21 @@ final class ReadingRecord {
             data: try! JSONEncoder().encode(result.movingPositions),
             encoding: .utf8
         )!
+        self.verificationStatusRaw = VerificationStatus.none.rawValue
+        self.verificationNote = nil
     }
 
     var method: CastingMethod {
         CastingMethod(rawValue: methodRaw) ?? .digitalManual
+    }
+
+    var verificationStatus: VerificationStatus {
+        get { VerificationStatus(rawValue: verificationStatusRaw) ?? .none }
+        set { verificationStatusRaw = newValue.rawValue }
+    }
+
+    var movingPositions: [Int] {
+        (try? JSONDecoder().decode([Int].self, from: Data(movingPositionsJSON.utf8))) ?? []
     }
 
     func toCastResult() -> CastResult {
@@ -47,7 +78,7 @@ final class ReadingRecord {
         }()
         let lineInts = (try? JSONDecoder().decode([Int].self, from: Data(linesJSON.utf8))) ?? []
         let lines = lineInts.compactMap(LineValue.init(rawValue:))
-        let moving = (try? JSONDecoder().decode([Int].self, from: Data(movingPositionsJSON.utf8))) ?? []
+        let moving = movingPositions
         return CastResult(
             method: method,
             createdAt: createdAt,

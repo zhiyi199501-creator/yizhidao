@@ -8,12 +8,18 @@ struct ResultView: View {
         var id: String { rawValue }
     }
 
-    let result: CastResult
-    var isNew: Bool = true
+    private let result: CastResult
+    private let isNew: Bool
+    private let record: ReadingRecord?
 
     @Environment(\.modelContext) private var modelContext
+    @Environment(AppNavigation.self) private var appNavigation
     @State private var didSave = false
     @State private var selectedTab: HexTab = .primary
+    @State private var questionText: String = ""
+    @State private var verificationStatus: VerificationStatus = .none
+    @State private var verificationNote: String = ""
+    @State private var savedRecord: ReadingRecord?
 
     private var store: HexagramStore { .shared }
     private var primary: Hexagram? { store.hexagram(number: result.primaryNumber) }
@@ -30,10 +36,33 @@ struct ResultView: View {
         resulting == nil ? [.primary] : HexTab.allCases
     }
 
+    private var editableRecord: ReadingRecord? {
+        record ?? savedRecord
+    }
+
+    init(result: CastResult, isNew: Bool = true) {
+        self.result = result
+        self.isNew = isNew
+        self.record = nil
+        _questionText = State(initialValue: result.question ?? "")
+    }
+
+    init(record: ReadingRecord) {
+        self.result = record.toCastResult()
+        self.isNew = false
+        self.record = record
+        _questionText = State(initialValue: record.question ?? "")
+        _verificationStatus = State(initialValue: record.verificationStatus)
+        _verificationNote = State(initialValue: record.verificationNote ?? "")
+    }
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
                 metaSection
+                if editableRecord != nil {
+                    verificationSection
+                }
                 figuresSection
                 if availableTabs.count > 1 {
                     Picker("卦", selection: $selectedTab) {
@@ -53,11 +82,27 @@ struct ResultView: View {
         }
         .navigationTitle("卦象结果")
         .navigationBarTitleDisplayMode(.inline)
+        .parchmentBackground()
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    appNavigation.openSimilarHexagram(for: result)
+                } label: {
+                    Label("同类", systemImage: "rectangle.stack")
+                }
+                .accessibilityLabel("查看同类卦")
+            }
+        }
         .onAppear {
             if resulting == nil { selectedTab = .primary }
             guard isNew, !didSave else { return }
-            modelContext.insert(ReadingRecord(from: result))
+            let inserted = ReadingRecord(from: result)
+            modelContext.insert(inserted)
             try? modelContext.save()
+            savedRecord = inserted
+            questionText = inserted.question ?? ""
+            verificationStatus = inserted.verificationStatus
+            verificationNote = inserted.verificationNote ?? ""
             didSave = true
         }
     }
@@ -69,7 +114,14 @@ struct ResultView: View {
             Text(formattedTime(result.createdAt))
                 .font(.footnote)
                 .foregroundStyle(.secondary)
-            if let question = result.question, !question.isEmpty {
+            if editableRecord != nil {
+                    TextField("所问何事（可选）", text: $questionText, axis: .vertical)
+                        .lineLimit(2...5)
+                        .appTextFieldStyle()
+                        .onChange(of: questionText) { _, newValue in
+                            persistQuestion(newValue)
+                        }
+            } else if let question = result.question, !question.isEmpty {
                 Text("所问：\(question)")
                     .font(.body)
             }
@@ -81,7 +133,45 @@ struct ResultView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding()
-        .background(RoundedRectangle(cornerRadius: 12).fill(Color(.secondarySystemBackground)))
+        .background(RoundedRectangle(cornerRadius: 12).fill(AppTheme.cardFill))
+    }
+
+    private var verificationSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Picker("状态", selection: $verificationStatus) {
+                ForEach(VerificationStatus.allCases) { status in
+                    Text(status.displayName).tag(status)
+                }
+            }
+            .pickerStyle(.segmented)
+            .onChange(of: verificationStatus) { _, newValue in
+                persistVerification(status: newValue, note: verificationNote)
+            }
+            TextField("验证结果（可选）", text: $verificationNote, axis: .vertical)
+                .lineLimit(2...5)
+                .appTextFieldStyle()
+                .onChange(of: verificationNote) { _, newValue in
+                    persistVerification(status: verificationStatus, note: newValue)
+                }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding()
+        .background(RoundedRectangle(cornerRadius: 12).fill(AppTheme.cardFill))
+    }
+
+    private func persistQuestion(_ text: String) {
+        guard let editableRecord else { return }
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        editableRecord.question = trimmed.isEmpty ? nil : trimmed
+        try? modelContext.save()
+    }
+
+    private func persistVerification(status: VerificationStatus, note: String) {
+        guard let editableRecord else { return }
+        editableRecord.verificationStatus = status
+        let trimmed = note.trimmingCharacters(in: .whitespacesAndNewlines)
+        editableRecord.verificationNote = trimmed.isEmpty ? nil : trimmed
+        try? modelContext.save()
     }
 
     private var figuresSection: some View {
@@ -237,7 +327,7 @@ struct ResultView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding()
-        .background(RoundedRectangle(cornerRadius: 12).fill(Color(.secondarySystemBackground)))
+        .background(RoundedRectangle(cornerRadius: 12).fill(AppTheme.cardFill))
     }
 
     private func changedLines(from lines: [LineValue]) -> [LineValue] {

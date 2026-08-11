@@ -22,8 +22,12 @@
 		88BB561655D74ABDB96ED617 /* DigitalCastView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DBE934520CE8420597117133 /* DigitalCastView.swift */; };
 		8941F8251B6C44C5854F01A6 /* Hexagram.swift in Sources */ = {isa = PBXBuildFile; fileRef = F9BBA2BE8067493FBBAD0119 /* Hexagram.swift */; };
 		91DE366801B3496FB3F80665 /* YizhidaoApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD28779165054160BE1BD459 /* YizhidaoApp.swift */; };
+		E4A1B2C3D4E5F60718293A01 /* AppTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5B2C3D4E5F60718293A02 /* AppTheme.swift */; };
+		A1B2C3D4E5F6071893A011 /* AppNavigation.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2C3D4E5F6071893A012 /* AppNavigation.swift */; };
 		CB1B9E21829342AA97B90B04 /* KingWenTable.swift in Sources */ = {isa = PBXBuildFile; fileRef = ECA85F738BC74E21A5C9073A /* KingWenTable.swift */; };
 		CC351C1DDE89457DA9C2D046 /* HistoryListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D59DC6B79544101AE267222 /* HistoryListView.swift */; };
+		A7E2B1C094F84D2A9C6E1D30 /* ReadingRecordRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8F3C2D185E95E3B0D7F2E41 /* ReadingRecordRow.swift */; };
+		C9D4E3F276A06F4C1E803A52 /* HexagramGroupViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0E5F4A387B17B5D2F9A4C63 /* HexagramGroupViews.swift */; };
 		D13A3C208BA540C990E6C366 /* DigitalCastingEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1781F41A2C04E80B1601A9D /* DigitalCastingEngine.swift */; };
 		F4FA069E0E144AD7AD608185 /* ResultView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 78593865F4DD44ABAF281B2A /* ResultView.swift */; };
 		F8C1C3F4E501414DBDDD982A /* LunarCalendarHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DF34D4493C94C639D9DB6BD /* LunarCalendarHelper.swift */; };
@@ -46,6 +50,8 @@
 		3C7C61C67A8B43748AAC82F1 /* CoinCastView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = CoinCastView.swift; path = Features/Casting/CoinCastView.swift; sourceTree = "<group>"; };
 		4CCA25932BFA4D12AB89EA0B /* YizhidaoTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = YizhidaoTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		4D59DC6B79544101AE267222 /* HistoryListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = HistoryListView.swift; path = Features/History/HistoryListView.swift; sourceTree = "<group>"; };
+		B8F3C2D185E95E3B0D7F2E41 /* ReadingRecordRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ReadingRecordRow.swift; path = Features/History/ReadingRecordRow.swift; sourceTree = "<group>"; };
+		D0E5F4A387B17B5D2F9A4C63 /* HexagramGroupViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = HexagramGroupViews.swift; path = Features/History/HexagramGroupViews.swift; sourceTree = "<group>"; };
 		5324BB819C354DE18B32CB01 /* CastingMethod.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = CastingMethod.swift; path = Domain/CastingMethod.swift; sourceTree = "<group>"; };
 		55D24AD374C54517A647A123 /* CastingEngineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CastingEngineTests.swift; sourceTree = "<group>"; };
 		78593865F4DD44ABAF281B2A /* ResultView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ResultView.swift; path = Features/Casting/ResultView.swift; sourceTree = "<group>"; };
@@ -56,6 +62,8 @@
 		D342D0677A7543F48A192D75 /* CoinCastingEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = CoinCastingEngine.swift; path = Engines/CoinCastingEngine.swift; sourceTree = "<group>"; };
 		DBE934520CE8420597117133 /* DigitalCastView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = DigitalCastView.swift; path = Features/Casting/DigitalCastView.swift; sourceTree = "<group>"; };
 		DD28779165054160BE1BD459 /* YizhidaoApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = YizhidaoApp.swift; path = App/YizhidaoApp.swift; sourceTree = "<group>"; };
+		F5B2C3D4E5F60718293A02 /* AppTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppTheme.swift; path = App/AppTheme.swift; sourceTree = "<group>"; };
+		B2C3D4E5F6071893A012 /* AppNavigation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppNavigation.swift; path = App/AppNavigation.swift; sourceTree = "<group>"; };
 		E1781F41A2C04E80B1601A9D /* DigitalCastingEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = DigitalCastingEngine.swift; path = Engines/DigitalCastingEngine.swift; sourceTree = "<group>"; };
 		E1E94CC872B540419C963B30 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		E353FA2831C245F5A0111574 /* LineValue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = LineValue.swift; path = Domain/LineValue.swift; sourceTree = "<group>"; };
@@ -86,6 +94,8 @@
 			isa = PBXGroup;
 			children = (
 				DD28779165054160BE1BD459 /* YizhidaoApp.swift */,
+				F5B2C3D4E5F60718293A02 /* AppTheme.swift */,
+				B2C3D4E5F6071893A012 /* AppNavigation.swift */,
 				260E15D9F01D48DAA9D497EA /* HexagramStore.swift */,
 				7BBBD6D39ECE4DD39BEA95EF /* ReadingRecord.swift */,
 				5324BB819C354DE18B32CB01 /* CastingMethod.swift */,
@@ -102,6 +112,8 @@
 				0B40D83FECB4427FBDD6C926 /* HexagramFigureView.swift */,
 				78593865F4DD44ABAF281B2A /* ResultView.swift */,
 				4D59DC6B79544101AE267222 /* HistoryListView.swift */,
+				B8F3C2D185E95E3B0D7F2E41 /* ReadingRecordRow.swift */,
+				D0E5F4A387B17B5D2F9A4C63 /* HexagramGroupViews.swift */,
 				2A3A7D3A62474756845AF9BE /* Hexagrams.json */,
 				E1E94CC872B540419C963B30 /* Assets.xcassets */,
 			);
@@ -227,6 +239,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				91DE366801B3496FB3F80665 /* YizhidaoApp.swift in Sources */,
+				E4A1B2C3D4E5F60718293A01 /* AppTheme.swift in Sources */,
+				A1B2C3D4E5F6071893A011 /* AppNavigation.swift in Sources */,
 				1242F044DF5942258C78437E /* HexagramStore.swift in Sources */,
 				6EA3A2C6C4E141448CC28EEB /* ReadingRecord.swift in Sources */,
 				84A157B65C5A4E9A80DDEC3C /* CastingMethod.swift in Sources */,
@@ -243,6 +257,8 @@
 				53B6575BFD7B4F319FD3AF72 /* HexagramFigureView.swift in Sources */,
 				F4FA069E0E144AD7AD608185 /* ResultView.swift in Sources */,
 				CC351C1DDE89457DA9C2D046 /* HistoryListView.swift in Sources */,
+				A7E2B1C094F84D2A9C6E1D30 /* ReadingRecordRow.swift in Sources */,
+				C9D4E3F276A06F4C1E803A52 /* HexagramGroupViews.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

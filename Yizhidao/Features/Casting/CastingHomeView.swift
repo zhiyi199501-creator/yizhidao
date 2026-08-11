@@ -12,6 +12,7 @@ struct CastingHomeView: View {
     @State private var question = ""
     @State private var latestResult: CastResult?
     @State private var showResult = false
+    @Environment(AppNavigation.self) private var appNavigation
 
     var body: some View {
         NavigationStack {
@@ -24,8 +25,8 @@ struct CastingHomeView: View {
                         .foregroundStyle(.secondary)
 
                     TextField("所问何事（可选）", text: $question, axis: .vertical)
-                        .textFieldStyle(.roundedBorder)
-                        .lineLimit(2...4)
+                        .appTextFieldStyle()
+                        .lineLimit(3...6)
 
                     Picker("方法", selection: $methodTab) {
                         ForEach(MethodTab.allCases) { tab in
@@ -51,7 +52,7 @@ struct CastingHomeView: View {
                     .padding()
                     .background(
                         RoundedRectangle(cornerRadius: 16)
-                            .fill(Color(.secondarySystemBackground))
+                            .fill(AppTheme.cardFill)
                     )
                 }
                 .padding()
@@ -60,21 +61,14 @@ struct CastingHomeView: View {
             .background {
                 DismissKeyboardBackground()
             }
-            .background(
-                LinearGradient(
-                    colors: [
-                        Color(red: 0.96, green: 0.93, blue: 0.88),
-                        Color(red: 0.92, green: 0.90, blue: 0.86)
-                    ],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-                .ignoresSafeArea()
-            )
+            .parchmentBackground()
             .navigationDestination(isPresented: $showResult) {
                 if let latestResult {
                     ResultView(result: latestResult, isNew: true)
                 }
+            }
+            .onChange(of: appNavigation.dismissCastResultTick) { _, _ in
+                showResult = false
             }
         }
     }

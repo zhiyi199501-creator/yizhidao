@@ -53,7 +53,7 @@ struct DigitalCastView: View {
                     .padding(.vertical, 12)
             }
             .buttonStyle(.borderedProminent)
-            .tint(Color(red: 0.45, green: 0.22, blue: 0.18))
+            .tint(AppTheme.accent)
         }
     }
 
@@ -98,7 +98,11 @@ struct DigitalCastView: View {
                         .foregroundStyle(.primary)
                         .padding(.horizontal, 12)
                         .padding(.vertical, 7)
-                        .background(Color(.tertiarySystemFill), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                        .background(AppTheme.fieldFill, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                .stroke(AppTheme.fieldStroke, lineWidth: 1)
+                        )
                 }
                 .buttonStyle(.plain)
             }
@@ -183,9 +187,10 @@ struct DigitalCastView: View {
                 .font(.subheadline)
             TextField("输入数字", text: text)
                 .keyboardType(.numberPad)
-                .textFieldStyle(.roundedBorder)
+                .appTextFieldStyle()
             Button("随机", action: onRandom)
                 .buttonStyle(.bordered)
+                .tint(AppTheme.accent)
         }
     }
 

@@ -70,7 +70,7 @@ struct CoinCastView: View {
                     .padding(.vertical, 12)
             }
             .buttonStyle(.borderedProminent)
-            .tint(Color(red: 0.45, green: 0.22, blue: 0.18))
+            .tint(AppTheme.accent)
             .disabled(filledCount < 6)
         }
     }

@@ -26,17 +26,24 @@ struct YizhidaoApp: App {
 }
 
 struct RootTabView: View {
+    @State private var appNavigation = AppNavigation()
+
     var body: some View {
-        TabView {
+        @Bindable var appNavigation = appNavigation
+        TabView(selection: $appNavigation.selectedTab) {
             CastingHomeView()
                 .tabItem {
                     Label("起卦", systemImage: "sparkles")
                 }
+                .tag(AppTab.cast)
             HistoryListView()
                 .tabItem {
                     Label("历史", systemImage: "clock")
                 }
+                .tag(AppTab.history)
         }
-        .tint(Color(red: 0.45, green: 0.22, blue: 0.18))
+        .tint(AppTheme.accent)
+        .preferredColorScheme(.light)
+        .environment(appNavigation)
     }
 }
