@@ -52,12 +52,19 @@ struct HistoryListView: View {
                 HexagramGroupDetailView(destination: destination)
             }
         }
-        .onChange(of: appNavigation.pendingSimilar) { _, destination in
-            guard let destination else { return }
+        .onChange(of: appNavigation.similarJumpTick) { _, _ in
+            guard let destination = appNavigation.pendingSimilar else { return }
             browseMode = .byHexagram
-            path = NavigationPath()
-            path.append(destination)
-            appNavigation.pendingSimilar = nil
+            // 先无动画清栈，再以默认 push 动画进入同卦页（接近时间线进结果）。
+            var clearTransaction = Transaction()
+            clearTransaction.disablesAnimations = true
+            withTransaction(clearTransaction) {
+                path = NavigationPath()
+            }
+            DispatchQueue.main.async {
+                path.append(destination)
+                appNavigation.pendingSimilar = nil
+            }
         }
     }
 

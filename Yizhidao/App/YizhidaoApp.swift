@@ -45,5 +45,6 @@ struct RootTabView: View {
         .tint(AppTheme.accent)
         .preferredColorScheme(.light)
         .environment(appNavigation)
+        .animation(nil, value: appNavigation.selectedTab)
     }
 }

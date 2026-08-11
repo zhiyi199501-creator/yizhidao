@@ -26,7 +26,7 @@ struct CastingHomeView: View {
 
                     TextField("所问何事（可选）", text: $question, axis: .vertical)
                         .appTextFieldStyle()
-                        .lineLimit(3...6)
+                        .lineLimit(2...5)
 
                     Picker("方法", selection: $methodTab) {
                         ForEach(MethodTab.allCases) { tab in
@@ -68,7 +68,11 @@ struct CastingHomeView: View {
                 }
             }
             .onChange(of: appNavigation.dismissCastResultTick) { _, _ in
-                showResult = false
+                var transaction = Transaction()
+                transaction.disablesAnimations = true
+                withTransaction(transaction) {
+                    showResult = false
+                }
             }
         }
     }
