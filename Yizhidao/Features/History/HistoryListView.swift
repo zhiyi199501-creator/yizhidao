@@ -2,13 +2,23 @@ import SwiftUI
 import SwiftData
 
 struct HistoryListView: View {
+    private enum BrowseMode: String, CaseIterable, Identifiable {
+        case timeline = "时间"
+        case byHexagram = "按卦"
+        var id: String { rawValue }
+    }
+
+    @Environment(AppNavigation.self) private var appNavigation
+    @Environment(\.modelContext) private var modelContext
     @Query(sort: \ReadingRecord.createdAt, order: .reverse)
     private var records: [ReadingRecord]
+    @State private var browseMode: BrowseMode = .timeline
+    @State private var path = NavigationPath()
 
     private var store: HexagramStore { .shared }
 
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $path) {
             Group {
                 if records.isEmpty {
                     ContentUnavailableView(
@@ -17,56 +27,66 @@ struct HistoryListView: View {
                         description: Text("起卦后会自动保存在这里")
                     )
                 } else {
-                    List(records) { record in
-                        NavigationLink {
-                            ResultView(result: record.toCastResult(), isNew: false)
-                        } label: {
-                            HistoryRow(record: record, store: store)
+                    VStack(spacing: 0) {
+                        Picker("浏览", selection: $browseMode) {
+                            ForEach(BrowseMode.allCases) { mode in
+                                Text(mode.rawValue).tag(mode)
+                            }
+                        }
+                        .pickerStyle(.segmented)
+                        .padding(.horizontal)
+                        .padding(.vertical, 10)
+
+                        switch browseMode {
+                        case .timeline:
+                            timelineList
+                        case .byHexagram:
+                            HexagramGroupListView(records: records, store: store)
                         }
                     }
                 }
             }
             .navigationTitle("历史")
+            .parchmentBackground()
+            .navigationDestination(for: SimilarHexagramDestination.self) { destination in
+                HexagramGroupDetailView(destination: destination)
+            }
+        }
+        .onChange(of: appNavigation.similarJumpTick) { _, _ in
+            guard let destination = appNavigation.pendingSimilar else { return }
+            browseMode = .byHexagram
+            // 先无动画清栈，再以默认 push 动画进入同卦页（接近时间线进结果）。
+            var clearTransaction = Transaction()
+            clearTransaction.disablesAnimations = true
+            withTransaction(clearTransaction) {
+                path = NavigationPath()
+            }
+            DispatchQueue.main.async {
+                path.append(destination)
+                appNavigation.pendingSimilar = nil
+            }
         }
     }
-}
 
-private struct HistoryRow: View {
-    let record: ReadingRecord
-    let store: HexagramStore
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            HStack {
-                if let hex = store.hexagram(number: record.primaryNumber) {
-                    Text("\(hex.symbol) \(hex.name)")
-                        .font(.headline)
-                } else {
-                    Text("第\(record.primaryNumber)卦")
-                        .font(.headline)
+    private var timelineList: some View {
+        List {
+            ForEach(records) { record in
+                NavigationLink {
+                    ResultView(record: record)
+                } label: {
+                    ReadingRecordRow(record: record, store: store, showPrimaryTitle: true)
                 }
-                Spacer()
-                Text(record.method.displayName)
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
             }
-            if let question = record.question, !question.isEmpty {
-                Text(question)
-                    .font(.subheadline)
-                    .lineLimit(1)
-            }
-            Text(timeString(record.createdAt))
-                .font(.caption)
-                .foregroundStyle(.secondary)
+            .onDelete(perform: deleteRecords)
         }
-        .padding(.vertical, 2)
+        .scrollContentBackground(.hidden)
     }
 
-    private func timeString(_ date: Date) -> String {
-        let f = DateFormatter()
-        f.locale = Locale(identifier: "zh_CN")
-        f.dateFormat = "yyyy/M/d HH:mm"
-        return f.string(from: date)
+    private func deleteRecords(at offsets: IndexSet) {
+        for index in offsets {
+            modelContext.delete(records[index])
+        }
+        try? modelContext.save()
     }
 }
 

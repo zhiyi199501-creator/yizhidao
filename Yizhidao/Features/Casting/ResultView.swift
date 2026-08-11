@@ -8,12 +8,18 @@ struct ResultView: View {
         var id: String { rawValue }
     }
 
-    let result: CastResult
-    var isNew: Bool = true
+    private let result: CastResult
+    private let isNew: Bool
+    private let record: ReadingRecord?
 
     @Environment(\.modelContext) private var modelContext
+    @Environment(AppNavigation.self) private var appNavigation
     @State private var didSave = false
     @State private var selectedTab: HexTab = .primary
+    @State private var questionText: String = ""
+    @State private var verificationStatus: VerificationStatus = .none
+    @State private var verificationNote: String = ""
+    @State private var savedRecord: ReadingRecord?
 
     private var store: HexagramStore { .shared }
     private var primary: Hexagram? { store.hexagram(number: result.primaryNumber) }
@@ -30,10 +36,33 @@ struct ResultView: View {
         resulting == nil ? [.primary] : HexTab.allCases
     }
 
+    private var editableRecord: ReadingRecord? {
+        record ?? savedRecord
+    }
+
+    init(result: CastResult, isNew: Bool = true) {
+        self.result = result
+        self.isNew = isNew
+        self.record = nil
+        _questionText = State(initialValue: result.question ?? "")
+    }
+
+    init(record: ReadingRecord) {
+        self.result = record.toCastResult()
+        self.isNew = false
+        self.record = record
+        _questionText = State(initialValue: record.question ?? "")
+        _verificationStatus = State(initialValue: record.verificationStatus)
+        _verificationNote = State(initialValue: record.verificationNote ?? "")
+    }
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
                 metaSection
+                if editableRecord != nil {
+                    verificationSection
+                }
                 figuresSection
                 if availableTabs.count > 1 {
                     Picker("卦", selection: $selectedTab) {
@@ -53,11 +82,27 @@ struct ResultView: View {
         }
         .navigationTitle("卦象结果")
         .navigationBarTitleDisplayMode(.inline)
+        .parchmentBackground()
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    appNavigation.openSimilarHexagram(for: result)
+                } label: {
+                    Label("同类", systemImage: "rectangle.stack")
+                }
+                .accessibilityLabel("查看同类卦")
+            }
+        }
         .onAppear {
             if resulting == nil { selectedTab = .primary }
             guard isNew, !didSave else { return }
-            modelContext.insert(ReadingRecord(from: result))
+            let inserted = ReadingRecord(from: result)
+            modelContext.insert(inserted)
             try? modelContext.save()
+            savedRecord = inserted
+            questionText = inserted.question ?? ""
+            verificationStatus = inserted.verificationStatus
+            verificationNote = inserted.verificationNote ?? ""
             didSave = true
         }
     }
@@ -69,7 +114,14 @@ struct ResultView: View {
             Text(formattedTime(result.createdAt))
                 .font(.footnote)
                 .foregroundStyle(.secondary)
-            if let question = result.question, !question.isEmpty {
+            if editableRecord != nil {
+                    TextField("所问何事（可选）", text: $questionText, axis: .vertical)
+                        .lineLimit(2...5)
+                        .appTextFieldStyle()
+                        .onChange(of: questionText) { _, newValue in
+                            persistQuestion(newValue)
+                        }
+            } else if let question = result.question, !question.isEmpty {
                 Text("所问：\(question)")
                     .font(.body)
             }
@@ -81,7 +133,45 @@ struct ResultView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding()
-        .background(RoundedRectangle(cornerRadius: 12).fill(Color(.secondarySystemBackground)))
+        .background(RoundedRectangle(cornerRadius: 12).fill(AppTheme.cardFill))
+    }
+
+    private var verificationSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Picker("状态", selection: $verificationStatus) {
+                ForEach(VerificationStatus.allCases) { status in
+                    Text(status.displayName).tag(status)
+                }
+            }
+            .pickerStyle(.segmented)
+            .onChange(of: verificationStatus) { _, newValue in
+                persistVerification(status: newValue, note: verificationNote)
+            }
+            TextField("验证结果（可选）", text: $verificationNote, axis: .vertical)
+                .lineLimit(2...5)
+                .appTextFieldStyle()
+                .onChange(of: verificationNote) { _, newValue in
+                    persistVerification(status: verificationStatus, note: newValue)
+                }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding()
+        .background(RoundedRectangle(cornerRadius: 12).fill(AppTheme.cardFill))
+    }
+
+    private func persistQuestion(_ text: String) {
+        guard let editableRecord else { return }
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        editableRecord.question = trimmed.isEmpty ? nil : trimmed
+        try? modelContext.save()
+    }
+
+    private func persistVerification(status: VerificationStatus, note: String) {
+        guard let editableRecord else { return }
+        editableRecord.verificationStatus = status
+        let trimmed = note.trimmingCharacters(in: .whitespacesAndNewlines)
+        editableRecord.verificationNote = trimmed.isEmpty ? nil : trimmed
+        try? modelContext.save()
     }
 
     private var figuresSection: some View {
@@ -119,17 +209,22 @@ struct ResultView: View {
         let hex: Hexagram? = tab == .primary ? primary : resulting
         if let hex {
             VStack(alignment: .leading, spacing: 16) {
-                section(title: "卦辞 · \(hex.name)", showLead: shouldShowGuaciLead(tab: tab)) {
+                section(showLead: shouldShowGuaciLead(tab: tab)) {
                     Text(hex.guaci)
                         .font(.body)
                         .lineSpacing(4)
                 }
-                section(title: "大象 · \(hex.name)") {
-                    Text(hex.daxiang)
+                section {
+                    Text(prefixed("彖曰：", hex.tuanci))
                         .font(.body)
                         .lineSpacing(4)
                 }
-                section(title: "六爻") {
+                section {
+                    Text(prefixed("象曰：", hex.daxiang))
+                        .font(.body)
+                        .lineSpacing(4)
+                }
+                section {
                     VStack(alignment: .leading, spacing: 14) {
                         // 上爻在上，初爻在下（与卦象图一致）
                         ForEach((1...6).reversed(), id: \.self) { pos in
@@ -141,10 +236,24 @@ struct ResultView: View {
         }
     }
 
-    /// 三爻变：本卦卦辞主看；六爻变：之卦卦辞主看。
+    private func prefixed(_ prefix: String, _ body: String) -> String {
+        let text = body.trimmingCharacters(in: .whitespacesAndNewlines)
+        if text.hasPrefix(prefix) { return text }
+        let bare = String(prefix.dropLast()) // 「彖曰」/「象曰」
+        if text.hasPrefix(bare) {
+            let rest = text.dropFirst(bare.count).trimmingCharacters(in: .whitespaces)
+            if rest.hasPrefix("：") || rest.hasPrefix(":") {
+                return bare + rest
+            }
+            return prefix + rest
+        }
+        return prefix + text
+    }
+
+    /// 无动／三爻变：本卦卦辞主看；六爻变：之卦卦辞主看。
     private func shouldShowGuaciLead(tab: HexTab) -> Bool {
         switch focus.kind {
-        case .bothGuaci:
+        case .primaryGuaci, .bothGuaci:
             return tab == .primary
         case .resultingGuaci:
             return tab == .resulting
@@ -183,12 +292,8 @@ struct ResultView: View {
     }
 
     private func trimmedYaoCi(hex: Hexagram, position: Int) -> String {
-        var yao = hex.yaoCi(at: position)
+        hex.yaoCi(at: position)
             .trimmingCharacters(in: .whitespacesAndNewlines)
-        while yao.hasSuffix("。") || yao.hasSuffix("；") {
-            yao = String(yao.dropLast())
-        }
-        return yao
     }
 
     private func xiangLine(hex: Hexagram, position: Int) -> String {
@@ -221,23 +326,18 @@ struct ResultView: View {
     }
 
     private func section(
-        title: String,
         showLead: Bool = false,
         @ViewBuilder content: () -> some View
     ) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 8) {
-                Text(title)
-                    .font(.headline)
-                if showLead {
-                    leadBadge
-                }
+            if showLead {
+                leadBadge
             }
             content()
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding()
-        .background(RoundedRectangle(cornerRadius: 12).fill(Color(.secondarySystemBackground)))
+        .background(RoundedRectangle(cornerRadius: 12).fill(AppTheme.cardFill))
     }
 
     private func changedLines(from lines: [LineValue]) -> [LineValue] {

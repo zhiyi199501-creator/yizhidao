@@ -6,8 +6,10 @@ struct Hexagram: Codable, Identifiable, Hashable, Sendable {
     let symbol: String
     let binary: String
     let guaci: String
+    /// 彖辞（《彖》曰），不含「彖曰」前缀
+    let tuanci: String
     let yaoci: [String]
-    /// 大象辞（《象》曰总释）
+    /// 大象辞（《象》曰总释），不含「象曰」前缀
     let daxiang: String
     /// 小象辞，初爻→上爻共六条
     let xiaoxiang: [String]

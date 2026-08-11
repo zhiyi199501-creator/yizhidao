@@ -12,6 +12,8 @@ struct CastingHomeView: View {
     @State private var question = ""
     @State private var latestResult: CastResult?
     @State private var showResult = false
+    @State private var showRitual = false
+    @Environment(AppNavigation.self) private var appNavigation
 
     var body: some View {
         NavigationStack {
@@ -19,13 +21,15 @@ struct CastingHomeView: View {
                 VStack(alignment: .leading, spacing: 20) {
                     Text("易知道")
                         .font(.largeTitle.weight(.bold))
-                    Text("选择起卦方法，记录占时，观象玩辞。")
+                    Text("君子居则观象玩辞，动则观变玩占")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
 
+                    castingRitualSection
+
                     TextField("所问何事（可选）", text: $question, axis: .vertical)
-                        .textFieldStyle(.roundedBorder)
-                        .lineLimit(2...4)
+                        .appTextFieldStyle()
+                        .lineLimit(2...5)
 
                     Picker("方法", selection: $methodTab) {
                         ForEach(MethodTab.allCases) { tab in
@@ -51,7 +55,7 @@ struct CastingHomeView: View {
                     .padding()
                     .background(
                         RoundedRectangle(cornerRadius: 16)
-                            .fill(Color(.secondarySystemBackground))
+                            .fill(AppTheme.cardFill)
                     )
                 }
                 .padding()
@@ -60,24 +64,48 @@ struct CastingHomeView: View {
             .background {
                 DismissKeyboardBackground()
             }
-            .background(
-                LinearGradient(
-                    colors: [
-                        Color(red: 0.96, green: 0.93, blue: 0.88),
-                        Color(red: 0.92, green: 0.90, blue: 0.86)
-                    ],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-                .ignoresSafeArea()
-            )
+            .parchmentBackground()
             .navigationDestination(isPresented: $showResult) {
                 if let latestResult {
                     ResultView(result: latestResult, isNew: true)
                 }
             }
+            .onChange(of: appNavigation.dismissCastResultTick) { _, _ in
+                var transaction = Transaction()
+                transaction.disablesAnimations = true
+                withTransaction(transaction) {
+                    showResult = false
+                }
+            }
         }
     }
+
+    private var castingRitualSection: some View {
+        DisclosureGroup(isExpanded: $showRitual) {
+            VStack(alignment: .leading, spacing: 10) {
+                ForEach(Array(Self.ritualSteps.enumerated()), id: \.offset) { index, step in
+                    Text("\(index + 1)、\(step)")
+                        .font(.footnote)
+                        .foregroundStyle(.primary.opacity(0.85))
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            .padding(.top, 8)
+        } label: {
+            Text("起卦礼仪")
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(AppTheme.accent)
+        }
+        .tint(AppTheme.accent)
+    }
+
+    private static let ritualSteps: [String] = [
+        "净手，择一静处，坐稳，桌面整洁无杂物。",
+        "静穆身心，敬慎其意。",
+        "行礼，默祷：爻变化之神在上，弟子某某某，今有某事（简单扼要讲清楚）不知休咎，望示一圣卦指示。",
+        "得卦后，行礼：感谢爻变化之神的指示，弟子退。",
+        "然后把起卦工具收好，开始解卦。",
+    ]
 }
 
 /// 点空白收起键盘，且不拦截按钮 / 输入框点击。
