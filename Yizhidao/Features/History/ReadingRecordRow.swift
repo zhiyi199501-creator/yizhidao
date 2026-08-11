@@ -13,28 +13,20 @@ struct ReadingRecordRow: View {
                         if let hex = store.hexagram(number: record.primaryNumber) {
                             Text("\(hex.symbol) \(hex.name)")
                                 .font(.headline)
+                                .lineLimit(1)
                         } else {
                             Text("第\(record.primaryNumber)卦")
                                 .font(.headline)
+                                .lineLimit(1)
                         }
                         if let resulting = record.resultingNumber {
-                            Text("→")
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
-                            if let hex = store.hexagram(number: resulting) {
-                                Text("\(hex.symbol) \(hex.name)")
-                                    .font(.headline)
-                            } else {
-                                Text("第\(resulting)卦")
-                                    .font(.headline)
-                            }
+                            changeArrow
+                            resultingTitle(number: resulting)
+                                .lineLimit(1)
                         }
                     }
-                    .lineLimit(1)
-                } else if let resulting = record.resultingNumber,
-                          let hex = store.hexagram(number: resulting) {
-                    Text("之卦 · \(hex.symbol) \(hex.name)")
-                        .font(.subheadline.weight(.semibold))
+                } else if let resulting = record.resultingNumber {
+                    resultingTitle(number: resulting, prefix: "之卦 · ")
                 } else if record.movingPositions.isEmpty {
                     Text("六爻不变")
                         .font(.subheadline.weight(.semibold))
@@ -75,6 +67,41 @@ struct ReadingRecordRow: View {
             }
         }
         .padding(.vertical, 2)
+    }
+
+    /// 数字起卦单爻动时的动爻字（初…上）。
+    private var digitalMovingLabel: String? {
+        guard record.isDigitalMethod,
+              record.movingPositions.count == 1,
+              let position = record.movingPositions.first,
+              let label = MovingPositionFilter.from(position: position)?.label
+        else { return nil }
+        return label
+    }
+
+    private var changeArrow: some View {
+        Text("⟶")
+            .font(.title3)
+            .foregroundStyle(.secondary)
+            .overlay(alignment: .top) {
+                if let digitalMovingLabel {
+                    Text(digitalMovingLabel)
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.red)
+                        .offset(y: -11)
+                }
+            }
+    }
+
+    @ViewBuilder
+    private func resultingTitle(number: Int, prefix: String = "") -> some View {
+        if let hex = store.hexagram(number: number) {
+            Text("\(prefix)\(hex.symbol) \(hex.name)")
+                .font(prefix.isEmpty ? .headline : .subheadline.weight(.semibold))
+        } else {
+            Text("\(prefix)第\(number)卦")
+                .font(prefix.isEmpty ? .headline : .subheadline.weight(.semibold))
+        }
     }
 
     static func timeString(_ date: Date) -> String {

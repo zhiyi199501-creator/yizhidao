@@ -170,8 +170,13 @@ struct HexagramGroupDetailView: View {
                                 showPrimaryTitle: true
                             )
                         }
+                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                            Button("删除", role: .destructive) {
+                                modelContext.delete(record)
+                                try? modelContext.save()
+                            }
+                        }
                     }
-                    .onDelete(perform: deleteFiltered)
                 }
                 .listStyle(.plain)
                 .scrollContentBackground(.hidden)
@@ -256,13 +261,6 @@ struct HexagramGroupDetailView: View {
                 }
             }
         }
-    }
-
-    private func deleteFiltered(at offsets: IndexSet) {
-        for index in offsets {
-            modelContext.delete(filteredRecords[index])
-        }
-        try? modelContext.save()
     }
 }
 

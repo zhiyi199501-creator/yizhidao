@@ -150,6 +150,9 @@ struct DigitalCastView: View {
                     .navigationTitle("选择时刻")
                     .navigationBarTitleDisplayMode(.inline)
                     .toolbar {
+                        ToolbarItem(placement: .cancellationAction) {
+                            Button("取消") { showDatePicker = false }
+                        }
                         ToolbarItem(placement: .confirmationAction) {
                             Button("完成") { showDatePicker = false }
                         }
