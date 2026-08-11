@@ -7,53 +7,42 @@ struct ReadingRecordRow: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
-            HStack {
+            HStack(spacing: 6) {
                 if showPrimaryTitle {
-                    HStack(spacing: 6) {
-                        if let hex = store.hexagram(number: record.primaryNumber) {
-                            Text("\(hex.symbol) \(hex.name)")
-                                .font(.headline)
-                                .lineLimit(1)
-                        } else {
-                            Text("第\(record.primaryNumber)卦")
-                                .font(.headline)
-                                .lineLimit(1)
-                        }
-                        if let resulting = record.resultingNumber {
-                            changeArrow
-                            resultingTitle(number: resulting)
-                                .lineLimit(1)
-                        }
+                    if let hex = store.hexagram(number: record.primaryNumber) {
+                        Text("\(hex.symbol) \(hex.name)")
+                            .font(.headline)
+                            .lineLimit(1)
+                    } else {
+                        Text("第\(record.primaryNumber)卦")
+                            .font(.headline)
+                            .lineLimit(1)
                     }
+                    if let resulting = record.resultingNumber {
+                        changeArrow
+                        resultingTitle(number: resulting)
+                            .lineLimit(1)
+                    }
+                    verificationBadge
                 } else if let resulting = record.resultingNumber {
                     resultingTitle(number: resulting, prefix: "之卦 · ")
+                    verificationBadge
                 } else if record.movingPositions.isEmpty {
                     Text("六爻不变")
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(.secondary)
+                    verificationBadge
                 } else {
                     Text("\(record.movingPositions.count) 爻变")
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(.secondary)
+                    verificationBadge
                 }
-                Spacer()
-                Text(record.method.displayName)
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
+                Spacer(minLength: 0)
             }
-            HStack(spacing: 8) {
-                Text(Self.timeString(record.createdAt))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                if record.verificationStatus != .none {
-                    Text(record.verificationStatus.displayName)
-                        .font(.caption2.weight(.semibold))
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
-                        .background(Self.verificationColor(record.verificationStatus), in: Capsule())
-                }
-            }
+            Text(Self.timeString(record.createdAt))
+                .font(.caption)
+                .foregroundStyle(.secondary)
             if let question = record.question, !question.isEmpty {
                 Text(question)
                     .font(.subheadline)
@@ -79,16 +68,30 @@ struct ReadingRecordRow: View {
         return label
     }
 
+    @ViewBuilder
+    private var verificationBadge: some View {
+        if record.verificationStatus != .none {
+            Text(record.verificationStatus.displayName)
+                .font(.caption2.weight(.semibold))
+                .foregroundStyle(.white)
+                .padding(.horizontal, 6)
+                .padding(.vertical, 2)
+                .background(Self.verificationColor(record.verificationStatus), in: Capsule())
+        }
+    }
+
     private var changeArrow: some View {
         Text("⟶")
-            .font(.title3)
+            .font(.title2)
             .foregroundStyle(.secondary)
+            .scaleEffect(x: 1.25, y: 1, anchor: .center)
+            .frame(width: 28)
             .overlay(alignment: .top) {
                 if let digitalMovingLabel {
                     Text(digitalMovingLabel)
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(.red)
-                        .offset(y: -11)
+                        .offset(y: -1)
                 }
             }
     }
