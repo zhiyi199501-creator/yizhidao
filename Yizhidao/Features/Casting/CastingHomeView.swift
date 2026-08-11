@@ -21,7 +21,7 @@ struct CastingHomeView: View {
                 VStack(alignment: .leading, spacing: 20) {
                     Text("易知道")
                         .font(.largeTitle.weight(.bold))
-                    Text("居则观象玩辞，动则观变玩占，自天佑之，吉无不利。")
+                    Text("君子居则观象玩辞，动则观变玩占")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
 

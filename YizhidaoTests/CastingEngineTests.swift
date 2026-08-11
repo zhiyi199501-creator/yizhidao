@@ -146,6 +146,7 @@ final class HexagramStoreTests: XCTestCase {
         let store = HexagramStore(bundle: Bundle(for: HexagramStore.self))
         XCTAssertEqual(store.hexagrams.count, 64)
         for h in store.hexagrams {
+            XCTAssertFalse(h.tuanci.isEmpty, "missing tuanci #\(h.number)")
             XCTAssertFalse(h.daxiang.isEmpty, "missing daxiang #\(h.number)")
             XCTAssertEqual(h.xiaoxiang.count, 6, "xiaoxiang count #\(h.number)")
             XCTAssertEqual(h.yaoci.count, 6, "yaoci count #\(h.number)")
@@ -153,6 +154,7 @@ final class HexagramStoreTests: XCTestCase {
         guard let qian = store.hexagram(number: 1) else {
             return XCTFail("missing hexagram 1")
         }
+        XCTAssertTrue(qian.tuanci.contains("大哉乾元"))
         XCTAssertTrue(qian.daxiang.contains("自强不息"))
         XCTAssertTrue(qian.xiaoXiang(at: 1).contains("阳在下"))
         XCTAssertTrue(qian.guaci.contains("元"))

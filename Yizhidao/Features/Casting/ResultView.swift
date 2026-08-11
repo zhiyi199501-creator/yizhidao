@@ -209,17 +209,22 @@ struct ResultView: View {
         let hex: Hexagram? = tab == .primary ? primary : resulting
         if let hex {
             VStack(alignment: .leading, spacing: 16) {
-                section(title: "卦辞 · \(hex.name)", showLead: shouldShowGuaciLead(tab: tab)) {
+                section(showLead: shouldShowGuaciLead(tab: tab)) {
                     Text(hex.guaci)
                         .font(.body)
                         .lineSpacing(4)
                 }
-                section(title: "大象 · \(hex.name)") {
-                    Text(hex.daxiang)
+                section {
+                    Text(prefixed("彖曰：", hex.tuanci))
                         .font(.body)
                         .lineSpacing(4)
                 }
-                section(title: "六爻") {
+                section {
+                    Text(prefixed("象曰：", hex.daxiang))
+                        .font(.body)
+                        .lineSpacing(4)
+                }
+                section {
                     VStack(alignment: .leading, spacing: 14) {
                         // 上爻在上，初爻在下（与卦象图一致）
                         ForEach((1...6).reversed(), id: \.self) { pos in
@@ -229,6 +234,20 @@ struct ResultView: View {
                 }
             }
         }
+    }
+
+    private func prefixed(_ prefix: String, _ body: String) -> String {
+        let text = body.trimmingCharacters(in: .whitespacesAndNewlines)
+        if text.hasPrefix(prefix) { return text }
+        let bare = String(prefix.dropLast()) // 「彖曰」/「象曰」
+        if text.hasPrefix(bare) {
+            let rest = text.dropFirst(bare.count).trimmingCharacters(in: .whitespaces)
+            if rest.hasPrefix("：") || rest.hasPrefix(":") {
+                return bare + rest
+            }
+            return prefix + rest
+        }
+        return prefix + text
     }
 
     /// 无动／三爻变：本卦卦辞主看；六爻变：之卦卦辞主看。
@@ -273,12 +292,8 @@ struct ResultView: View {
     }
 
     private func trimmedYaoCi(hex: Hexagram, position: Int) -> String {
-        var yao = hex.yaoCi(at: position)
+        hex.yaoCi(at: position)
             .trimmingCharacters(in: .whitespacesAndNewlines)
-        while yao.hasSuffix("。") || yao.hasSuffix("；") {
-            yao = String(yao.dropLast())
-        }
-        return yao
     }
 
     private func xiangLine(hex: Hexagram, position: Int) -> String {
@@ -311,17 +326,12 @@ struct ResultView: View {
     }
 
     private func section(
-        title: String,
         showLead: Bool = false,
         @ViewBuilder content: () -> some View
     ) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 8) {
-                Text(title)
-                    .font(.headline)
-                if showLead {
-                    leadBadge
-                }
+            if showLead {
+                leadBadge
             }
             content()
         }
