@@ -54,7 +54,13 @@ struct DigitalCastView: View {
             }
             .buttonStyle(.borderedProminent)
             .tint(AppTheme.accent)
+            .disabled(mode == .threeNumbers && !threeNumbersReady)
         }
+    }
+
+    private var threeNumbersReady: Bool {
+        guard let a = Int(n1), let b = Int(n2), let c = Int(n3) else { return false }
+        return a > 0 && b > 0 && c > 0
     }
 
     private var threeNumbersForm: some View {
@@ -69,10 +75,13 @@ struct DigitalCastView: View {
                 n3 = String(Int.random(in: 10...999))
             }
             HStack {
-                Text("三个数分别对应上卦、下卦、动爻；可手输或点随机。")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                Spacer(minLength: 8)
+                Button("一键随机") {
+                    n1 = String(Int.random(in: 10...999))
+                    n2 = String(Int.random(in: 10...999))
+                    n3 = String(Int.random(in: 10...999))
+                    errorMessage = nil
+                }
+                .buttonStyle(.bordered)
                 Button("清空") {
                     n1 = ""
                     n2 = ""
@@ -80,7 +89,7 @@ struct DigitalCastView: View {
                     errorMessage = nil
                 }
                 .buttonStyle(.bordered)
-                .disabled(n1.isEmpty && n2.isEmpty && n3.isEmpty)
+                Spacer(minLength: 0)
             }
         }
     }

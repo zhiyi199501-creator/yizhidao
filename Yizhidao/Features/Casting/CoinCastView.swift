@@ -11,7 +11,7 @@ struct CoinCastView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("三钱摇六次，自下而上成卦。字面为阳，背面为阴。")
+            Text("三钱摇六次，自下而上成卦。字面为阳，背面为阴；也可点「选」手选四象。")
                 .font(.caption)
                 .foregroundStyle(.secondary)
 
@@ -33,6 +33,17 @@ struct CoinCastView: View {
                                 .foregroundStyle(.tertiary)
                         }
                         Spacer()
+                        Menu {
+                            ForEach(Self.manualOptions, id: \.line) { option in
+                                Button(option.title) {
+                                    lines[index] = option.line
+                                }
+                            }
+                        } label: {
+                            Text("选")
+                                .frame(minWidth: 28)
+                        }
+                        .buttonStyle(.bordered)
                         Button("摇") {
                             var rng = SystemRandomNumberGenerator()
                             lines[index] = CoinCastingEngine.tossLine(using: &rng)
@@ -74,6 +85,13 @@ struct CoinCastView: View {
             .disabled(filledCount < 6)
         }
     }
+
+    private static let manualOptions: [(title: String, line: LineValue)] = [
+        ("少阳 7", .youngYang),
+        ("少阴 8", .youngYin),
+        ("阳动 9", .oldYang),
+        ("阴动 6", .oldYin),
+    ]
 
     private func yaoTitle(_ index: Int) -> String {
         switch index {
