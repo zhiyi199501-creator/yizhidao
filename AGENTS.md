@@ -33,4 +33,4 @@ SwiftUI + SwiftData；无第三方依赖。经文在 `Hexagrams.json`（《易�
 
 ## 当前状态 / 下一步
 
-已实现：双法起卦、礼仪、结果 tab＋主看、历史聚合／验证／同类跳转、浅色主题。分支 `feature/result-reading-tabs`。未做：App Store、文言讲解层。
+已实现：双法起卦、礼仪、结果 tab＋主看（卦辞/彖曰/象曰/六爻）、历史聚合／验证／同类跳转、浅色主题。分支 `feature/result-reading-tabs`。未做：App Store、文言讲解层。

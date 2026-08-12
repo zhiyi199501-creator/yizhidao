@@ -162,7 +162,7 @@ struct HexagramGroupDetailView: View {
                 List {
                     ForEach(filteredRecords) { record in
                         NavigationLink {
-                            ResultView(record: record)
+                            ResultView(record: record, showSimilarHexagramButton: false)
                         } label: {
                             ReadingRecordRow(
                                 record: record,
@@ -171,10 +171,14 @@ struct HexagramGroupDetailView: View {
                             )
                         }
                         .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                            Button("删除", role: .destructive) {
+                            Button(role: .destructive) {
                                 modelContext.delete(record)
                                 try? modelContext.save()
+                            } label: {
+                                Image(systemName: "trash.fill")
                             }
+                            .tint(.red)
+                            .accessibilityLabel("删除")
                         }
                     }
                 }

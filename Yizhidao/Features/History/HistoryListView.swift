@@ -19,34 +19,39 @@ struct HistoryListView: View {
 
     var body: some View {
         NavigationStack(path: $path) {
-            Group {
-                if records.isEmpty {
-                    ContentUnavailableView(
-                        "暂无占问",
-                        systemImage: "book.closed",
-                        description: Text("起卦后会自动保存在这里")
-                    )
-                } else {
-                    VStack(spacing: 0) {
+            VStack(alignment: .leading, spacing: 0) {
+                VStack(alignment: .leading, spacing: 20) {
+                    Text("历史")
+                        .font(.largeTitle.weight(.bold))
+
+                    if !records.isEmpty {
                         Picker("浏览", selection: $browseMode) {
                             ForEach(BrowseMode.allCases) { mode in
                                 Text(mode.rawValue).tag(mode)
                             }
                         }
                         .pickerStyle(.segmented)
-                        .padding(.horizontal)
-                        .padding(.vertical, 10)
+                    }
+                }
+                .padding()
 
-                        switch browseMode {
-                        case .timeline:
-                            timelineList
-                        case .byHexagram:
-                            HexagramGroupListView(records: records, store: store)
-                        }
+                if records.isEmpty {
+                    Spacer(minLength: 0)
+                    ContentUnavailableView(
+                        "暂无占问",
+                        systemImage: "book.closed",
+                        description: Text("起卦后会自动保存在这里")
+                    )
+                    Spacer(minLength: 0)
+                } else {
+                    switch browseMode {
+                    case .timeline:
+                        timelineList
+                    case .byHexagram:
+                        HexagramGroupListView(records: records, store: store)
                     }
                 }
             }
-            .navigationTitle("历史")
             .parchmentBackground()
             .navigationDestination(for: SimilarHexagramDestination.self) { destination in
                 HexagramGroupDetailView(destination: destination)
@@ -77,10 +82,14 @@ struct HistoryListView: View {
                     ReadingRecordRow(record: record, store: store, showPrimaryTitle: true)
                 }
                 .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                    Button("删除", role: .destructive) {
+                    Button(role: .destructive) {
                         modelContext.delete(record)
                         try? modelContext.save()
+                    } label: {
+                        Image(systemName: "trash.fill")
                     }
+                    .tint(.red)
+                    .accessibilityLabel("删除")
                 }
             }
         }

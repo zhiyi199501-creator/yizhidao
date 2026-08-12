@@ -11,6 +11,7 @@ struct ResultView: View {
     private let result: CastResult
     private let isNew: Bool
     private let record: ReadingRecord?
+    private let showSimilarHexagramButton: Bool
 
     @Environment(\.modelContext) private var modelContext
     @Environment(AppNavigation.self) private var appNavigation
@@ -40,17 +41,19 @@ struct ResultView: View {
         record ?? savedRecord
     }
 
-    init(result: CastResult, isNew: Bool = true) {
+    init(result: CastResult, isNew: Bool = true, showSimilarHexagramButton: Bool = true) {
         self.result = result
         self.isNew = isNew
         self.record = nil
+        self.showSimilarHexagramButton = showSimilarHexagramButton
         _questionText = State(initialValue: result.question ?? "")
     }
 
-    init(record: ReadingRecord) {
+    init(record: ReadingRecord, showSimilarHexagramButton: Bool = true) {
         self.result = record.toCastResult()
         self.isNew = false
         self.record = record
+        self.showSimilarHexagramButton = showSimilarHexagramButton
         _questionText = State(initialValue: record.question ?? "")
         _verificationStatus = State(initialValue: record.verificationStatus)
         _verificationNote = State(initialValue: record.verificationNote ?? "")
@@ -84,13 +87,15 @@ struct ResultView: View {
         .navigationBarTitleDisplayMode(.inline)
         .parchmentBackground()
         .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    appNavigation.openSimilarHexagram(for: result)
-                } label: {
-                    Label("同类", systemImage: "rectangle.stack")
+            if showSimilarHexagramButton {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        appNavigation.openSimilarHexagram(for: result)
+                    } label: {
+                        Label("同类", systemImage: "rectangle.stack")
+                    }
+                    .accessibilityLabel("查看同类卦")
                 }
-                .accessibilityLabel("查看同类卦")
             }
         }
         .onAppear {
