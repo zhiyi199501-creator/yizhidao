@@ -326,6 +326,7 @@
 				DEVELOPMENT_TEAM = 4N96M5Z4PM;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Yizhidao/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "易知道";
 				INFOPLIST_KEY_CFBundleDevelopmentRegion = "zh-Hans";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -355,6 +356,7 @@
 				DEVELOPMENT_TEAM = 4N96M5Z4PM;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Yizhidao/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "易知道";
 				INFOPLIST_KEY_CFBundleDevelopmentRegion = "zh-Hans";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;

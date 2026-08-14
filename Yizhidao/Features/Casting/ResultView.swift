@@ -21,6 +21,8 @@ struct ResultView: View {
     @State private var verificationStatus: VerificationStatus = .none
     @State private var verificationNote: String = ""
     @State private var savedRecord: ReadingRecord?
+    @State private var showAIAnalysis = false
+    @State private var showLoginForAI = false
 
     private var store: HexagramStore { .shared }
     private var primary: Hexagram? { store.hexagram(number: result.primaryNumber) }
@@ -31,6 +33,20 @@ struct ResultView: View {
 
     private var focus: ReadingFocus {
         ReadingGuide.focus(movingPositions: result.movingPositions)
+    }
+
+    private var resultForAnalysis: CastResult {
+        let trimmedQuestion = questionText.trimmingCharacters(in: .whitespacesAndNewlines)
+        return CastResult(
+            method: result.method,
+            createdAt: result.createdAt,
+            question: trimmedQuestion.isEmpty ? nil : trimmedQuestion,
+            numbers: result.numbers,
+            primaryNumber: result.primaryNumber,
+            resultingNumber: result.resultingNumber,
+            lines: result.lines,
+            movingPositions: result.movingPositions
+        )
     }
 
     private var availableTabs: [HexTab] {
@@ -82,6 +98,18 @@ struct ResultView: View {
                     .frame(maxWidth: .infinity, alignment: .trailing)
             }
             .padding()
+            .padding(.bottom, 80)
+        }
+        .overlay(alignment: .bottomTrailing) {
+            AIFloatingButton {
+                if LocalAuthStore.load().isLoggedIn {
+                    showAIAnalysis = true
+                } else {
+                    showLoginForAI = true
+                }
+            }
+            .padding(.trailing, 20)
+            .padding(.bottom, 24)
         }
         .navigationTitle("卦象结果")
         .navigationBarTitleDisplayMode(.inline)
@@ -96,6 +124,16 @@ struct ResultView: View {
                     }
                     .accessibilityLabel("查看同类卦")
                 }
+            }
+        }
+        .navigationDestination(isPresented: $showAIAnalysis) {
+            AIAnalysisView(result: resultForAnalysis)
+        }
+        .sheet(isPresented: $showLoginForAI) {
+            LoginSheetView { newSession in
+                LocalAuthStore.save(newSession)
+                showLoginForAI = false
+                showAIAnalysis = true
             }
         }
         .onAppear {
@@ -354,5 +392,129 @@ struct ResultView: View {
         f.locale = Locale(identifier: "zh_CN")
         f.dateFormat = "yyyy年M月d日 HH:mm:ss"
         return "占卦时间：\(f.string(from: date))"
+    }
+}
+
+struct AIAnalysisView: View {
+    let result: CastResult
+
+    @State private var isLoading = false
+    @State private var analysis: AuthAPI.AIAnalyzeResponse.Analysis?
+    @State private var errorMessage: String?
+
+    private var store: HexagramStore { .shared }
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                headerSection
+
+                if isLoading {
+                    HStack {
+                        Spacer()
+                        ProgressView("解读中…")
+                        Spacer()
+                    }
+                    .padding(.vertical, 24)
+                }
+
+                if let analysis {
+                    analysisSection(title: "总览", text: analysis.summary)
+                    analysisSection(title: "焦点", text: analysis.focus)
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("建议")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(AppTheme.accent)
+                        ForEach(Array(analysis.advice.enumerated()), id: \.offset) { index, item in
+                            HStack(alignment: .top, spacing: 8) {
+                                Text("\(index + 1).")
+                                    .font(.subheadline.weight(.semibold))
+                                    .foregroundStyle(AppTheme.accent)
+                                Text(item)
+                                    .font(.body)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+                        }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding()
+                    .background(RoundedRectangle(cornerRadius: 12).fill(AppTheme.cardFill))
+                }
+
+                if let errorMessage {
+                    Text(errorMessage)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+
+                if !isLoading {
+                    Button(analysis == nil ? "开始解读" : "重新解读") {
+                        Task { await runAnalysis() }
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(AppTheme.accent)
+                    .frame(maxWidth: .infinity)
+                }
+            }
+            .padding()
+        }
+        .navigationTitle("AI 解读")
+        .navigationBarTitleDisplayMode(.inline)
+        .parchmentBackground()
+        .task {
+            if analysis == nil, !isLoading {
+                await runAnalysis()
+            }
+        }
+    }
+
+    private var headerSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            if let primary = store.hexagram(number: result.primaryNumber) {
+                Text("\(primary.symbol) \(primary.name)")
+                    .font(.title3.weight(.bold))
+            }
+            if let question = result.question, !question.isEmpty {
+                Text("所问：\(question)")
+                    .font(.body)
+            }
+            Text(ReadingGuide.generalPrinciple)
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding()
+        .background(RoundedRectangle(cornerRadius: 12).fill(AppTheme.cardFill))
+    }
+
+    private func analysisSection(title: String, text: String) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(title)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(AppTheme.accent)
+            Text(text)
+                .font(.body)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding()
+        .background(RoundedRectangle(cornerRadius: 12).fill(AppTheme.cardFill))
+    }
+
+    @MainActor
+    private func runAnalysis() async {
+        guard let token = LocalAuthStore.load().accessToken else {
+            errorMessage = "请先登录"
+            return
+        }
+        isLoading = true
+        errorMessage = nil
+        defer { isLoading = false }
+        do {
+            let response = try await AuthAPI.analyzeReading(result: result, accessToken: token)
+            analysis = response.analysis
+        } catch {
+            errorMessage = error.localizedDescription
+        }
     }
 }

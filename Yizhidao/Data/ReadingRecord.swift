@@ -1,6 +1,86 @@
 import Foundation
 import SwiftData
 
+struct HistoryTrashEntry: Codable, Identifiable, Hashable {
+    let id: UUID
+    let deletedAt: Date
+    let recordID: UUID
+    let createdAt: Date
+    let question: String?
+    let methodRaw: String
+    let numbersJSON: String?
+    let primaryNumber: Int
+    let resultingNumber: Int?
+    let linesJSON: String
+    let movingPositionsJSON: String
+    let verificationStatusRaw: String
+    let verificationNote: String?
+
+    init(record: ReadingRecord, deletedAt: Date = .now) {
+        self.id = UUID()
+        self.deletedAt = deletedAt
+        self.recordID = record.id
+        self.createdAt = record.createdAt
+        self.question = record.question
+        self.methodRaw = record.methodRaw
+        self.numbersJSON = record.numbersJSON
+        self.primaryNumber = record.primaryNumber
+        self.resultingNumber = record.resultingNumber
+        self.linesJSON = record.linesJSON
+        self.movingPositionsJSON = record.movingPositionsJSON
+        self.verificationStatusRaw = record.verificationStatusRaw
+        self.verificationNote = record.verificationNote
+    }
+
+    func toReadingRecord() -> ReadingRecord {
+        ReadingRecord(
+            id: recordID,
+            createdAt: createdAt,
+            question: question,
+            methodRaw: methodRaw,
+            numbersJSON: numbersJSON,
+            primaryNumber: primaryNumber,
+            resultingNumber: resultingNumber,
+            linesJSON: linesJSON,
+            movingPositionsJSON: movingPositionsJSON,
+            verificationStatusRaw: verificationStatusRaw,
+            verificationNote: verificationNote
+        )
+    }
+}
+
+enum HistoryTrashStore {
+    private static let key = "history.trash.v1"
+
+    static func load() -> [HistoryTrashEntry] {
+        guard let data = UserDefaults.standard.data(forKey: key),
+              let entries = try? JSONDecoder().decode([HistoryTrashEntry].self, from: data)
+        else { return [] }
+        return entries
+    }
+
+    static func save(_ entries: [HistoryTrashEntry]) {
+        guard let data = try? JSONEncoder().encode(entries) else { return }
+        UserDefaults.standard.set(data, forKey: key)
+    }
+
+    static func archive(_ record: ReadingRecord) {
+        var entries = load()
+        entries.insert(HistoryTrashEntry(record: record), at: 0)
+        save(entries)
+    }
+
+    static func remove(entryID: UUID) {
+        var entries = load()
+        entries.removeAll { $0.id == entryID }
+        save(entries)
+    }
+
+    static func clearAll() {
+        UserDefaults.standard.removeObject(forKey: key)
+    }
+}
+
 enum VerificationStatus: String, CaseIterable, Identifiable, Sendable {
     case none = "none"
     case fulfilled = "fulfilled"
@@ -33,28 +113,56 @@ final class ReadingRecord {
     var verificationStatusRaw: String = VerificationStatus.none.rawValue
     var verificationNote: String?
 
-    init(from result: CastResult) {
-        self.id = UUID()
-        self.createdAt = result.createdAt
-        self.question = result.question
-        self.methodRaw = result.method.rawValue
-        if let numbers = result.numbers,
-           let data = try? JSONEncoder().encode(numbers),
-           let str = String(data: data, encoding: .utf8) {
-            self.numbersJSON = str
-        } else {
-            self.numbersJSON = nil
-        }
-        self.primaryNumber = result.primaryNumber
-        self.resultingNumber = result.resultingNumber
+    init(
+        id: UUID = UUID(),
+        createdAt: Date,
+        question: String?,
+        methodRaw: String,
+        numbersJSON: String?,
+        primaryNumber: Int,
+        resultingNumber: Int?,
+        linesJSON: String,
+        movingPositionsJSON: String,
+        verificationStatusRaw: String = VerificationStatus.none.rawValue,
+        verificationNote: String?
+    ) {
+        self.id = id
+        self.createdAt = createdAt
+        self.question = question
+        self.methodRaw = methodRaw
+        self.numbersJSON = numbersJSON
+        self.primaryNumber = primaryNumber
+        self.resultingNumber = resultingNumber
+        self.linesJSON = linesJSON
+        self.movingPositionsJSON = movingPositionsJSON
+        self.verificationStatusRaw = verificationStatusRaw
+        self.verificationNote = verificationNote
+    }
+
+    convenience init(from result: CastResult) {
+        let numbersJSON: String? = {
+            guard let numbers = result.numbers,
+                  let data = try? JSONEncoder().encode(numbers) else { return nil }
+            return String(data: data, encoding: .utf8)
+        }()
         let lineValues = result.lines.map(\.rawValue)
-        self.linesJSON = String(data: try! JSONEncoder().encode(lineValues), encoding: .utf8)!
-        self.movingPositionsJSON = String(
+        let linesJSON = String(data: try! JSONEncoder().encode(lineValues), encoding: .utf8)!
+        let movingPositionsJSON = String(
             data: try! JSONEncoder().encode(result.movingPositions),
             encoding: .utf8
         )!
-        self.verificationStatusRaw = VerificationStatus.none.rawValue
-        self.verificationNote = nil
+        self.init(
+            createdAt: result.createdAt,
+            question: result.question,
+            methodRaw: result.method.rawValue,
+            numbersJSON: numbersJSON,
+            primaryNumber: result.primaryNumber,
+            resultingNumber: result.resultingNumber,
+            linesJSON: linesJSON,
+            movingPositionsJSON: movingPositionsJSON,
+            verificationStatusRaw: VerificationStatus.none.rawValue,
+            verificationNote: nil
+        )
     }
 
     var method: CastingMethod {

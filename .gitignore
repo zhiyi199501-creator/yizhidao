@@ -4,3 +4,6 @@
 xcuserdata/
 .DS_Store
 Yizhidao/Resources/AppIcon-source.png
+backend/.venv/
+backend/.env
+backend/*.db

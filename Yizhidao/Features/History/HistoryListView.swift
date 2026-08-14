@@ -131,6 +131,7 @@ struct HistoryListView: View {
                 }
                 .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                     Button(role: .destructive) {
+                        HistoryTrashStore.archive(record)
                         modelContext.delete(record)
                         try? modelContext.save()
                     } label: {
