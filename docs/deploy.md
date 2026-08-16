@@ -104,6 +104,18 @@ docker compose -f docker-compose.prod.yml up -d --build
 
 经文若有更新，还需拷进 data 卷（`/app/data/Hexagrams.json`），或改 `HEXAGRAMS_PATH` 指到卷外路径。
 
+### 更新案例（App 下次打开「案例」即拉取，不必发版）
+
+优先读 data 卷 `/app/data/cases.json`（有则覆盖镜像内文件）。换文件后**不必重启**：接口按文件 mtime 自动重载。
+
+```bash
+# 在服务器 ~/yizhidao/backend
+docker compose -f docker-compose.prod.yml cp \
+  ../Yizhidao/Resources/cases.json api:/app/data/cases.json
+```
+
+或随代码一起重建镜像（卷里若已有 `cases.json` 会继续盖过镜像，要镜像生效就先删卷内该文件）。
+
 ## 常见问题
 
 ### 证书申请失败

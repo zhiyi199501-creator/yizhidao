@@ -30,7 +30,7 @@ class Settings(BaseSettings):
     openai_timeout_sec: float = 60.0
     # 经文 JSON；默认读仓库内 App 资源，Docker 部署可指向 /app/data/Hexagrams.json
     hexagrams_path: str = ""
-    # 案例 JSON；默认读 App 资源，镜像内放在 /app/app/data/cases.json（避开 data 卷覆盖）
+    # 案例 JSON。未设时：/app/data/cases.json（data 卷热更新）→ 镜像内 /app/app/data/cases.json → 仓库 App 资源
     cases_path: str = ""
     # 生产环境若仍用 mock，必须显式打开才允许固定验证码（极不安全）
     allow_insecure_mock_sms: bool = False

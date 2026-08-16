@@ -76,6 +76,7 @@ TENCENT_SMS_TEMPLATE_PARAM_MODE=code_and_minutes
 | POST | `/v1/auth/sms/send` | 发送验证码 |
 | POST | `/v1/auth/sms/login` | 验证码登录 |
 | GET | `/v1/me` | 当前用户（需 Bearer token） |
+| GET | `/v1/cases` | 案例列表（公开；支持 `If-None-Match`） |
 | POST | `/v1/ai/analyze` | AI 解读（需 Bearer token） |
 | POST | `/v1/ai/followup` | AI 追问 / 补充背景（需 Bearer token） |
 
@@ -108,6 +109,7 @@ backend/
 │   ├── schemas.py / errors.py / deps.py
 │   ├── routes/auth.py       # 登录
 │   ├── routes/ai.py         # AI 解读
+│   ├── routes/cases.py      # 案例列表热更新
 │   └── services/
 │       ├── auth.py          # 验证码与 JWT
 │       ├── sms.py           # mock / 腾讯云发送
@@ -146,7 +148,7 @@ OPENAI_MODEL=deepseek-chat
 
 解读框架（提示词）：**卦辞→事情背景；大象辞→宜努力方向；动爻爻辞/小象→当下情形**；并附该本卦初爻至上爻讲习案例作取象参照。实现见 `app/services/ai.py`。追问走 `POST /v1/ai/followup`。
 
-经文来源：`Yizhidao/Resources/Hexagrams.json`。案例来源：`Yizhidao/Resources/cases.json`（镜像内 `/app/app/data/cases.json`）。
+经文来源：`Yizhidao/Resources/Hexagrams.json`。案例来源：`Yizhidao/Resources/cases.json`；App 用 `GET /v1/cases` 热更新。镜像内 `/app/app/data/cases.json`；若 data 卷存在 `/app/data/cases.json` 则优先。
 
 ## 生产部署
 

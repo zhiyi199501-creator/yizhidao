@@ -1,4 +1,5 @@
 import Foundation
+import Combine
 
 /// 单个占卦案例（来自《张庆祥讲易经案例》转写稿总结）
 struct CaseStudy: Codable, Identifiable, Hashable {
@@ -42,18 +43,49 @@ struct CaseStudy: Codable, Identifiable, Hashable {
     }
 }
 
-/// 案例数据仓库，启动时从 bundle 的 cases.json 加载
-struct CaseStore {
+/// 案例数据仓库：包内底稿 + 本地缓存；打开案例页时向服务端拉取最新。
+@MainActor
+final class CaseStore: ObservableObject {
     static let shared = CaseStore()
-    let cases: [CaseStudy]
+
+    @Published private(set) var cases: [CaseStudy]
+
+    private let versionKey = "yizhidao.cases.version"
+    private let cacheURL: URL
 
     init() {
-        guard let url = Bundle.main.url(forResource: "cases", withExtension: "json"),
-              let data = try? Data(contentsOf: url),
-              let decoded = try? JSONDecoder().decode([CaseStudy].self, from: data) else {
-            cases = []
-            return
+        let support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
+            ?? FileManager.default.temporaryDirectory
+        let dir = support.appendingPathComponent("Yizhidao", isDirectory: true)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        cacheURL = dir.appendingPathComponent("cases.json")
+        cases = Self.load(from: cacheURL) ?? Self.loadBundle() ?? []
+    }
+
+    func refresh() async {
+        do {
+            switch try await AuthAPI.fetchCases(
+                ifNoneMatch: UserDefaults.standard.string(forKey: versionKey)
+            ) {
+            case .notModified:
+                return
+            case .updated(let version, let remote):
+                cases = remote
+                UserDefaults.standard.set(version, forKey: versionKey)
+                try? JSONEncoder().encode(remote).write(to: cacheURL, options: .atomic)
+            }
+        } catch {
+            // 离线或服务不可用时沿用包内 / 缓存
         }
-        cases = decoded
+    }
+
+    private static func loadBundle() -> [CaseStudy]? {
+        guard let url = Bundle.main.url(forResource: "cases", withExtension: "json") else { return nil }
+        return load(from: url)
+    }
+
+    private static func load(from url: URL) -> [CaseStudy]? {
+        guard let data = try? Data(contentsOf: url) else { return nil }
+        return try? JSONDecoder().decode([CaseStudy].self, from: data)
     }
 }

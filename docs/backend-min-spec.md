@@ -99,6 +99,15 @@
 { "ok": true, "reply": "……", "usage": { "promptTokens": 800, "completionTokens": 200 } }
 ```
 
+### 7) 案例列表（公开，供 App 热更新）
+- `GET /v1/cases`
+- 无需登录。Header 可选 `If-None-Match: "<version>"`；未变则 HTTP 304
+- resp:
+```json
+{ "ok": true, "version": "a1b2c3d4e5f60718", "cases": [{ "file": "…", "number": 1, "hexagram": "乾卦", "position": "初爻" }] }
+```
+- 客户端以服务端列表全量替换本地缓存；离线时用 App 包内 `cases.json`
+
 ## 错误码（最小）
 - `4001` 参数错误
 - `4002` 验证码错误或过期

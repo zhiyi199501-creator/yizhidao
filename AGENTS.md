@@ -23,7 +23,7 @@ xcodebuild test -scheme Yizhidao -destination 'platform=iOS Simulator,name=iPhon
 - `Engines/`：`DigitalCastingEngine`、`CoinCastingEngine`、`KingWenTable`、`LunarCalendarHelper`
 - `Domain/ReadingGuide`：多动爻主看焦点；本卦/之卦展示在 `HexagramReadingBody`（结果页与案例详情共用）
 - `Features/History/`：时间线 / 按卦；同卦明细内数字按动爻位、金钱按 0–6 动筛选；删除进回收站
-- `Features/Cases/`：按卦列表（无时间、无应验徽章）；卦内不分数字/金钱；详情为背景 / 所问 / 验证 / 讲师解读 + 本卦之卦
+- `Features/Cases/`：按卦列表（无时间、无应验徽章）；打开时 `GET /v1/cases` 拉服务端最新，失败则用包内/缓存；详情为背景 / 所问 / 验证 / 讲师解读 + 本卦之卦
 - `App/`：`AppNavigation`、`AppTheme`、登录与「我的」（多在 `YizhidaoApp.swift`）。「我的」：资料、**AI解读历史**（本地保存的解读）、回收站（清空需确认）、设置（退出登录）
 - **经文勿换他本**；改解卦规则先改 `ReadingGuide` 并补测
 - **主看 UI**：0 动→本卦卦辞；2 动→本卦上动爻；3 动→本卦卦辞；4 动→之卦下静爻；5 动→之卦静爻；6 动→之卦卦辞；1 动不标「主看」
@@ -37,6 +37,6 @@ xcodebuild test -scheme Yizhidao -destination 'platform=iOS Simulator,name=iPhon
 
 ## 当前状态 / 下一步
 
-已实现：双法起卦、礼仪、主看、历史聚合／验证／回收站、案例按卦、浅色主题、手机号登录、`GET /v1/me`、AI 解读＋追问＋本地保存。短信默认 mock（腾讯云代码已备，需企业资质）。**后端已部署**（2026-08-16 核过）：`https://yizhidao.codedance.work`（`analyze` / `followup` / `me`）。
+已实现：双法起卦、礼仪、主看、历史聚合／验证／回收站、案例按卦（服务端可热更新）、浅色主题、手机号登录、`GET /v1/me`、AI 解读＋追问＋本地保存。短信默认 mock（腾讯云代码已备，需企业资质）。**后端已部署**（2026-08-16 核过）：`https://yizhidao.codedance.work`（`analyze` / `followup` / `me`）。
 
 未做：微信登录、生产短信、App Store、文言讲解层。运维见 `docs/deploy.md`。

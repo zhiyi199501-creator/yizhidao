@@ -3,7 +3,7 @@ import SwiftUI
 /// 「案例」主页：按卦分组，呈现与历史页「按卦」一致。
 struct CaseListView: View {
     private let hexStore = HexagramStore.shared
-    private let caseStore = CaseStore.shared
+    @ObservedObject private var caseStore = CaseStore.shared
 
     private struct CaseGroup: Identifiable {
         var id: Int { number }
@@ -44,9 +44,15 @@ struct CaseListView: View {
                         }
                     }
                     .scrollContentBackground(.hidden)
+                    .refreshable {
+                        await caseStore.refresh()
+                    }
                 }
             }
             .parchmentBackground()
+            .task {
+                await caseStore.refresh()
+            }
         }
     }
 
