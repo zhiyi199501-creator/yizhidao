@@ -2,8 +2,11 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from app.db import get_db
+from app.deps import get_current_user
+from app.models import User
 from app.schemas import (
     HealthResponse,
+    MeResponse,
     SMSLoginRequest,
     SMSLoginResponse,
     SMSSendRequest,
@@ -31,5 +34,12 @@ def sms_login(body: SMSLoginRequest, db: Session = Depends(get_db)) -> SMSLoginR
     user, token = login_with_sms(db, body.phone, body.code)
     return SMSLoginResponse(
         accessToken=token,
+        user=UserOut(id=user.id, nickname=user.nickname, phone=user.phone),
+    )
+
+
+@router.get("/v1/me", response_model=MeResponse)
+def me(user: User = Depends(get_current_user)) -> MeResponse:
+    return MeResponse(
         user=UserOut(id=user.id, nickname=user.nickname, phone=user.phone),
     )

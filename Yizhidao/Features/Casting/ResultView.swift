@@ -423,74 +423,184 @@ struct HexagramReadingBody: View {
 
 struct AIAnalysisView: View {
     let result: CastResult
+    private let initialSavedID: UUID?
 
     @State private var isLoading = false
+    @State private var isFollowupLoading = false
     @State private var analysis: AuthAPI.AIAnalyzeResponse.Analysis?
+    @State private var followUps: [SavedAIFollowUp] = []
+    @State private var draft = ""
     @State private var errorMessage: String?
+    @State private var savedID: UUID?
+    @State private var isDirty = false
 
     private var store: HexagramStore { .shared }
+    private var canSendFollowup: Bool {
+        !draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            && analysis != nil
+            && !isLoading
+            && !isFollowupLoading
+    }
+
+    init(result: CastResult) {
+        self.result = result
+        self.initialSavedID = nil
+    }
+
+    init(saved: SavedAIAnalysis) {
+        self.result = saved.toCastResult()
+        self.initialSavedID = saved.id
+        _analysis = State(initialValue: AuthAPI.AIAnalyzeResponse.Analysis(
+            summary: saved.analysis.summary,
+            focus: saved.analysis.focus,
+            advice: saved.analysis.advice
+        ))
+        _followUps = State(initialValue: saved.followUps)
+        _savedID = State(initialValue: saved.id)
+        _isDirty = State(initialValue: false)
+    }
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
-                headerSection
+        VStack(spacing: 0) {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    headerSection
 
-                if isLoading {
-                    HStack {
-                        Spacer()
-                        ProgressView("解读中…")
-                        Spacer()
+                    if isLoading {
+                        HStack {
+                            Spacer()
+                            ProgressView("解读中…")
+                            Spacer()
+                        }
+                        .padding(.vertical, 24)
                     }
-                    .padding(.vertical, 24)
-                }
 
-                if let analysis {
-                    analysisSection(title: "总览", text: analysis.summary)
-                    analysisSection(title: "焦点", text: analysis.focus)
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("建议")
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(AppTheme.accent)
-                        ForEach(Array(analysis.advice.enumerated()), id: \.offset) { index, item in
-                            HStack(alignment: .top, spacing: 8) {
-                                Text("\(index + 1).")
-                                    .font(.subheadline.weight(.semibold))
-                                    .foregroundStyle(AppTheme.accent)
-                                Text(item)
-                                    .font(.body)
-                                    .fixedSize(horizontal: false, vertical: true)
+                    if let analysis {
+                        analysisSection(title: "总览", text: analysis.summary)
+                        analysisSection(title: "焦点", text: analysis.focus)
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("建议")
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(AppTheme.accent)
+                            ForEach(Array(analysis.advice.enumerated()), id: \.offset) { index, item in
+                                HStack(alignment: .top, spacing: 8) {
+                                    Text("\(index + 1).")
+                                        .font(.subheadline.weight(.semibold))
+                                        .foregroundStyle(AppTheme.accent)
+                                    Text(item)
+                                        .font(.body)
+                                        .fixedSize(horizontal: false, vertical: true)
+                                }
                             }
                         }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding()
+                        .background(RoundedRectangle(cornerRadius: 12).fill(AppTheme.cardFill))
                     }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding()
-                    .background(RoundedRectangle(cornerRadius: 12).fill(AppTheme.cardFill))
-                }
 
-                if let errorMessage {
-                    Text(errorMessage)
+                    ForEach(followUps) { turn in
+                        followUpTurn(turn)
+                    }
+
+                    if isFollowupLoading {
+                        HStack {
+                            Spacer()
+                            ProgressView("回复中…")
+                            Spacer()
+                        }
+                        .padding(.vertical, 8)
+                    }
+
+                    if let errorMessage {
+                        Text(errorMessage)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+
+                    if analysis != nil, !isLoading {
+                        Button("重新解读") {
+                            Task { await runAnalysis() }
+                        }
                         .font(.caption)
                         .foregroundStyle(.secondary)
-                }
-
-                if !isLoading {
-                    Button(analysis == nil ? "开始解读" : "重新解读") {
-                        Task { await runAnalysis() }
+                        .frame(maxWidth: .infinity)
+                    } else if !isLoading, analysis == nil {
+                        Button("开始解读") {
+                            Task { await runAnalysis() }
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .tint(AppTheme.accent)
+                        .frame(maxWidth: .infinity)
                     }
-                    .buttonStyle(.borderedProminent)
-                    .tint(AppTheme.accent)
-                    .frame(maxWidth: .infinity)
                 }
+                .padding()
             }
-            .padding()
+            .scrollDismissesKeyboard(.interactively)
+
+            if analysis != nil {
+                composerBar
+            }
         }
         .navigationTitle("AI 解读")
         .navigationBarTitleDisplayMode(.inline)
         .parchmentBackground()
+        .toolbar {
+            if analysis != nil {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button(saveButtonTitle) {
+                        saveCurrent()
+                    }
+                    .disabled(!isDirty && savedID != nil)
+                }
+            }
+        }
         .task {
-            if analysis == nil, !isLoading {
+            if analysis == nil, !isLoading, initialSavedID == nil {
                 await runAnalysis()
             }
+        }
+    }
+
+    private var saveButtonTitle: String {
+        if savedID != nil, !isDirty { return "已保存" }
+        if savedID != nil { return "更新" }
+        return "保存"
+    }
+
+    private var composerBar: some View {
+        HStack(alignment: .bottom, spacing: 8) {
+            TextField("追问或补充背景", text: $draft, axis: .vertical)
+                .lineLimit(1...4)
+                .appTextFieldStyle()
+            Button {
+                Task { await sendFollowup() }
+            } label: {
+                Image(systemName: "arrow.up.circle.fill")
+                    .font(.system(size: 32))
+                    .foregroundStyle(canSendFollowup ? AppTheme.accent : Color.secondary.opacity(0.4))
+            }
+            .disabled(!canSendFollowup)
+            .accessibilityLabel("发送")
+        }
+        .padding(.horizontal)
+        .padding(.vertical, 10)
+        .background(AppTheme.cardFill)
+    }
+
+    private func followUpTurn(_ turn: SavedAIFollowUp) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Spacer(minLength: 40)
+                Text(turn.user)
+                    .font(.body)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(AppTheme.accent.opacity(0.12))
+                    )
+            }
+            analysisSection(title: "回复", text: turn.assistant)
         }
     }
 
@@ -504,9 +614,6 @@ struct AIAnalysisView: View {
                 Text("所问：\(question)")
                     .font(.body)
             }
-            Text(ReadingGuide.generalPrinciple)
-                .font(.footnote)
-                .foregroundStyle(.secondary)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding()
@@ -527,6 +634,27 @@ struct AIAnalysisView: View {
         .background(RoundedRectangle(cornerRadius: 12).fill(AppTheme.cardFill))
     }
 
+    private func saveCurrent() {
+        guard let analysis else { return }
+        let content = SavedAIContent(
+            summary: analysis.summary,
+            focus: analysis.focus,
+            advice: analysis.advice
+        )
+        if var existing = SavedAIAnalysisStore.load().first(where: { $0.id == savedID }) {
+            existing.updatedAt = Date()
+            existing.analysis = content
+            existing.followUps = followUps
+            SavedAIAnalysisStore.upsert(existing)
+            savedID = existing.id
+        } else {
+            let item = SavedAIAnalysis.make(result: result, analysis: content, followUps: followUps)
+            SavedAIAnalysisStore.upsert(item)
+            savedID = item.id
+        }
+        isDirty = false
+    }
+
     @MainActor
     private func runAnalysis() async {
         guard let token = LocalAuthStore.load().accessToken else {
@@ -539,7 +667,38 @@ struct AIAnalysisView: View {
         do {
             let response = try await AuthAPI.analyzeReading(result: result, accessToken: token)
             analysis = response.analysis
+            followUps = []
+            isDirty = true
         } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    @MainActor
+    private func sendFollowup() async {
+        let message = draft.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard canSendFollowup, let analysis, let token = LocalAuthStore.load().accessToken else {
+            if LocalAuthStore.load().accessToken == nil {
+                errorMessage = "请先登录"
+            }
+            return
+        }
+        draft = ""
+        isFollowupLoading = true
+        errorMessage = nil
+        defer { isFollowupLoading = false }
+        do {
+            let response = try await AuthAPI.followupReading(
+                result: result,
+                analysis: analysis,
+                conversation: followUps,
+                message: message,
+                accessToken: token
+            )
+            followUps.append(SavedAIFollowUp(user: message, assistant: response.reply))
+            isDirty = true
+        } catch {
+            draft = message
             errorMessage = error.localizedDescription
         }
     }

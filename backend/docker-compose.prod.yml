@@ -1,0 +1,20 @@
+# 与系统 Caddy 共用 80/443 时使用（见 docs/deploy.md）
+services:
+  api:
+    build:
+      context: ..
+      dockerfile: backend/Dockerfile
+    env_file:
+      - .env
+    environment:
+      APP_ENV: production
+      HEXAGRAMS_PATH: /app/data/Hexagrams.json
+      DATABASE_URL: sqlite:////app/data/yizhidao.db
+    volumes:
+      - yizhidao_data:/app/data
+    ports:
+      - "127.0.0.1:8080:8080"
+    restart: unless-stopped
+
+volumes:
+  yizhidao_data:

@@ -36,7 +36,19 @@
 }
 ```
 
-### 3) 微信登录（code 换会话）
+### 3) 当前用户（校验登录态）
+- `GET /v1/me`
+- Header: `Authorization: Bearer <access_token>`
+- resp:
+```json
+{
+  "ok": true,
+  "user": { "id": "u_123", "nickname": "用户138****8000", "phone": "13800138000" }
+}
+```
+- 无效/过期 token → HTTP 401，`code: 4003`
+
+### 4) 微信登录（未实现，接口预留）
 - `POST /v1/auth/wechat/login`
 - req:
 ```json
@@ -51,7 +63,7 @@
 }
 ```
 
-### 4) AI 解读
+### 5) AI 解读
 - `POST /v1/ai/analyze`
 - req:
 ```json
@@ -78,6 +90,15 @@
 }
 ```
 
+### 6) AI 追问
+- `POST /v1/ai/followup`
+- Header: `Authorization: Bearer <access_token>`
+- req: 与解读相同的卦象字段，外加 `previousAnalysis`、`conversation`、`message`
+- resp:
+```json
+{ "ok": true, "reply": "……", "usage": { "promptTokens": 800, "completionTokens": 200 } }
+```
+
 ## 错误码（最小）
 - `4001` 参数错误
 - `4002` 验证码错误或过期
@@ -85,10 +106,17 @@
 - `4290` 请求过快（限流）
 - `5000` 服务内部错误
 
+## 短信通道（现役）
+- `SMS_PROVIDER=mock`：开发可固定码 / 控制台打印；**生产**随机码并写日志（固定 `123456` 默认禁用）
+- `SMS_PROVIDER=tencent`：腾讯云短信 SendSms（密钥与签名模板在服务端 `.env`）
+- 细节见 `backend/README.md` 与 `backend/app/services/sms.py`
+
 ## AI 解读实现说明（现役）
 - 服务端拼 prompt：卦辞→事情背景；大象辞→宜努力方向；动爻爻辞/小象→当下情形
+- 另附本卦初爻至上爻讲习案例（`cases.json`）作取象参照，不可把案例原事套到用户身上
+- 初次 `POST /v1/ai/analyze`；追问 `POST /v1/ai/followup`
 - `AI_MODE=mock` 规则解读；`openai` 走 OpenAI 兼容 Chat Completions（密钥在服务端 `.env`）
-- 经文取自 App 仓库 `Yizhidao/Resources/Hexagrams.json`（与《易经证释》所引一致）
+- 经文取自 `Yizhidao/Resources/Hexagrams.json`（与《易经证释》所引一致）
 - 提示词细节以 `backend/app/services/ai.py` 为准
 
 ## 运营与安全最小要求

@@ -29,6 +29,11 @@ class SMSLoginResponse(BaseModel):
     user: UserOut
 
 
+class MeResponse(BaseModel):
+    ok: bool = True
+    user: UserOut
+
+
 class HealthResponse(BaseModel):
     ok: bool = True
     service: str = "yizhidao-backend"
@@ -58,4 +63,21 @@ class AIUsage(BaseModel):
 class AIAnalysisResponse(BaseModel):
     ok: bool = True
     analysis: AIAnalysisContent
+    usage: AIUsage
+
+
+class AIChatTurn(BaseModel):
+    user: str = Field(min_length=1, max_length=2000)
+    assistant: str = Field(min_length=1, max_length=8000)
+
+
+class AIFollowupBody(AIAnalysisBody):
+    previousAnalysis: AIAnalysisContent
+    conversation: list[AIChatTurn] = Field(default_factory=list)
+    message: str = Field(min_length=1, max_length=2000)
+
+
+class AIFollowupResponse(BaseModel):
+    ok: bool = True
+    reply: str
     usage: AIUsage

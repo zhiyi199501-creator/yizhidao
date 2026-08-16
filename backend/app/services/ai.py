@@ -6,7 +6,13 @@ import httpx
 
 from app.config import settings
 from app.errors import AppError
-from app.schemas import AIAnalysisBody, AIAnalysisContent, AIUsage
+from app.schemas import (
+    AIAnalysisBody,
+    AIAnalysisContent,
+    AIFollowupBody,
+    AIUsage,
+)
+from app.services.case_store import cases_for_hexagram
 from app.services.hexagram_store import get_hexagram
 
 
@@ -61,6 +67,37 @@ def _hex_block(number: int, label: str) -> str:
     )
 
 
+def _field(case: dict, key: str) -> str:
+    value = str(case.get(key) or "").strip()
+    if not value or value == "原文未提及":
+        return ""
+    return value
+
+
+def _cases_block(number: int) -> str:
+    cases = cases_for_hexagram(number)
+    if not cases:
+        return "本卦讲习案例：暂无。"
+    lines = [
+        f"本卦讲习案例（共{len(cases)}则，按初爻至上爻排列；作取象与应事的参照，须紧扣本次所问与动爻，不可照搬结论）："
+    ]
+    for index, case in enumerate(cases, start=1):
+        hexagram = str(case.get("hexagram") or "")
+        position = str(case.get("position") or "")
+        parts = [f"【{index}】{hexagram}{position}"]
+        for label, key in (
+            ("背景", "background"),
+            ("所问", "question"),
+            ("讲师解读", "explanation"),
+            ("验证", "verification"),
+        ):
+            value = _field(case, key)
+            if value:
+                parts.append(f"{label}：{value}")
+        lines.append("\n".join(parts))
+    return "\n\n".join(lines)
+
+
 def _build_prompt(body: AIAnalysisBody) -> str:
     moving = sorted(set(p for p in body.movingPositions if 1 <= p <= 6))
     focus = _focus_text(moving)
@@ -78,9 +115,10 @@ def _build_prompt(body: AIAnalysisBody) -> str:
     else:
         parts.append("动爻位：无（六爻皆不变）")
     parts.append(f"解卦焦点：{focus}")
+    parts.append(_cases_block(body.primaryNumber))
     parts.append(
         "解读框架：卦辞看事情背景；大象辞看占者宜努力的方向；动爻之爻辞与小象看当下情形"
-        "（无动爻时，当下参本卦卦辞与大象）。"
+        "（无动爻时，当下参本卦卦辞与大象）。可参照讲习案例的取象方式，但结论必须针对本次所问。"
     )
     return "\n\n".join(parts)
 
@@ -107,34 +145,20 @@ def _analyze_mock(body: AIAnalysisBody) -> Tuple[AIAnalysisContent, AIUsage]:
     )
 
 
-def _parse_model_json(content: str) -> AIAnalysisContent:
+def _parse_json_object(content: str) -> dict:
     text = content.strip()
     fence = re.search(r"```(?:json)?\s*([\s\S]*?)```", text)
     if fence:
         text = fence.group(1).strip()
     data = json.loads(text)
-    advice = data.get("advice") or []
-    if isinstance(advice, str):
-        advice = [advice]
-    return AIAnalysisContent(
-        summary=str(data.get("summary", "")).strip(),
-        focus=str(data.get("focus", "")).strip(),
-        advice=[str(item).strip() for item in advice if str(item).strip()],
-    )
+    if not isinstance(data, dict):
+        raise json.JSONDecodeError("not an object", text, 0)
+    return data
 
 
-def _analyze_openai(body: AIAnalysisBody) -> Tuple[AIAnalysisContent, AIUsage]:
+def _complete_json(system_prompt: str, user_prompt: str) -> Tuple[dict, AIUsage]:
     if not settings.openai_api_key:
         raise AppError("未配置 OPENAI_API_KEY", code=5000, status_code=500)
-
-    system_prompt = (
-        "你是「易知道」的易经解读助手。依据提供的卦象与经文（《易经证释》所引）做占问解读。"
-        "解读须按：卦辞→事情背景；大象辞→占者宜努力的方向；动爻之爻辞与小象→当下情形。"
-        "结论从卦象、卦辞、大象辞、爻辞、小象辞中归纳，紧扣「解卦焦点」；可简要参彖辞。"
-        "只输出 JSON，不要 markdown，格式："
-        '{"summary":"总览：据卦辞交代事情背景1-2句","focus":"当下：据动爻爻辞/小象说当下情形1句","advice":["方向：据大象辞的努力方向","建议2","建议3"]}'
-    )
-    user_prompt = _build_prompt(body)
 
     url = f"{settings.openai_base_url.rstrip('/')}/chat/completions"
     payload = {
@@ -168,16 +192,76 @@ def _analyze_openai(body: AIAnalysisBody) -> Tuple[AIAnalysisContent, AIUsage]:
         promptTokens=int(usage_raw.get("prompt_tokens", 0)),
         completionTokens=int(usage_raw.get("completion_tokens", 0)),
     )
-
     try:
-        analysis = _parse_model_json(content)
+        parsed = _parse_json_object(content)
     except (json.JSONDecodeError, KeyError, TypeError) as exc:
         raise AppError("模型返回格式异常", code=5000, status_code=502) from exc
+    return parsed, usage
 
+
+def _analyze_openai(body: AIAnalysisBody) -> Tuple[AIAnalysisContent, AIUsage]:
+    system_prompt = (
+        "你是「易知道」的易经解读助手。依据提供的卦象与经文（《易经证释》所引）做占问解读。"
+        "解读须按：卦辞→事情背景；大象辞→占者宜努力的方向；动爻之爻辞与小象→当下情形。"
+        "结论从卦象、卦辞、大象辞、爻辞、小象辞中归纳，紧扣「解卦焦点」；可简要参彖辞。"
+        "另附该本卦初爻至上爻的讲习案例，可参照其取象、应事与验证，但必须针对本次所问与动爻，"
+        "不可把案例原事或结论直接套到用户身上。"
+        "只输出 JSON，不要 markdown，格式："
+        '{"summary":"总览：据卦辞交代事情背景1-2句","focus":"当下：据动爻爻辞/小象说当下情形1句","advice":["方向：据大象辞的努力方向","建议2","建议3"]}'
+    )
+    parsed, usage = _complete_json(system_prompt, _build_prompt(body))
+    advice = parsed.get("advice") or []
+    if isinstance(advice, str):
+        advice = [advice]
+    analysis = AIAnalysisContent(
+        summary=str(parsed.get("summary", "")).strip(),
+        focus=str(parsed.get("focus", "")).strip(),
+        advice=[str(item).strip() for item in advice if str(item).strip()],
+    )
     if not analysis.summary or not analysis.focus or not analysis.advice:
         raise AppError("模型返回内容不完整", code=5000, status_code=502)
-
     return analysis, usage
+
+
+def _followup_prompt(body: AIFollowupBody) -> str:
+    prev = body.previousAnalysis
+    advice = "；".join(prev.advice)
+    parts = [
+        _build_prompt(body),
+        "此前解读：",
+        f"总览：{prev.summary}",
+        f"焦点：{prev.focus}",
+        f"建议：{advice}",
+    ]
+    if body.conversation:
+        parts.append("此前追问：")
+        for index, turn in enumerate(body.conversation[-10:], start=1):
+            parts.append(f"{index}. 用户：{turn.user}\n   助手：{turn.assistant}")
+    parts.append(f"用户最新追问或补充：{body.message.strip()}")
+    parts.append("请针对这条追问/补充作答，可修正或细化此前解读，不要重复粘贴经文。")
+    return "\n\n".join(parts)
+
+
+def _followup_mock(body: AIFollowupBody) -> Tuple[str, AIUsage]:
+    text = body.message.strip()
+    clipped = text if len(text) <= 40 else text[:40] + "…"
+    reply = f"已记下你的补充「{clipped}」。请仍对照本卦动爻与此前解读，把新背景收进判断里。"
+    return reply, AIUsage(promptTokens=0, completionTokens=0)
+
+
+def _followup_openai(body: AIFollowupBody) -> Tuple[str, AIUsage]:
+    system_prompt = (
+        "你是「易知道」的易经解读助手。用户已得到初次解读，现在追问或补充背景。"
+        "结合卦象、经文、讲习案例与此前解读作答；有新背景时据此调整判断。"
+        "不可把讲习案例原事直接套到用户身上。不要重复堆砌经文。"
+        "只输出 JSON，不要 markdown，格式："
+        '{"reply":"针对追问的答复，可分2-6句"}'
+    )
+    parsed, usage = _complete_json(system_prompt, _followup_prompt(body))
+    reply = str(parsed.get("reply", "")).strip()
+    if not reply:
+        raise AppError("模型返回内容不完整", code=5000, status_code=502)
+    return reply, usage
 
 
 def analyze_reading(body: AIAnalysisBody) -> Tuple[AIAnalysisContent, AIUsage]:
@@ -185,3 +269,10 @@ def analyze_reading(body: AIAnalysisBody) -> Tuple[AIAnalysisContent, AIUsage]:
     if mode == "openai":
         return _analyze_openai(body)
     return _analyze_mock(body)
+
+
+def followup_reading(body: AIFollowupBody) -> Tuple[str, AIUsage]:
+    mode = (settings.ai_mode or "mock").lower()
+    if mode == "openai":
+        return _followup_openai(body)
+    return _followup_mock(body)

@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 from app.config import settings
 from app.errors import AppError
 from app.models import SMSCode, User
+from app.services.sms import deliver_sms_code
 
 PHONE_PATTERN = re.compile(r"^1\d{10}$")
 
@@ -49,7 +50,15 @@ def send_sms_code(db: Session, phone: str) -> int:
         if elapsed < settings.sms_cooldown_sec:
             raise AppError("请求过快，请稍后再试", code=4290, status_code=429)
 
-    if settings.dev_sms_fixed_code:
+    use_fixed = (
+        settings.sms_provider.lower() == "mock"
+        and bool(settings.dev_sms_fixed_code)
+        and (
+            settings.app_env.lower() != "production"
+            or settings.allow_insecure_mock_sms
+        )
+    )
+    if use_fixed:
         code = settings.dev_sms_fixed_code
     else:
         code = f"{random.randint(0, 999999):06d}"
@@ -58,7 +67,21 @@ def send_sms_code(db: Session, phone: str) -> int:
     db.add(SMSCode(phone=phone, code=code, expires_at=expires_at, used=False))
     db.commit()
 
-    print(f"[sms] phone={mask_phone(phone)} code={code} expires={expires_at.isoformat()}")
+    try:
+        deliver_sms_code(phone, code)
+    except AppError:
+        # 发送失败则作废刚写入的验证码，避免占冷却窗口却收不到短信
+        record = db.scalar(
+            select(SMSCode)
+            .where(SMSCode.phone == phone, SMSCode.used.is_(False))
+            .order_by(SMSCode.created_at.desc())
+            .limit(1)
+        )
+        if record and record.code == code:
+            record.used = True
+            db.commit()
+        raise
+
     return settings.sms_cooldown_sec
 
 

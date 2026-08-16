@@ -1,0 +1,4 @@
+{$API_DOMAIN:yizhidao.codedance.work} {
+	encode gzip
+	reverse_proxy api:8080
+}

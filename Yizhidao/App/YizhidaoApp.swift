@@ -64,14 +64,13 @@ struct MyMenuView: View {
     @State private var recycleEntries: [HistoryTrashEntry] = HistoryTrashStore.load()
     @State private var session: LocalUserSession = LocalAuthStore.load()
     @State private var showLoginSheet = false
-    @State private var showLogoutConfirm = false
     @State private var openAIAnalysisPage = false
     @State private var pendingOpenAIAnalysis = false
 
     var body: some View {
         NavigationStack {
             List {
-                Section("用户信息") {
+                Section {
                     if session.isLoggedIn {
                         NavigationLink {
                             ProfileEditView(session: $session)
@@ -87,10 +86,6 @@ struct MyMenuView: View {
                                 Spacer()
                             }
                         }
-                        Button("退出登录") {
-                            showLogoutConfirm = true
-                        }
-                        .font(.caption)
                     } else {
                         HStack(spacing: 10) {
                             Image(systemName: "person.crop.circle.badge.exclamationmark")
@@ -109,7 +104,28 @@ struct MyMenuView: View {
                     }
                 }
 
-                Section("回收站") {
+                Section {
+                    Button {
+                        if session.isLoggedIn {
+                            openAIAnalysisPage = true
+                        } else {
+                            pendingOpenAIAnalysis = true
+                            showLoginSheet = true
+                        }
+                    } label: {
+                        HStack {
+                            Label("AI解读历史", systemImage: "text.book.closed")
+                            Spacer()
+                            if !session.isLoggedIn {
+                                Text("需登录")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                    }
+                }
+
+                Section {
                     NavigationLink {
                         RecycleBinView()
                     } label: {
@@ -122,24 +138,11 @@ struct MyMenuView: View {
                     }
                 }
 
-                Section("AI") {
-                    Button {
-                        if session.isLoggedIn {
-                            openAIAnalysisPage = true
-                        } else {
-                            pendingOpenAIAnalysis = true
-                            showLoginSheet = true
-                        }
+                Section {
+                    NavigationLink {
+                        SettingsView(session: $session)
                     } label: {
-                        HStack {
-                            AIBadgeIcon()
-                            Spacer()
-                            if !session.isLoggedIn {
-                                Text("需登录")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
-                        }
+                        Label("设置", systemImage: "gearshape")
                     }
                 }
             }
@@ -152,6 +155,7 @@ struct MyMenuView: View {
             .onAppear {
                 recycleEntries = HistoryTrashStore.load()
                 session = LocalAuthStore.load()
+                Task { await refreshSessionIfNeeded() }
             }
             .sheet(isPresented: $showLoginSheet) {
                 LoginSheetView { newSession in
@@ -164,13 +168,23 @@ struct MyMenuView: View {
                     }
                 }
             }
-            .alert("确认退出登录？", isPresented: $showLogoutConfirm) {
-                Button("取消", role: .cancel) {}
-                Button("退出登录", role: .destructive) {
-                    session = .guest
-                    LocalAuthStore.save(session)
-                }
-            }
+        }
+    }
+
+    @MainActor
+    private func refreshSessionIfNeeded() async {
+        guard session.isLoggedIn, let token = session.accessToken, !token.isEmpty else { return }
+        do {
+            let me = try await AuthAPI.fetchMe(accessToken: token)
+            session.displayName = me.user.nickname
+            session.phone = me.user.phone
+            session.isLoggedIn = true
+            LocalAuthStore.save(session)
+        } catch LoginError.unauthorized {
+            session = .guest
+            LocalAuthStore.save(session)
+        } catch {
+            // 网络异常时保留本地会话，下次再校验
         }
     }
 }
@@ -366,7 +380,7 @@ enum AuthAPI {
     private static let baseURL = URL(string: "http://172.20.10.10:8080")!
     #endif
     #else
-    private static let baseURL = URL(string: "https://api.yizhidao.app")!
+    private static let baseURL = URL(string: "https://yizhidao.codedance.work")!
     #endif
 
     struct SMSCodeResponse: Decodable {
@@ -416,8 +430,33 @@ enum AuthAPI {
         return decoded
     }
 
+    struct MeResponse: Decodable {
+        struct User: Decodable {
+            let id: String
+            let nickname: String
+            let phone: String?
+        }
+        let ok: Bool
+        let user: User
+    }
+
+    static func fetchMe(accessToken: String) async throws -> MeResponse {
+        var req = URLRequest(url: baseURL.appendingPathComponent("v1/me"))
+        req.httpMethod = "GET"
+        req.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+        let (data, response) = try await URLSession.shared.data(for: req)
+        guard let http = response as? HTTPURLResponse else { throw LoginError.network("网络异常") }
+        if http.statusCode == 401 {
+            throw LoginError.unauthorized
+        }
+        guard (200..<300).contains(http.statusCode) else { throw decodeError(data, fallback: "获取用户信息失败") }
+        let decoded = try JSONDecoder().decode(MeResponse.self, from: data)
+        guard decoded.ok else { throw LoginError.network("获取用户信息失败") }
+        return decoded
+    }
+
     struct AIAnalyzeResponse: Decodable {
-        struct Analysis: Decodable {
+        struct Analysis: Codable, Hashable {
             let summary: String
             let focus: String
             let advice: [String]
@@ -425,6 +464,11 @@ enum AuthAPI {
 
         let ok: Bool
         let analysis: Analysis
+    }
+
+    struct AIFollowupResponse: Decodable {
+        let ok: Bool
+        let reply: String
     }
 
     static func analyzeReading(result: CastResult, accessToken: String) async throws -> AIAnalyzeResponse {
@@ -455,6 +499,49 @@ enum AuthAPI {
         return decoded
     }
 
+    static func followupReading(
+        result: CastResult,
+        analysis: AIAnalyzeResponse.Analysis,
+        conversation: [SavedAIFollowUp],
+        message: String,
+        accessToken: String
+    ) async throws -> AIFollowupResponse {
+        var payload: [String: Any] = [
+            "method": result.method.rawValue,
+            "primaryNumber": result.primaryNumber,
+            "movingPositions": result.movingPositions,
+            "lines": result.lines.map(\.rawValue),
+            "hexTextVersion": "yi-zhengshi-2026-08",
+            "message": message,
+            "previousAnalysis": [
+                "summary": analysis.summary,
+                "focus": analysis.focus,
+                "advice": analysis.advice,
+            ],
+            "conversation": conversation.map {
+                ["user": $0.user, "assistant": $0.assistant]
+            },
+        ]
+        if let question = result.question {
+            payload["question"] = question
+        }
+        if let resultingNumber = result.resultingNumber {
+            payload["resultingNumber"] = resultingNumber
+        }
+
+        var req = URLRequest(url: baseURL.appendingPathComponent("v1/ai/followup"))
+        req.httpMethod = "POST"
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        req.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+        req.httpBody = try JSONSerialization.data(withJSONObject: payload)
+        let (data, response) = try await URLSession.shared.data(for: req)
+        guard let http = response as? HTTPURLResponse else { throw LoginError.network("网络异常") }
+        guard (200..<300).contains(http.statusCode) else { throw decodeError(data, fallback: "追问失败") }
+        let decoded = try JSONDecoder().decode(AIFollowupResponse.self, from: data)
+        guard decoded.ok, !decoded.reply.isEmpty else { throw LoginError.network("追问失败") }
+        return decoded
+    }
+
     private static func decodeError(_ data: Data, fallback: String) -> LoginError {
         if let envelope = try? JSONDecoder().decode(ErrorEnvelope.self, from: data),
            let message = envelope.message, !message.isEmpty {
@@ -466,60 +553,80 @@ enum AuthAPI {
 
 enum LoginError: LocalizedError {
     case network(String)
+    case unauthorized
 
     var errorDescription: String? {
         switch self {
         case .network(let message): return message
+        case .unauthorized: return "登录已过期，请重新登录"
         }
     }
 }
 
 private struct AIAnalysisHistoryView: View {
-    @Query(sort: \ReadingRecord.createdAt, order: .reverse) private var records: [ReadingRecord]
+    @State private var items: [SavedAIAnalysis] = SavedAIAnalysisStore.load()
     private let store = HexagramStore.shared
 
     var body: some View {
         Group {
-            if records.isEmpty {
+            if items.isEmpty {
                 ContentUnavailableView(
-                    "暂无占卦记录",
+                    "还没有保存的解读",
                     systemImage: "sparkles",
-                    description: Text("起卦后可在卦象结果页使用 AI 解读")
+                    description: Text("觉得合适的 AI 解读，可在结果页点「保存」")
                 )
             } else {
                 List {
-                    ForEach(records.prefix(30)) { record in
+                    ForEach(items) { item in
                         NavigationLink {
-                            AIAnalysisView(result: record.toCastResult())
+                            AIAnalysisView(saved: item)
                         } label: {
-                            aiHistoryRow(record)
+                            savedRow(item)
+                        }
+                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                            Button(role: .destructive) {
+                                SavedAIAnalysisStore.remove(id: item.id)
+                                items = SavedAIAnalysisStore.load()
+                            } label: {
+                                Image(systemName: "trash.fill")
+                            }
+                            .tint(.red)
+                            .accessibilityLabel("删除")
                         }
                     }
                 }
                 .scrollContentBackground(.hidden)
             }
         }
-        .navigationTitle("AI 解读")
+        .navigationTitle("AI解读历史")
         .navigationBarTitleDisplayMode(.inline)
         .parchmentBackground()
+        .onAppear {
+            items = SavedAIAnalysisStore.load()
+        }
     }
 
     @ViewBuilder
-    private func aiHistoryRow(_ record: ReadingRecord) -> some View {
+    private func savedRow(_ item: SavedAIAnalysis) -> some View {
         VStack(alignment: .leading, spacing: 4) {
-            if let hex = store.hexagram(number: record.primaryNumber) {
+            if let hex = store.hexagram(number: item.primaryNumber) {
                 Text("\(hex.symbol) \(hex.name)")
                     .font(.headline)
             } else {
-                Text("第\(record.primaryNumber)卦")
+                Text("第\(item.primaryNumber)卦")
                     .font(.headline)
             }
-            Text(ReadingRecordRow.timeString(record.createdAt))
+            Text(ReadingRecordRow.timeString(item.updatedAt))
                 .font(.caption)
                 .foregroundStyle(.secondary)
-            if let question = record.question, !question.isEmpty {
+            if let question = item.question, !question.isEmpty {
                 Text(question)
                     .font(.subheadline)
+                    .lineLimit(1)
+            } else {
+                Text(item.analysis.summary)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
                     .lineLimit(1)
             }
         }
@@ -612,9 +719,40 @@ private struct ProfileEditView: View {
     }
 }
 
+private struct SettingsView: View {
+    @Binding var session: LocalUserSession
+    @Environment(\.dismiss) private var dismiss
+    @State private var showLogoutConfirm = false
+
+    var body: some View {
+        List {
+            if session.isLoggedIn {
+                Section {
+                    Button("退出登录", role: .destructive) {
+                        showLogoutConfirm = true
+                    }
+                }
+            }
+        }
+        .scrollContentBackground(.hidden)
+        .navigationTitle("设置")
+        .navigationBarTitleDisplayMode(.inline)
+        .parchmentBackground()
+        .alert("确认退出登录？", isPresented: $showLogoutConfirm) {
+            Button("取消", role: .cancel) {}
+            Button("退出登录", role: .destructive) {
+                session = .guest
+                LocalAuthStore.save(session)
+                dismiss()
+            }
+        }
+    }
+}
+
 private struct RecycleBinView: View {
     @Environment(\.modelContext) private var modelContext
     @State private var entries: [HistoryTrashEntry] = HistoryTrashStore.load()
+    @State private var showClearConfirm = false
     private let store = HexagramStore.shared
 
     var body: some View {
@@ -684,13 +822,21 @@ private struct RecycleBinView: View {
         .toolbar {
             if !entries.isEmpty {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("清空回收站") {
-                        HistoryTrashStore.clearAll()
-                        entries = []
+                    Button("清空") {
+                        showClearConfirm = true
                     }
                     .tint(.red)
                 }
             }
+        }
+        .alert("确认清空？", isPresented: $showClearConfirm) {
+            Button("取消", role: .cancel) {}
+            Button("确定", role: .destructive) {
+                HistoryTrashStore.clearAll()
+                entries = []
+            }
+        } message: {
+            Text("回收站中的记录将被彻底删除，无法恢复。")
         }
         .parchmentBackground()
         .onAppear {
