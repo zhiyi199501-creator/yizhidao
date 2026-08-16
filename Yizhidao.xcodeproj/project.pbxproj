@@ -31,6 +31,9 @@
 		D13A3C208BA540C990E6C366 /* DigitalCastingEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1781F41A2C04E80B1601A9D /* DigitalCastingEngine.swift */; };
 		F4FA069E0E144AD7AD608185 /* ResultView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 78593865F4DD44ABAF281B2A /* ResultView.swift */; };
 		F8C1C3F4E501414DBDDD982A /* LunarCalendarHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DF34D4493C94C639D9DB6BD /* LunarCalendarHelper.swift */; };
+		F0CB136E943341909C51CC2A /* CaseModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4278B724E3594A7292C2B416 /* CaseModels.swift */; };
+		B21C91DA1BCB4BCA9CE351AD /* CaseListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E421C3B729BF40ADA8D18489 /* CaseListView.swift */; };
+		FBC1E4127C75448A977AD579 /* cases.json in Resources */ = {isa = PBXBuildFile; fileRef = 8393C6C7EE1243889EF8CE5C /* cases.json */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -70,6 +73,9 @@
 		E614E289492B467E8E241148 /* CastingHomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = CastingHomeView.swift; path = Features/Casting/CastingHomeView.swift; sourceTree = "<group>"; };
 		ECA85F738BC74E21A5C9073A /* KingWenTable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = KingWenTable.swift; path = Engines/KingWenTable.swift; sourceTree = "<group>"; };
 		F9BBA2BE8067493FBBAD0119 /* Hexagram.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = Hexagram.swift; path = Domain/Hexagram.swift; sourceTree = "<group>"; };
+		4278B724E3594A7292C2B416 /* CaseModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = CaseModels.swift; path = Features/Cases/CaseModels.swift; sourceTree = "<group>"; };
+		E421C3B729BF40ADA8D18489 /* CaseListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = CaseListView.swift; path = Features/Cases/CaseListView.swift; sourceTree = "<group>"; };
+		8393C6C7EE1243889EF8CE5C /* cases.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; name = cases.json; path = Resources/cases.json; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -115,6 +121,9 @@
 				B8F3C2D185E95E3B0D7F2E41 /* ReadingRecordRow.swift */,
 				D0E5F4A387B17B5D2F9A4C63 /* HexagramGroupViews.swift */,
 				2A3A7D3A62474756845AF9BE /* Hexagrams.json */,
+				4278B724E3594A7292C2B416 /* CaseModels.swift */,
+				E421C3B729BF40ADA8D18489 /* CaseListView.swift */,
+				8393C6C7EE1243889EF8CE5C /* cases.json */,
 				E1E94CC872B540419C963B30 /* Assets.xcassets */,
 			);
 			path = Yizhidao;
@@ -228,6 +237,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				602326EE314B4192A2FEDDD7 /* Hexagrams.json in Resources */,
+				FBC1E4127C75448A977AD579 /* cases.json in Resources */,
 				287E6E59BF89490E932CFFC6 /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -260,6 +270,8 @@
 				CC351C1DDE89457DA9C2D046 /* HistoryListView.swift in Sources */,
 				A7E2B1C094F84D2A9C6E1D30 /* ReadingRecordRow.swift in Sources */,
 				C9D4E3F276A06F4C1E803A52 /* HexagramGroupViews.swift in Sources */,
+				F0CB136E943341909C51CC2A /* CaseModels.swift in Sources */,
+				B21C91DA1BCB4BCA9CE351AD /* CaseListView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

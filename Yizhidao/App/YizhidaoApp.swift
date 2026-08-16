@@ -41,6 +41,11 @@ struct RootTabView: View {
                     Label("历史", systemImage: "clock")
                 }
                 .tag(AppTab.history)
+            CaseListView()
+                .tabItem {
+                    Label("案例", systemImage: "books.vertical")
+                }
+                .tag(AppTab.cases)
             MyMenuView()
                 .tabItem {
                     Label("我的", systemImage: "person.crop.circle")
