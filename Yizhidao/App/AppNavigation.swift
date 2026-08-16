@@ -5,6 +5,8 @@ import SwiftUI
 enum AppTab: Hashable {
     case cast
     case history
+    case cases
+    case me
 }
 
 /// 跳转到历史「同卦明细」并预填方法与筛选。

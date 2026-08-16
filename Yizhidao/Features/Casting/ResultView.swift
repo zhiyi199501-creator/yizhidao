@@ -2,55 +2,52 @@ import SwiftUI
 import SwiftData
 
 struct ResultView: View {
-    private enum HexTab: String, CaseIterable, Identifiable {
-        case primary = "本卦"
-        case resulting = "之卦"
-        var id: String { rawValue }
-    }
-
     private let result: CastResult
     private let isNew: Bool
     private let record: ReadingRecord?
+    private let showSimilarHexagramButton: Bool
 
     @Environment(\.modelContext) private var modelContext
     @Environment(AppNavigation.self) private var appNavigation
     @State private var didSave = false
-    @State private var selectedTab: HexTab = .primary
     @State private var questionText: String = ""
     @State private var verificationStatus: VerificationStatus = .none
     @State private var verificationNote: String = ""
     @State private var savedRecord: ReadingRecord?
+    @State private var showAIAnalysis = false
+    @State private var showLoginForAI = false
 
-    private var store: HexagramStore { .shared }
-    private var primary: Hexagram? { store.hexagram(number: result.primaryNumber) }
-    private var resulting: Hexagram? {
-        guard let n = result.resultingNumber else { return nil }
-        return store.hexagram(number: n)
-    }
-
-    private var focus: ReadingFocus {
-        ReadingGuide.focus(movingPositions: result.movingPositions)
-    }
-
-    private var availableTabs: [HexTab] {
-        resulting == nil ? [.primary] : HexTab.allCases
+    private var resultForAnalysis: CastResult {
+        let trimmedQuestion = questionText.trimmingCharacters(in: .whitespacesAndNewlines)
+        return CastResult(
+            method: result.method,
+            createdAt: result.createdAt,
+            question: trimmedQuestion.isEmpty ? nil : trimmedQuestion,
+            numbers: result.numbers,
+            primaryNumber: result.primaryNumber,
+            resultingNumber: result.resultingNumber,
+            lines: result.lines,
+            movingPositions: result.movingPositions
+        )
     }
 
     private var editableRecord: ReadingRecord? {
         record ?? savedRecord
     }
 
-    init(result: CastResult, isNew: Bool = true) {
+    init(result: CastResult, isNew: Bool = true, showSimilarHexagramButton: Bool = true) {
         self.result = result
         self.isNew = isNew
         self.record = nil
+        self.showSimilarHexagramButton = showSimilarHexagramButton
         _questionText = State(initialValue: result.question ?? "")
     }
 
-    init(record: ReadingRecord) {
+    init(record: ReadingRecord, showSimilarHexagramButton: Bool = true) {
         self.result = record.toCastResult()
         self.isNew = false
         self.record = record
+        self.showSimilarHexagramButton = showSimilarHexagramButton
         _questionText = State(initialValue: record.question ?? "")
         _verificationStatus = State(initialValue: record.verificationStatus)
         _verificationNote = State(initialValue: record.verificationNote ?? "")
@@ -63,38 +60,48 @@ struct ResultView: View {
                 if editableRecord != nil {
                     verificationSection
                 }
-                figuresSection
-                if availableTabs.count > 1 {
-                    Picker("卦", selection: $selectedTab) {
-                        ForEach(availableTabs) { tab in
-                            Text(tab.rawValue).tag(tab)
-                        }
-                    }
-                    .pickerStyle(.segmented)
-                }
-                hexagramTextSection(for: selectedTab)
-                Text("经文版本：《易经证释》所引")
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
-                    .frame(maxWidth: .infinity, alignment: .trailing)
+                HexagramReadingBody(result: result)
             }
             .padding()
+            .padding(.bottom, 80)
+        }
+        .overlay(alignment: .bottomTrailing) {
+            AIFloatingButton {
+                if LocalAuthStore.load().isLoggedIn {
+                    showAIAnalysis = true
+                } else {
+                    showLoginForAI = true
+                }
+            }
+            .padding(.trailing, 20)
+            .padding(.bottom, 24)
         }
         .navigationTitle("卦象结果")
         .navigationBarTitleDisplayMode(.inline)
         .parchmentBackground()
         .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    appNavigation.openSimilarHexagram(for: result)
-                } label: {
-                    Label("同类", systemImage: "rectangle.stack")
+            if showSimilarHexagramButton {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        appNavigation.openSimilarHexagram(for: result)
+                    } label: {
+                        Label("同类", systemImage: "rectangle.stack")
+                    }
+                    .accessibilityLabel("查看同类卦")
                 }
-                .accessibilityLabel("查看同类卦")
+            }
+        }
+        .navigationDestination(isPresented: $showAIAnalysis) {
+            AIAnalysisView(result: resultForAnalysis)
+        }
+        .sheet(isPresented: $showLoginForAI) {
+            LoginSheetView { newSession in
+                LocalAuthStore.save(newSession)
+                showLoginForAI = false
+                showAIAnalysis = true
             }
         }
         .onAppear {
-            if resulting == nil { selectedTab = .primary }
             guard isNew, !didSave else { return }
             let inserted = ReadingRecord(from: result)
             modelContext.insert(inserted)
@@ -174,6 +181,82 @@ struct ResultView: View {
         try? modelContext.save()
     }
 
+    private func formattedTime(_ date: Date) -> String {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "zh_CN")
+        f.dateFormat = "yyyy年M月d日 HH:mm:ss"
+        return "占卦时间：\(f.string(from: date))"
+    }
+}
+
+/// 本卦／之卦卦象图与经文（卦辞、彖、象、爻辞），历史结果页与案例详情共用。
+struct HexagramReadingBody: View {
+    private enum HexTab: String, CaseIterable, Identifiable {
+        case primary = "本卦"
+        case resulting = "之卦"
+        var id: String { rawValue }
+    }
+
+    let primaryNumber: Int
+    let resultingNumber: Int?
+    let lines: [LineValue]
+    let movingPositions: [Int]
+
+    @State private var selectedTab: HexTab = .primary
+
+    private var store: HexagramStore { .shared }
+    private var primary: Hexagram? { store.hexagram(number: primaryNumber) }
+    private var resulting: Hexagram? {
+        guard let n = resultingNumber else { return nil }
+        return store.hexagram(number: n)
+    }
+
+    private var focus: ReadingFocus {
+        ReadingGuide.focus(movingPositions: movingPositions)
+    }
+
+    private var availableTabs: [HexTab] {
+        resulting == nil ? [.primary] : HexTab.allCases
+    }
+
+    init(primaryNumber: Int, resultingNumber: Int?, lines: [LineValue], movingPositions: [Int]) {
+        self.primaryNumber = primaryNumber
+        self.resultingNumber = resultingNumber
+        self.lines = lines
+        self.movingPositions = movingPositions
+    }
+
+    init(result: CastResult) {
+        self.init(
+            primaryNumber: result.primaryNumber,
+            resultingNumber: result.resultingNumber,
+            lines: result.lines,
+            movingPositions: result.movingPositions
+        )
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 20) {
+            figuresSection
+            if availableTabs.count > 1 {
+                Picker("卦", selection: $selectedTab) {
+                    ForEach(availableTabs) { tab in
+                        Text(tab.rawValue).tag(tab)
+                    }
+                }
+                .pickerStyle(.segmented)
+            }
+            hexagramTextSection(for: selectedTab)
+            Text("经文版本：《易经证释》所引")
+                .font(.caption2)
+                .foregroundStyle(.tertiary)
+                .frame(maxWidth: .infinity, alignment: .trailing)
+        }
+        .onAppear {
+            if resulting == nil { selectedTab = .primary }
+        }
+    }
+
     private var figuresSection: some View {
         HStack(alignment: .top, spacing: 24) {
             VStack {
@@ -184,13 +267,13 @@ struct ResultView: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
-                HexagramFigureView(lines: result.lines, movingPositions: result.movingPositions)
+                HexagramFigureView(lines: lines, movingPositions: movingPositions)
             }
             .frame(maxWidth: .infinity)
 
-            if let resultingNumber = result.resultingNumber,
+            if let resultingNumber,
                let resulting {
-                let changedLines = changedLines(from: result.lines)
+                let changedLines = lines.map { $0.isChanging ? $0.changed : $0 }
                 VStack {
                     Text("\(resulting.symbol) \(resulting.name)")
                         .font(.title3.weight(.bold))
@@ -226,7 +309,6 @@ struct ResultView: View {
                 }
                 section {
                     VStack(alignment: .leading, spacing: 14) {
-                        // 上爻在上，初爻在下（与卦象图一致）
                         ForEach((1...6).reversed(), id: \.self) { pos in
                             lineBlock(hex: hex, tab: tab, position: pos)
                         }
@@ -239,7 +321,7 @@ struct ResultView: View {
     private func prefixed(_ prefix: String, _ body: String) -> String {
         let text = body.trimmingCharacters(in: .whitespacesAndNewlines)
         if text.hasPrefix(prefix) { return text }
-        let bare = String(prefix.dropLast()) // 「彖曰」/「象曰」
+        let bare = String(prefix.dropLast())
         if text.hasPrefix(bare) {
             let rest = text.dropFirst(bare.count).trimmingCharacters(in: .whitespaces)
             if rest.hasPrefix("：") || rest.hasPrefix(":") {
@@ -250,7 +332,6 @@ struct ResultView: View {
         return prefix + text
     }
 
-    /// 无动／三爻变：本卦卦辞主看；六爻变：之卦卦辞主看。
     private func shouldShowGuaciLead(tab: HexTab) -> Bool {
         switch focus.kind {
         case .primaryGuaci, .bothGuaci:
@@ -263,7 +344,7 @@ struct ResultView: View {
     }
 
     private func lineBlock(hex: Hexagram, tab: HexTab, position: Int) -> some View {
-        let moving = result.movingPositions.contains(position)
+        let moving = movingPositions.contains(position)
         let showLead = shouldShowLead(tab: tab, position: position)
         let accent = moving ? Color.red : Color.primary
 
@@ -297,7 +378,7 @@ struct ResultView: View {
     }
 
     private func xiangLine(hex: Hexagram, position: Int) -> String {
-        var xiang = hex.xiaoXiang(at: position)
+        let xiang = hex.xiaoXiang(at: position)
             .trimmingCharacters(in: .whitespacesAndNewlines)
         if xiang.hasPrefix("象曰：") {
             return xiang
@@ -312,9 +393,8 @@ struct ResultView: View {
         return "象曰：" + xiang
     }
 
-    /// 多动爻且规则指定「为主」之爻时才标「主看」。
     private func shouldShowLead(tab: HexTab, position: Int) -> Bool {
-        guard result.movingPositions.count >= 2 else { return false }
+        guard movingPositions.count >= 2 else { return false }
         switch focus.kind {
         case .primaryLines(_, let lead):
             return tab == .primary && lead == position
@@ -339,15 +419,287 @@ struct ResultView: View {
         .padding()
         .background(RoundedRectangle(cornerRadius: 12).fill(AppTheme.cardFill))
     }
+}
 
-    private func changedLines(from lines: [LineValue]) -> [LineValue] {
-        lines.map { $0.isChanging ? $0.changed : $0 }
+struct AIAnalysisView: View {
+    let result: CastResult
+    private let initialSavedID: UUID?
+
+    @State private var isLoading = false
+    @State private var isFollowupLoading = false
+    @State private var analysis: AuthAPI.AIAnalyzeResponse.Analysis?
+    @State private var followUps: [SavedAIFollowUp] = []
+    @State private var draft = ""
+    @State private var errorMessage: String?
+    @State private var savedID: UUID?
+    @State private var isDirty = false
+
+    private var store: HexagramStore { .shared }
+    private var canSendFollowup: Bool {
+        !draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            && analysis != nil
+            && !isLoading
+            && !isFollowupLoading
     }
 
-    private func formattedTime(_ date: Date) -> String {
-        let f = DateFormatter()
-        f.locale = Locale(identifier: "zh_CN")
-        f.dateFormat = "yyyy年M月d日 HH:mm:ss"
-        return "占卦时间：\(f.string(from: date))"
+    init(result: CastResult) {
+        self.result = result
+        self.initialSavedID = nil
+    }
+
+    init(saved: SavedAIAnalysis) {
+        self.result = saved.toCastResult()
+        self.initialSavedID = saved.id
+        _analysis = State(initialValue: AuthAPI.AIAnalyzeResponse.Analysis(
+            summary: saved.analysis.summary,
+            focus: saved.analysis.focus,
+            advice: saved.analysis.advice
+        ))
+        _followUps = State(initialValue: saved.followUps)
+        _savedID = State(initialValue: saved.id)
+        _isDirty = State(initialValue: false)
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    headerSection
+
+                    if isLoading {
+                        HStack {
+                            Spacer()
+                            ProgressView("解读中…")
+                            Spacer()
+                        }
+                        .padding(.vertical, 24)
+                    }
+
+                    if let analysis {
+                        analysisSection(title: "总览", text: analysis.summary)
+                        analysisSection(title: "焦点", text: analysis.focus)
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("建议")
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(AppTheme.accent)
+                            ForEach(Array(analysis.advice.enumerated()), id: \.offset) { index, item in
+                                HStack(alignment: .top, spacing: 8) {
+                                    Text("\(index + 1).")
+                                        .font(.subheadline.weight(.semibold))
+                                        .foregroundStyle(AppTheme.accent)
+                                    Text(item)
+                                        .font(.body)
+                                        .fixedSize(horizontal: false, vertical: true)
+                                }
+                            }
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding()
+                        .background(RoundedRectangle(cornerRadius: 12).fill(AppTheme.cardFill))
+                    }
+
+                    ForEach(followUps) { turn in
+                        followUpTurn(turn)
+                    }
+
+                    if isFollowupLoading {
+                        HStack {
+                            Spacer()
+                            ProgressView("回复中…")
+                            Spacer()
+                        }
+                        .padding(.vertical, 8)
+                    }
+
+                    if let errorMessage {
+                        Text(errorMessage)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+
+                    if analysis != nil, !isLoading {
+                        Button("重新解读") {
+                            Task { await runAnalysis() }
+                        }
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity)
+                    } else if !isLoading, analysis == nil {
+                        Button("开始解读") {
+                            Task { await runAnalysis() }
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .tint(AppTheme.accent)
+                        .frame(maxWidth: .infinity)
+                    }
+                }
+                .padding()
+            }
+            .scrollDismissesKeyboard(.interactively)
+
+            if analysis != nil {
+                composerBar
+            }
+        }
+        .navigationTitle("AI 解读")
+        .navigationBarTitleDisplayMode(.inline)
+        .parchmentBackground()
+        .toolbar {
+            if analysis != nil {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button(saveButtonTitle) {
+                        saveCurrent()
+                    }
+                    .disabled(!isDirty && savedID != nil)
+                }
+            }
+        }
+        .task {
+            if analysis == nil, !isLoading, initialSavedID == nil {
+                await runAnalysis()
+            }
+        }
+    }
+
+    private var saveButtonTitle: String {
+        if savedID != nil, !isDirty { return "已保存" }
+        if savedID != nil { return "更新" }
+        return "保存"
+    }
+
+    private var composerBar: some View {
+        HStack(alignment: .bottom, spacing: 8) {
+            TextField("追问或补充背景", text: $draft, axis: .vertical)
+                .lineLimit(1...4)
+                .appTextFieldStyle()
+            Button {
+                Task { await sendFollowup() }
+            } label: {
+                Image(systemName: "arrow.up.circle.fill")
+                    .font(.system(size: 32))
+                    .foregroundStyle(canSendFollowup ? AppTheme.accent : Color.secondary.opacity(0.4))
+            }
+            .disabled(!canSendFollowup)
+            .accessibilityLabel("发送")
+        }
+        .padding(.horizontal)
+        .padding(.vertical, 10)
+        .background(AppTheme.cardFill)
+    }
+
+    private func followUpTurn(_ turn: SavedAIFollowUp) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Spacer(minLength: 40)
+                Text(turn.user)
+                    .font(.body)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(AppTheme.accent.opacity(0.12))
+                    )
+            }
+            analysisSection(title: "回复", text: turn.assistant)
+        }
+    }
+
+    private var headerSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            if let primary = store.hexagram(number: result.primaryNumber) {
+                Text("\(primary.symbol) \(primary.name)")
+                    .font(.title3.weight(.bold))
+            }
+            if let question = result.question, !question.isEmpty {
+                Text("所问：\(question)")
+                    .font(.body)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding()
+        .background(RoundedRectangle(cornerRadius: 12).fill(AppTheme.cardFill))
+    }
+
+    private func analysisSection(title: String, text: String) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(title)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(AppTheme.accent)
+            Text(text)
+                .font(.body)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding()
+        .background(RoundedRectangle(cornerRadius: 12).fill(AppTheme.cardFill))
+    }
+
+    private func saveCurrent() {
+        guard let analysis else { return }
+        let content = SavedAIContent(
+            summary: analysis.summary,
+            focus: analysis.focus,
+            advice: analysis.advice
+        )
+        if var existing = SavedAIAnalysisStore.load().first(where: { $0.id == savedID }) {
+            existing.updatedAt = Date()
+            existing.analysis = content
+            existing.followUps = followUps
+            SavedAIAnalysisStore.upsert(existing)
+            savedID = existing.id
+        } else {
+            let item = SavedAIAnalysis.make(result: result, analysis: content, followUps: followUps)
+            SavedAIAnalysisStore.upsert(item)
+            savedID = item.id
+        }
+        isDirty = false
+    }
+
+    @MainActor
+    private func runAnalysis() async {
+        guard let token = LocalAuthStore.load().accessToken else {
+            errorMessage = "请先登录"
+            return
+        }
+        isLoading = true
+        errorMessage = nil
+        defer { isLoading = false }
+        do {
+            let response = try await AuthAPI.analyzeReading(result: result, accessToken: token)
+            analysis = response.analysis
+            followUps = []
+            isDirty = true
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    @MainActor
+    private func sendFollowup() async {
+        let message = draft.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard canSendFollowup, let analysis, let token = LocalAuthStore.load().accessToken else {
+            if LocalAuthStore.load().accessToken == nil {
+                errorMessage = "请先登录"
+            }
+            return
+        }
+        draft = ""
+        isFollowupLoading = true
+        errorMessage = nil
+        defer { isFollowupLoading = false }
+        do {
+            let response = try await AuthAPI.followupReading(
+                result: result,
+                analysis: analysis,
+                conversation: followUps,
+                message: message,
+                accessToken: token
+            )
+            followUps.append(SavedAIFollowUp(user: message, assistant: response.reply))
+            isDirty = true
+        } catch {
+            draft = message
+            errorMessage = error.localizedDescription
+        }
     }
 }

@@ -1,6 +1,17 @@
 .derivedData/
 .firecrawl/
+.workbuddy/
 *.xcuserstate
 xcuserdata/
 .DS_Store
 Yizhidao/Resources/AppIcon-source.png
+backend/.venv/
+backend/.env
+backend/*.db
+/cases_raw/
+/data/
+张庆祥讲易经案例_txt_*/
+/案例编辑表.xlsx
+/错字登记表.xlsx
+/cases.json
+/易经_*.md

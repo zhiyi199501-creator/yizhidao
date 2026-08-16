@@ -162,7 +162,7 @@ struct HexagramGroupDetailView: View {
                 List {
                     ForEach(filteredRecords) { record in
                         NavigationLink {
-                            ResultView(record: record)
+                            ResultView(record: record, showSimilarHexagramButton: false)
                         } label: {
                             ReadingRecordRow(
                                 record: record,
@@ -170,8 +170,18 @@ struct HexagramGroupDetailView: View {
                                 showPrimaryTitle: true
                             )
                         }
+                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                            Button(role: .destructive) {
+                                HistoryTrashStore.archive(record)
+                                modelContext.delete(record)
+                                try? modelContext.save()
+                            } label: {
+                                Image(systemName: "trash.fill")
+                            }
+                            .tint(.red)
+                            .accessibilityLabel("删除")
+                        }
                     }
-                    .onDelete(perform: deleteFiltered)
                 }
                 .listStyle(.plain)
                 .scrollContentBackground(.hidden)
@@ -256,13 +266,6 @@ struct HexagramGroupDetailView: View {
                 }
             }
         }
-    }
-
-    private func deleteFiltered(at offsets: IndexSet) {
-        for index in offsets {
-            modelContext.delete(filteredRecords[index])
-        }
-        try? modelContext.save()
     }
 }
 

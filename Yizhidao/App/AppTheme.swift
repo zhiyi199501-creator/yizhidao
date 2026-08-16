@@ -42,3 +42,30 @@ extension View {
         background(AppTheme.parchmentGradient.ignoresSafeArea())
     }
 }
+
+struct AIBadgeIcon: View {
+    var compact: Bool = false
+
+    var body: some View {
+        Text("AI")
+            .font(.system(size: compact ? 13 : 15, weight: .bold, design: .rounded))
+            .foregroundStyle(AppTheme.accent)
+            .accessibilityLabel("AI")
+    }
+}
+
+struct AIFloatingButton: View {
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Text("AI")
+                .font(.system(size: 20, weight: .bold, design: .rounded))
+                .foregroundStyle(.white)
+                .frame(width: 50, height: 50)
+                .background(Circle().fill(AppTheme.accent))
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("AI 解读")
+    }
+}

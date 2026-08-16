@@ -65,7 +65,7 @@
       <EnvironmentVariables>
          <EnvironmentVariable
             key = "VG_START_URL"
-            value = "http://172.20.10.10:3000"
+            value = "http://172.20.10.10:8080"
             isEnabled = "YES">
          </EnvironmentVariable>
       </EnvironmentVariables>
