@@ -542,6 +542,38 @@ enum AuthAPI {
         return decoded
     }
 
+    enum CasesFetchResult {
+        case notModified
+        case updated(version: String, cases: [CaseStudy])
+    }
+
+    static func fetchCases(ifNoneMatch: String?) async throws -> CasesFetchResult {
+        var req = URLRequest(url: baseURL.appendingPathComponent("v1/cases"))
+        req.httpMethod = "GET"
+        req.cachePolicy = .reloadIgnoringLocalCacheData
+        if let ifNoneMatch, !ifNoneMatch.isEmpty {
+            req.setValue("\"\(ifNoneMatch)\"", forHTTPHeaderField: "If-None-Match")
+        }
+        let (data, response) = try await URLSession.shared.data(for: req)
+        guard let http = response as? HTTPURLResponse else {
+            throw URLError(.badServerResponse)
+        }
+        if http.statusCode == 304 {
+            return .notModified
+        }
+        guard (200..<300).contains(http.statusCode) else {
+            throw URLError(.badServerResponse)
+        }
+        struct Envelope: Decodable {
+            let ok: Bool
+            let version: String
+            let cases: [CaseStudy]
+        }
+        let decoded = try JSONDecoder().decode(Envelope.self, from: data)
+        guard decoded.ok else { throw URLError(.badServerResponse) }
+        return .updated(version: decoded.version, cases: decoded.cases)
+    }
+
     private static func decodeError(_ data: Data, fallback: String) -> LoginError {
         if let envelope = try? JSONDecoder().decode(ErrorEnvelope.self, from: data),
            let message = envelope.message, !message.isEmpty {

@@ -1,0 +1,9 @@
+<resources>
+    <style name="Theme.Yizhidao" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:statusBarColor">@color/parchment_top</item>
+        <item name="android:navigationBarColor">@color/parchment_top</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowLightNavigationBar">true</item>
+        <item name="android:forceDarkAllowed">false</item>
+    </style>
+</resources>

@@ -1,6 +1,15 @@
 .derivedData/
 .firecrawl/
 .workbuddy/
+android/.gradle/
+android/build/
+android/app/build/
+android/engines/build/
+android/local.properties
+android/.idea/
+android/*.iml
+android/.kotlin/
+
 *.xcuserstate
 xcuserdata/
 .DS_Store
@@ -10,6 +19,7 @@ backend/.env
 backend/*.db
 /cases_raw/
 /data/
+/张庆祥讲易经案例_txt/
 张庆祥讲易经案例_txt_*/
 /案例编辑表.xlsx
 /错字登记表.xlsx

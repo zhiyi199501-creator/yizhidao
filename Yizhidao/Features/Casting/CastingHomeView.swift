@@ -27,9 +27,32 @@ struct CastingHomeView: View {
 
                     castingRitualSection
 
-                    TextField("所问何事（可选）", text: $question, axis: .vertical)
-                        .appTextFieldStyle()
-                        .lineLimit(2...5)
+                    HStack(alignment: .top, spacing: 6) {
+                        TextField("所问何事（可选）", text: $question, axis: .vertical)
+                            .lineLimit(2...5)
+                        if !question.isEmpty {
+                            Button {
+                                question = ""
+                            } label: {
+                                Image(systemName: "xmark.circle.fill")
+                                    .font(.body)
+                                    .symbolRenderingMode(.hierarchical)
+                                    .foregroundStyle(.secondary)
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityLabel("清除所问")
+                        }
+                    }
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 8)
+                    .background(
+                        RoundedRectangle(cornerRadius: 8, style: .continuous)
+                            .fill(AppTheme.fieldFill)
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8, style: .continuous)
+                            .stroke(AppTheme.fieldStroke, lineWidth: 1)
+                    )
 
                     Picker("方法", selection: $methodTab) {
                         ForEach(MethodTab.allCases) { tab in

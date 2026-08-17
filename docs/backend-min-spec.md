@@ -1,4 +1,6 @@
-# 易知道最小后端接口草案（登录 + AI分析）
+# 易知道最小后端接口（登录 + AI + 案例热更新）
+
+本文件是现役接口合同。`GET /v1/cases` 已在 `feature/cases-live-update` 实现，**尚未合入 main / 尚未部署到生产**（生产核过日：2026-08-16，仅 `analyze` / `followup` / `me`）。
 
 ## 目标
 - 客户端不直连大模型，密钥留在服务端
@@ -98,6 +100,15 @@
 ```json
 { "ok": true, "reply": "……", "usage": { "promptTokens": 800, "completionTokens": 200 } }
 ```
+
+### 7) 案例列表（公开，供 App 热更新）
+- `GET /v1/cases`
+- 无需登录。Header 可选 `If-None-Match: "<version>"`；未变则 HTTP 304
+- resp:
+```json
+{ "ok": true, "version": "a1b2c3d4e5f60718", "cases": [{ "file": "…", "number": 1, "hexagram": "乾卦", "position": "初爻" }] }
+```
+- 客户端以服务端列表全量替换本地缓存；离线时用 App 包内 `cases.json`
 
 ## 错误码（最小）
 - `4001` 参数错误
