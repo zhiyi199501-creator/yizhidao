@@ -7,12 +7,14 @@
 """
 import zipfile, re, json
 import xml.etree.ElementTree as ET
+from pathlib import Path
 
-XLSX = "案例编辑表.xlsx"
-HEXES = "Yizhidao/Resources/Hexagrams.json"
-OUT = "cases.json"
+XLSX = Path(__file__).resolve().parents[1] / "案例编辑表.xlsx"
+HEXES = Path(__file__).resolve().parents[1] / "Yizhidao/Resources/Hexagrams.json"
+OUT = Path(__file__).resolve().parents[1] / "Yizhidao/Resources/cases.json"
 
 NS = "http://schemas.openxmlformats.org/spreadsheetml/2006/main"
+REL_NS = "http://schemas.openxmlformats.org/officeDocument/2006/relationships"
 M = {"m": NS}
 
 # 1. 读共享字符串
@@ -28,26 +30,37 @@ if "xl/sharedStrings.xml" in zf.namelist():
 sheet_file = None
 if "xl/workbook.xml" in zf.namelist():
     wb = ET.fromstring(zf.read("xl/workbook.xml"))
+    rels = ET.fromstring(zf.read("xl/_rels/workbook.xml.rels"))
+    rid_map = {r.get("Id"): r.get("Target") for r in rels.iter() if r.get("Id")}
     for s in wb.iter(f"{{{NS}}}sheet"):
-        if s.get("name") == "案例":
-            rId = s.get(f"{{{NS}}}id")  # 实际是 r:id，在 relationships 里
-            # 解析 rels
-            rels = ET.fromstring(zf.read("xl/_rels/workbook.xml.rels"))
-            rid_map = {r.get("Id"): r.get("Target") for r in rels.iter() if r.get("Id")}
-            target = rid_map.get(rId, "")
-            if not target.startswith("xl/"):
-                target = "xl/" + target.lstrip("/")
-            sheet_file = target
+        if s.get("name") != "案例":
+            continue
+        rId = s.get(f"{{{REL_NS}}}id") or s.get("r:id") or s.get("id")
+        target = rid_map.get(rId or "", "")
+        if not target:
             break
+        target = target.lstrip("/")
+        if not target.startswith("xl/"):
+            target = "xl/" + target
+        sheet_file = target
+        break
 if sheet_file is None:
-    # 兜底：第一个 worksheet
-    for n in zf.namelist():
-        if re.match(r"xl/worksheets/sheet\d+\.xml", n):
-            sheet_file = n
-            break
+    # 兜底：第二个 worksheet（说明 / 案例 / 按卦）
+    names = sorted(
+        n for n in zf.namelist() if re.match(r"xl/worksheets/sheet\d+\.xml", n)
+    )
+    sheet_file = names[1] if len(names) >= 2 else (names[0] if names else None)
+if not sheet_file:
+    raise SystemExit("找不到「案例」工作表")
 
 # 3. 解析单元格
 def cell_value(c):
+    if c.get("t") == "inlineStr":
+        texts = [t.text or "" for t in c.iter(f"{{{NS}}}t")]
+        return "".join(texts)
+    is_el = c.find("m:is", M)
+    if is_el is not None:
+        return "".join(t.text or "" for t in is_el.iter(f"{{{NS}}}t"))
     v = c.find("m:v", M)
     if v is None or v.text is None:
         return ""
@@ -128,8 +141,8 @@ for row in rows:
         "number": number,
     })
 
-# 7. 排序（保持稳定）
-cases.sort(key=lambda c: c["file"])
+# 7. 排序（与 export_cases.py 一致：文王序再编号）
+cases.sort(key=lambda c: (c.get("number") or 99, c["file"]))
 
 json.dump(cases, open(OUT, "w", encoding="utf-8"), ensure_ascii=False, indent=1)
 print(f"已写回 {OUT}，共 {len(cases)} 条案例")
