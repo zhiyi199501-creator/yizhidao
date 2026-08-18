@@ -2,9 +2,9 @@
 
 目标域名（App Release 已写死）：`https://yizhidao.codedance.work`
 
-**现役（2026-08-16 已验证）**：DNS A → `43.128.104.104`；HTTPS `/health` 正常；`POST /v1/ai/analyze` 与 `/v1/ai/followup`、`GET /v1/me` 未登录返回 401。与 `videograb.codedance.work` 共用系统 Caddy，API 容器 `docker-compose.prod.yml` 监听 `127.0.0.1:8080`。
+**现役（2026-08-17 源站已验证）**：DNS A → `43.128.104.104`；HTTPS `/health` 正常；`GET /v1/cases` 返回 313 条（`If-None-Match` 304）；`POST /v1/ai/analyze` 与 `/v1/ai/followup`、`GET /v1/me` 未登录返回 401。与 `videograb.codedance.work` 共用系统 Caddy，API 容器 `docker-compose.prod.yml` 监听 `127.0.0.1:8080`。
 
-镜像把 `Hexagrams.json` 拷到 `/app/data/`（与 SQLite 同卷，**重建镜像不会自动刷新经文**）。`cases.json` 默认在镜像 `/app/app/data/`；若 data 卷存在 `/app/data/cases.json` 则优先（热更新不必重建）。可用 `CASES_PATH` 覆盖。`GET /v1/cases` 只在已合入该接口的镜像里才有；**当前生产仍是 main（2026-08-16），没有这条路由**。
+镜像把 `Hexagrams.json` 拷到 `/app/data/`（与 SQLite 同卷，**重建镜像不会自动刷新经文**）。`cases.json` 默认在镜像 `/app/app/data/`；若 data 卷存在 `/app/data/cases.json` 则优先（热更新不必重建）。可用 `CASES_PATH` 覆盖。
 
 ## 你需要准备什么
 

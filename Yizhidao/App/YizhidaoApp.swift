@@ -61,7 +61,6 @@ struct RootTabView: View {
 }
 
 struct MyMenuView: View {
-    @State private var recycleEntries: [HistoryTrashEntry] = HistoryTrashStore.load()
     @State private var session: LocalUserSession = LocalAuthStore.load()
     @State private var showLoginSheet = false
     @State private var openAIAnalysisPage = false
@@ -127,14 +126,19 @@ struct MyMenuView: View {
 
                 Section {
                     NavigationLink {
-                        RecycleBinView()
+                        YijingIntroListView()
                     } label: {
-                        HStack {
-                            Label("回收站", systemImage: "trash")
-                            Spacer()
-                            Text("\(recycleEntries.count)")
-                                .foregroundStyle(.secondary)
-                        }
+                        Label("易经基础入门", systemImage: "text.book.closed")
+                    }
+                    NavigationLink {
+                        ClassicHexagramListView()
+                    } label: {
+                        Label("易经六十四卦", systemImage: "book")
+                    }
+                    NavigationLink {
+                        ClassicWingListView()
+                    } label: {
+                        Label("易经四传", systemImage: "scroll")
                     }
                 }
 
@@ -153,7 +157,6 @@ struct MyMenuView: View {
                 AIAnalysisHistoryView()
             }
             .onAppear {
-                recycleEntries = HistoryTrashStore.load()
                 session = LocalAuthStore.load()
                 Task { await refreshSessionIfNeeded() }
             }
@@ -755,9 +758,23 @@ private struct SettingsView: View {
     @Binding var session: LocalUserSession
     @Environment(\.dismiss) private var dismiss
     @State private var showLogoutConfirm = false
+    @State private var recycleCount = HistoryTrashStore.load().count
 
     var body: some View {
         List {
+            Section {
+                NavigationLink {
+                    RecycleBinView()
+                } label: {
+                    HStack {
+                        Label("回收站", systemImage: "trash")
+                        Spacer()
+                        Text("\(recycleCount)")
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+
             if session.isLoggedIn {
                 Section {
                     Button("退出登录", role: .destructive) {
@@ -770,6 +787,9 @@ private struct SettingsView: View {
         .navigationTitle("设置")
         .navigationBarTitleDisplayMode(.inline)
         .parchmentBackground()
+        .onAppear {
+            recycleCount = HistoryTrashStore.load().count
+        }
         .alert("确认退出登录？", isPresented: $showLogoutConfirm) {
             Button("取消", role: .cancel) {}
             Button("退出登录", role: .destructive) {

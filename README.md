@@ -30,8 +30,8 @@ xcodebuild test -scheme Yizhidao -destination 'platform=iOS Simulator,name=iPhon
 - **金钱卦**：逐爻摇或「选」手选四象（少阳／少阴／阳动／阴动）；一键摇满；上爻在上、初爻在下
 - **结果**：本卦 / 之卦 tab；卦辞、彖曰、象曰、六爻；动爻红字；「主看」；可改所问与验证；右上角「同类」；右下角悬浮 **AI**（需登录；可追问、保存）
 - **历史**：SwiftData 本地；**时间** / **按卦**（文王序）；状态筛选；左滑删除进回收站；数字起卦单爻动在箭头上方标红字（初/二/三/四/五/上）
-- **案例**：按卦浏览（文王序）；本分支打开页面向服务端拉取最新（可下拉刷新；生产尚未部署该接口则用包内底稿）；卦内按爻位筛选、不分数字/金钱起卦；详情为背景、所问何事、验证结果、讲师解读，以及与历史相同的本卦/之卦
-- **我的**：手机号登录（微信未接入）、资料编辑、**AI解读历史**（保存过的解读，需登录）、回收站（清空需确认）、设置（退出登录）
+- **案例**：按卦浏览（文王序）；打开页面向服务端拉取最新（可下拉刷新）；离线用 App 内底稿；卦内按爻位筛选、不分数字/金钱起卦；详情为背景、所问何事、验证结果、讲师解读，以及与历史相同的本卦/之卦
+- **我的**：手机号登录（微信未接入）、资料编辑、**AI解读历史**（保存过的解读，需登录）、**易经基础入门**、可读《易经》六十四卦、系辞/说卦/序卦/杂卦、设置（回收站，清空需确认；退出登录）
 
 ## 协作
 
@@ -48,8 +48,9 @@ xcodebuild test -scheme Yizhidao -destination 'platform=iOS Simulator,name=iPhon
 | `Yizhidao/Domain/` | 模型与 `ReadingGuide` 解卦焦点 |
 | `Yizhidao/Features/` | 起卦 UI、结果（含 AI 追问/保存）、历史（含按卦）、案例 |
 | `Yizhidao/Data/` | SwiftData `ReadingRecord`、回收站、`SavedAIAnalysis`、经文加载 |
-| `Yizhidao/Resources/Hexagrams.json` | 64 卦：卦辞、彖辞、大象、爻辞、小象 |
-| `Yizhidao/Resources/cases.json` | 讲习案例底稿（按卦号；离线与 AI 提示词共用）。本分支 App 打开案例页走 `GET /v1/cases`；该接口尚未部署到生产 |
+| `Yizhidao/Resources/Hexagrams.json` | 64 卦（卦辞／彖／象／爻／用九用六／文言）+ 系辞／说卦／序卦／杂卦。编辑根目录 `易经正文编辑表.xlsx` → `python3 scripts/import_jingwen.py` |
+| `Yizhidao/Resources/Zhengshi.json` | 《易经证释》全册阅读稿；由 `scripts/import_zhengshi.py` 从全册 `.doc` 生成，暂未挂「我的」入口 |
+| `Yizhidao/Resources/cases.json` | 讲习案例底稿（按卦号；离线与 AI 提示词共用）。App 打开案例页走 `GET /v1/cases`；线上以服务端列表为准 |
 | `YizhidaoTests/` | 起卦、时辰、`ReadingGuide` 单测 |
 | `docs/backend-min-spec.md` | 登录与 AI（含追问）现役接口 |
 | `docs/deploy.md` | 后端 Docker + Caddy 上线指南 |

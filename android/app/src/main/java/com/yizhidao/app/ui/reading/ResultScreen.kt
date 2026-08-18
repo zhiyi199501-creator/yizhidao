@@ -19,9 +19,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -40,6 +37,7 @@ import com.yizhidao.ReadingRecord
 import com.yizhidao.VerificationStatus
 import com.yizhidao.app.AppContainer
 import com.yizhidao.app.ui.theme.AppTheme
+import com.yizhidao.app.ui.theme.PaperSegmentedRow
 import kotlinx.coroutines.launch
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -141,26 +139,23 @@ fun ResultScreen(
                         .padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
-                        VerificationStatus.entries.forEachIndexed { index, item ->
-                            SegmentedButton(
-                                selected = status == item,
-                                onClick = {
-                                    status = item
-                                    record?.let { rec ->
-                                        scope.launch {
-                                            container.readingRepository.updateVerification(
-                                                rec.id,
-                                                item,
-                                                note.trim().ifEmpty { null },
-                                            )
-                                        }
-                                    }
-                                },
-                                shape = SegmentedButtonDefaults.itemShape(index, VerificationStatus.entries.size),
-                            ) { Text(item.displayName, maxLines = 1) }
-                        }
-                    }
+                    PaperSegmentedRow(
+                        options = VerificationStatus.entries.map { it.displayName },
+                        selectedIndex = VerificationStatus.entries.indexOf(status),
+                        onSelect = { index ->
+                            val item = VerificationStatus.entries[index]
+                            status = item
+                            record?.let { rec ->
+                                scope.launch {
+                                    container.readingRepository.updateVerification(
+                                        rec.id,
+                                        item,
+                                        note.trim().ifEmpty { null },
+                                    )
+                                }
+                            }
+                        },
+                    )
                     OutlinedTextField(
                         value = note,
                         onValueChange = {

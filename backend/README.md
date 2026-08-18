@@ -148,7 +148,7 @@ OPENAI_MODEL=deepseek-chat
 
 解读框架（提示词）：**卦辞→事情背景；大象辞→宜努力方向；动爻爻辞/小象→当下情形**；并附该本卦初爻至上爻讲习案例作取象参照。实现见 `app/services/ai.py`。追问走 `POST /v1/ai/followup`。
 
-经文来源：`Yizhidao/Resources/Hexagrams.json`。案例来源：`Yizhidao/Resources/cases.json`。本分支 App 用 `GET /v1/cases` 热更新（**尚未部署到生产**）。镜像内 `/app/app/data/cases.json`；若 data 卷存在 `/app/data/cases.json` 则优先。
+经文来源：`Yizhidao/Resources/Hexagrams.json`。案例来源：`Yizhidao/Resources/cases.json`。App 用 `GET /v1/cases` 热更新（2026-08-17 已部署）。镜像内 `/app/app/data/cases.json`；若 data 卷存在 `/app/data/cases.json` 则优先。
 
 ## 生产部署
 

@@ -10,19 +10,19 @@ val generatedAssets = layout.buildDirectory.dir("generated/iosAssets")
 
 val copyIosAssets by tasks.registering(Copy::class) {
     from(iosResources) {
-        include("Hexagrams.json", "cases.json")
+        include("Hexagrams.json", "cases.json", "YijingIntro.json", "Zhengshi.json")
     }
     into(generatedAssets)
 }
 
 android {
     namespace = "com.yizhidao.app"
-    compileSdk = 35
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "com.yizhidao.app"
         minSdk = 26
-        targetSdk = 35
+        targetSdk = 37
         versionCode = 1
         versionName = "0.1.0"
         vectorDrawables.useSupportLibrary = true

@@ -8,10 +8,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -31,10 +27,10 @@ import com.yizhidao.LineValue
 import com.yizhidao.ReadingFocus
 import com.yizhidao.ReadingGuide
 import com.yizhidao.app.ui.theme.AppTheme
+import com.yizhidao.app.ui.theme.PaperSegmentedRow
 
 private enum class HexTab(val label: String) { Primary("本卦"), Resulting("之卦") }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HexagramReadingBody(
     result: CastResult,
@@ -49,7 +45,6 @@ fun HexagramReadingBody(
     )
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HexagramReadingBody(
     primaryNumber: Int,
@@ -86,15 +81,11 @@ fun HexagramReadingBody(
         Text(focus.summary, style = androidx.compose.material3.MaterialTheme.typography.bodySmall, color = AppTheme.accent)
 
         if (tabs.size > 1) {
-            SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
-                tabs.forEachIndexed { index, item ->
-                    SegmentedButton(
-                        selected = tab == item,
-                        onClick = { tab = item },
-                        shape = SegmentedButtonDefaults.itemShape(index, tabs.size),
-                    ) { Text(item.label) }
-                }
-            }
+            PaperSegmentedRow(
+                options = tabs.map { it.label },
+                selectedIndex = tabs.indexOf(tab).coerceAtLeast(0),
+                onSelect = { tab = tabs[it] },
+            )
         }
 
         val hex = if (tab == HexTab.Primary) primary else resulting

@@ -2,30 +2,23 @@ package com.yizhidao.app.ui.casting
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.Cancel
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -35,9 +28,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.yizhidao.CastResult
 import com.yizhidao.app.AppContainer
 import com.yizhidao.app.ui.theme.AppTheme
+import com.yizhidao.app.ui.theme.PaperSegmentedRow
+import com.yizhidao.app.ui.theme.PaperTextField
 
 private val ritualSteps = listOf(
     "净手，择一静处，坐稳，桌面整洁无杂物。",
@@ -47,7 +43,6 @@ private val ritualSteps = listOf(
     "然后把起卦工具收好，开始解卦。",
 )
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CastingHomeScreen(
     container: AppContainer,
@@ -61,72 +56,103 @@ fun CastingHomeScreen(
         Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(20.dp),
+            .imePadding()
+            .padding(14.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
-        Text("易知道", style = androidx.compose.material3.MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Bold)
-        Spacer(Modifier.height(6.dp))
-        Text(
-            "君子居则观象玩辞，动则观变玩占",
-            style = androidx.compose.material3.MaterialTheme.typography.bodyMedium,
-            color = androidx.compose.material3.MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-        )
-        Spacer(Modifier.height(16.dp))
-
-        TextButton(onClick = { showRitual = !showRitual }) {
-            Text("起卦礼仪", color = AppTheme.accent, fontWeight = FontWeight.SemiBold)
-        }
-        AnimatedVisibility(showRitual) {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(bottom = 8.dp)) {
-                ritualSteps.forEachIndexed { index, step ->
-                    Text("${index + 1}、$step", style = androidx.compose.material3.MaterialTheme.typography.bodySmall)
-                }
-            }
-        }
-
-        Row(verticalAlignment = Alignment.Top) {
-            OutlinedTextField(
-                value = question,
-                onValueChange = { question = it },
-                modifier = Modifier.weight(1f),
-                placeholder = { Text("所问何事（可选）") },
-                minLines = 2,
-                maxLines = 5,
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedContainerColor = AppTheme.fieldFill,
-                    unfocusedContainerColor = AppTheme.fieldFill,
-                    focusedBorderColor = AppTheme.fieldStroke,
-                    unfocusedBorderColor = AppTheme.fieldStroke,
-                ),
-                shape = RoundedCornerShape(8.dp),
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(
+                "易知道",
+                fontSize = 28.sp,
+                fontWeight = FontWeight.Bold,
+                color = AppTheme.ink,
+                lineHeight = 34.sp,
+                style = AppTheme.compactText,
             )
-            if (question.isNotEmpty()) {
-                IconButton(onClick = { question = "" }) {
-                    Icon(Icons.Filled.Close, contentDescription = "清除所问")
+            Text(
+                "君子居则观象玩辞，动则观变玩占",
+                fontSize = 13.sp,
+                color = AppTheme.secondaryText,
+                style = AppTheme.compactText,
+            )
+        }
+
+        Column {
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .clickable { showRitual = !showRitual }
+                    .padding(vertical = 4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    "起卦礼仪",
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = AppTheme.accent,
+                    modifier = Modifier.weight(1f),
+                    style = AppTheme.compactText,
+                )
+                Icon(
+                    if (showRitual) Icons.Filled.KeyboardArrowDown else Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                    contentDescription = if (showRitual) "收起礼仪" else "展开礼仪",
+                    tint = AppTheme.accent,
+                    modifier = Modifier.size(16.dp),
+                )
+            }
+            AnimatedVisibility(showRitual) {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                    modifier = Modifier.padding(top = 8.dp),
+                ) {
+                    ritualSteps.forEachIndexed { index, step ->
+                        Text(
+                            "${index + 1}、$step",
+                            fontSize = 12.sp,
+                            color = AppTheme.ink.copy(alpha = 0.85f),
+                            lineHeight = 17.sp,
+                            style = AppTheme.compactText,
+                        )
+                    }
                 }
             }
         }
 
-        Spacer(Modifier.height(16.dp))
-        SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
-            SegmentedButton(
-                selected = methodIsDigital,
-                onClick = { methodIsDigital = true },
-                shape = SegmentedButtonDefaults.itemShape(0, 2),
-            ) { Text("数字起卦") }
-            SegmentedButton(
-                selected = !methodIsDigital,
-                onClick = { methodIsDigital = false },
-                shape = SegmentedButtonDefaults.itemShape(1, 2),
-            ) { Text("金钱卦") }
-        }
+        PaperTextField(
+            value = question,
+            onValueChange = { question = it },
+            modifier = Modifier.fillMaxWidth(),
+            placeholder = "所问何事（可选）",
+            singleLine = false,
+            minLines = 1,
+            maxLines = 5,
+            trailing = if (question.isNotEmpty()) {
+                {
+                    Icon(
+                        Icons.Filled.Cancel,
+                        contentDescription = "清除所问",
+                        tint = AppTheme.secondaryText,
+                        modifier = Modifier
+                            .size(20.dp)
+                            .clickable { question = "" },
+                    )
+                }
+            } else {
+                null
+            },
+        )
 
-        Spacer(Modifier.height(16.dp))
+        PaperSegmentedRow(
+            options = listOf("数字起卦", "金钱卦"),
+            selectedIndex = if (methodIsDigital) 0 else 1,
+            onSelect = { methodIsDigital = it == 0 },
+        )
+
         Column(
             Modifier
                 .fillMaxWidth()
-                .background(AppTheme.cardFill, RoundedCornerShape(16.dp))
-                .border(1.dp, AppTheme.fieldStroke, RoundedCornerShape(16.dp))
-                .padding(16.dp),
+                .background(AppTheme.cardFill, AppTheme.cardShape)
+                .padding(12.dp),
         ) {
             if (methodIsDigital) {
                 DigitalCastPanel(

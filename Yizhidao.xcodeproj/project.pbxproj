@@ -35,6 +35,10 @@
 		B21C91DA1BCB4BCA9CE351AD /* CaseListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E421C3B729BF40ADA8D18489 /* CaseListView.swift */; };
 		FBC1E4127C75448A977AD579 /* cases.json in Resources */ = {isa = PBXBuildFile; fileRef = 8393C6C7EE1243889EF8CE5C /* cases.json */; };
 		C4A8B1D203E54F6A9B7C8E21 /* SavedAIAnalysis.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5B9C2E314F65A7B0C8D9F32 /* SavedAIAnalysis.swift */; };
+		A11C1A551C1A551C1A551C04 /* ClassicYijingStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A11C1A551C1A551C1A551C03 /* ClassicYijingStore.swift */; };
+		A11C1A551C1A551C1A551C06 /* ClassicYijingViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = A11C1A551C1A551C1A551C05 /* ClassicYijingViews.swift */; };
+		A11C1A551C1A551C1A551C08 /* YijingIntro.json in Resources */ = {isa = PBXBuildFile; fileRef = A11C1A551C1A551C1A551C07 /* YijingIntro.json */; };
+		A11C1A551C1A551C1A551C0A /* Zhengshi.json in Resources */ = {isa = PBXBuildFile; fileRef = A11C1A551C1A551C1A551C09 /* Zhengshi.json */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -78,6 +82,10 @@
 		E421C3B729BF40ADA8D18489 /* CaseListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = CaseListView.swift; path = Features/Cases/CaseListView.swift; sourceTree = "<group>"; };
 		8393C6C7EE1243889EF8CE5C /* cases.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; name = cases.json; path = Resources/cases.json; sourceTree = "<group>"; };
 		D5B9C2E314F65A7B0C8D9F32 /* SavedAIAnalysis.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = SavedAIAnalysis.swift; path = Data/SavedAIAnalysis.swift; sourceTree = "<group>"; };
+		A11C1A551C1A551C1A551C03 /* ClassicYijingStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ClassicYijingStore.swift; path = Data/ClassicYijingStore.swift; sourceTree = "<group>"; };
+		A11C1A551C1A551C1A551C05 /* ClassicYijingViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ClassicYijingViews.swift; path = Features/Classic/ClassicYijingViews.swift; sourceTree = "<group>"; };
+		A11C1A551C1A551C1A551C07 /* YijingIntro.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; name = YijingIntro.json; path = Resources/YijingIntro.json; sourceTree = "<group>"; };
+		A11C1A551C1A551C1A551C09 /* Zhengshi.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; name = Zhengshi.json; path = Resources/Zhengshi.json; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -127,6 +135,10 @@
 				4278B724E3594A7292C2B416 /* CaseModels.swift */,
 				E421C3B729BF40ADA8D18489 /* CaseListView.swift */,
 				8393C6C7EE1243889EF8CE5C /* cases.json */,
+				A11C1A551C1A551C1A551C07 /* YijingIntro.json */,
+				A11C1A551C1A551C1A551C09 /* Zhengshi.json */,
+				A11C1A551C1A551C1A551C03 /* ClassicYijingStore.swift */,
+				A11C1A551C1A551C1A551C05 /* ClassicYijingViews.swift */,
 				E1E94CC872B540419C963B30 /* Assets.xcassets */,
 			);
 			path = Yizhidao;
@@ -241,6 +253,8 @@
 			files = (
 				602326EE314B4192A2FEDDD7 /* Hexagrams.json in Resources */,
 				FBC1E4127C75448A977AD579 /* cases.json in Resources */,
+				A11C1A551C1A551C1A551C08 /* YijingIntro.json in Resources */,
+				A11C1A551C1A551C1A551C0A /* Zhengshi.json in Resources */,
 				287E6E59BF89490E932CFFC6 /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -276,6 +290,8 @@
 				C9D4E3F276A06F4C1E803A52 /* HexagramGroupViews.swift in Sources */,
 				F0CB136E943341909C51CC2A /* CaseModels.swift in Sources */,
 				B21C91DA1BCB4BCA9CE351AD /* CaseListView.swift in Sources */,
+				A11C1A551C1A551C1A551C04 /* ClassicYijingStore.swift in Sources */,
+				A11C1A551C1A551C1A551C06 /* ClassicYijingViews.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

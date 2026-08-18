@@ -4,6 +4,12 @@ import kotlinx.serialization.Serializable
 import java.time.Instant
 
 @Serializable
+data class HexagramYong(
+    val ci: String,
+    val xiang: String,
+)
+
+@Serializable
 data class Hexagram(
     val number: Int,
     val name: String,
@@ -14,6 +20,11 @@ data class Hexagram(
     val yaoci: List<String>,
     val daxiang: String,
     val xiaoxiang: List<String>,
+    val figure: String = "",
+    val part: String = "",
+    val title: String = "",
+    val yong: HexagramYong? = null,
+    val wenyan: List<String> = emptyList(),
 ) {
     fun yaoCi(position: Int): String {
         if (position !in 1..6 || yaoci.size < position) return ""

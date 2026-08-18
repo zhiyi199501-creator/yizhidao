@@ -25,7 +25,8 @@ def _load_hexagrams() -> Dict[int, Dict[str, Any]]:
         print(f"[hexagram] missing file: {path}")
         return {}
     raw = json.loads(path.read_text(encoding="utf-8"))
-    return {item["number"]: item for item in raw}
+    items = raw["hexagrams"] if isinstance(raw, dict) else raw
+    return {item["number"]: item for item in items}
 
 
 def get_hexagram(number: int) -> Optional[Dict[str, Any]]:

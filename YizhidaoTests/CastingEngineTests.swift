@@ -158,5 +158,44 @@ final class HexagramStoreTests: XCTestCase {
         XCTAssertTrue(qian.daxiang.contains("自强不息"))
         XCTAssertTrue(qian.xiaoXiang(at: 1).contains("阳在下"))
         XCTAssertTrue(qian.guaci.contains("元"))
+        XCTAssertEqual(qian.yong?.ci.contains("用九"), true)
+        XCTAssertFalse(qian.wenyan.isEmpty)
+        XCTAssertEqual(store.hexagram(number: 2)?.yong?.ci.contains("用六"), true)
+        XCTAssertEqual(store.hexagram(number: 24)?.yaoci.last?.contains("十年"), true)
+        XCTAssertEqual(store.wings.map(\.title), ["系辞传", "说卦传", "序卦传", "杂卦传"])
+    }
+}
+
+final class YijingIntroStoreTests: XCTestCase {
+    func testIntroHasEightChapters() {
+        let store = YijingIntroStore(bundle: Bundle(for: YijingIntroStore.self))
+        XCTAssertEqual(store.chapters.count, 8)
+        XCTAssertEqual(store.chapters.map(\.id), [
+            "what", "purpose", "yin-yang-bagua", "hexagrams-lines",
+            "how-to-read", "play-the-text", "changing-lines", "path",
+        ])
+        XCTAssertFalse(store.note.isEmpty)
+        XCTAssertTrue(store.chapters[5].paragraphs.joined().contains("观其象"))
+        XCTAssertTrue(store.chapters[6].paragraphs.joined().contains("主看"))
+    }
+}
+
+final class ZhengshiStoreTests: XCTestCase {
+    func testZhengshiHasSixtyFourHexagrams() {
+        let store = ZhengshiStore(bundle: Bundle(for: ZhengshiStore.self))
+        store.loadIfNeeded()
+        XCTAssertEqual(store.parts.map(\.id), ["front", "upper", "lower", "wings"])
+        let upper = store.parts.first { $0.id == "upper" }?.chapters ?? []
+        let lower = store.parts.first { $0.id == "lower" }?.chapters ?? []
+        XCTAssertEqual(upper.count, 30)
+        XCTAssertEqual(lower.count, 34)
+        XCTAssertEqual(upper.first?.title, "乾卦")
+        XCTAssertTrue(upper.first?.sections.contains(where: { $0.title == "总释象例" }) == true)
+        let qianText = upper.first?.sections.flatMap(\.paragraphs).joined() ?? ""
+        XCTAssertTrue(qianText.contains("潜龙"))
+        XCTAssertEqual(store.parts.first { $0.id == "wings" }?.chapters.map(\.title), [
+            "系辞传", "说卦传", "序卦传", "杂卦传",
+        ])
+        XCTAssertFalse(store.note.isEmpty)
     }
 }

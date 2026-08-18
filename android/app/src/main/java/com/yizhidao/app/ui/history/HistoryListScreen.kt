@@ -9,12 +9,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -29,12 +25,12 @@ import androidx.compose.ui.unit.dp
 import com.yizhidao.ReadingRecord
 import com.yizhidao.app.AppContainer
 import com.yizhidao.app.ui.reading.ResultScreen
+import com.yizhidao.app.ui.theme.PaperSegmentedRow
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
 private val rowFmt = DateTimeFormatter.ofPattern("yyyy/M/d HH:mm").withZone(ZoneId.systemDefault())
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HistoryListScreen(
     container: AppContainer,
@@ -75,18 +71,15 @@ fun HistoryListScreen(
 
     Column(Modifier.fillMaxSize().padding(horizontal = 16.dp, vertical = 12.dp)) {
         Text("历史", style = androidx.compose.material3.MaterialTheme.typography.headlineSmall)
-        SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth().padding(vertical = 12.dp)) {
-            SegmentedButton(
-                selected = !byHexagram,
-                onClick = { byHexagram = false; filterPrimary = null },
-                shape = SegmentedButtonDefaults.itemShape(0, 2),
-            ) { Text("时间") }
-            SegmentedButton(
-                selected = byHexagram,
-                onClick = { byHexagram = true },
-                shape = SegmentedButtonDefaults.itemShape(1, 2),
-            ) { Text("按卦") }
-        }
+        PaperSegmentedRow(
+            options = listOf("时间", "按卦"),
+            selectedIndex = if (byHexagram) 1 else 0,
+            onSelect = {
+                byHexagram = it == 1
+                if (it == 0) filterPrimary = null
+            },
+            modifier = Modifier.padding(vertical = 12.dp),
+        )
 
         if (byHexagram && filterPrimary == null) {
             val grouped = records.groupBy { it.primaryNumber }.toSortedMap()

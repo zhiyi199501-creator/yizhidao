@@ -5,13 +5,9 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.width
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -27,7 +23,8 @@ import com.yizhidao.LineValue
 import com.yizhidao.ReadingGuide
 import com.yizhidao.SecureRandomSource
 import com.yizhidao.app.ui.reading.YaoBar
-import com.yizhidao.app.ui.theme.AppTheme
+import com.yizhidao.app.ui.theme.PaperOutlinedButton
+import com.yizhidao.app.ui.theme.PaperPrimaryButton
 
 private val manualOptions = listOf(
     LineValue.YOUNG_YANG,
@@ -66,7 +63,7 @@ fun CoinCastPanel(
                 Spacer(Modifier.weight(1f))
                 Box {
                     var menu by remember { mutableStateOf(false) }
-                    OutlinedButton(onClick = { menu = true }) { Text("选") }
+                    PaperOutlinedButton(onClick = { menu = true }, label = "选")
                     DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
                         manualOptions.forEach { option ->
                             DropdownMenuItem(
@@ -80,34 +77,33 @@ fun CoinCastPanel(
                     }
                 }
                 Spacer(Modifier.width(6.dp))
-                OutlinedButton(onClick = {
+                PaperOutlinedButton(onClick = {
                     lines = lines.toMutableList().also { it[index] = CoinCastingEngine.tossLine(rng) }
-                }) { Text("摇") }
+                }, label = "摇")
             }
         }
         Row {
-            OutlinedButton(onClick = {
+            PaperOutlinedButton(onClick = {
                 lines = List(6) { CoinCastingEngine.tossLine(rng) }
-            }) { Text("一键摇满") }
+            }, label = "一键摇满")
             Spacer(Modifier.width(8.dp))
-            OutlinedButton(onClick = { lines = List(6) { null } }) { Text("清空") }
+            PaperOutlinedButton(onClick = { lines = List(6) { null } }, label = "清空")
         }
         error?.let {
             Text(it, color = androidx.compose.material3.MaterialTheme.colorScheme.error, style = androidx.compose.material3.MaterialTheme.typography.bodySmall)
         }
-        Button(
+        PaperPrimaryButton(
             onClick = {
                 val resolved = lines.filterNotNull()
                 if (resolved.size != 6) {
                     error = "请摇满六爻"
-                    return@Button
+                    return@PaperPrimaryButton
                 }
                 val q = question.trim().ifEmpty { null }
                 onResult(CoinCastingEngine.cast(resolved, q))
             },
             enabled = filled == 6,
-            modifier = Modifier.fillMaxWidth(),
-            colors = ButtonDefaults.buttonColors(containerColor = AppTheme.accent),
-        ) { Text("起卦") }
+            label = "起卦",
+        )
     }
 }

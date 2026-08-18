@@ -92,7 +92,8 @@ if not rows or rows[0][0] != "编号":
 rows = rows[1:]
 
 # 5. 卦名 -> 卦号 映射
-hexes = json.load(open(HEXES, encoding="utf-8"))
+_raw_hexes = json.load(open(HEXES, encoding="utf-8"))
+hexes = _raw_hexes["hexagrams"] if isinstance(_raw_hexes, dict) else _raw_hexes
 name2num = {h["name"]: h["number"] for h in hexes}
 name2num.update({h["name"] + "卦": h["number"] for h in hexes})
 

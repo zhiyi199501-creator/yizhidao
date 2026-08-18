@@ -4,6 +4,12 @@ import android.app.Application
 import com.yizhidao.CaseStudy
 import com.yizhidao.CaseStudyCodec
 import com.yizhidao.HexagramStore
+import com.yizhidao.app.classic.ClassicYijingCodec
+import com.yizhidao.app.classic.HexagramsBook
+import com.yizhidao.app.classic.YijingIntroBook
+import com.yizhidao.app.classic.YijingIntroCodec
+import com.yizhidao.app.classic.ZhengshiBook
+import com.yizhidao.app.classic.ZhengshiCodec
 
 class YizhidaoApplication : Application() {
     lateinit var container: AppContainer
@@ -16,12 +22,21 @@ class YizhidaoApplication : Application() {
 }
 
 class AppContainer(app: Application) {
-    val hexagramStore: HexagramStore = HexagramStore.fromStream(
-        app.assets.open("Hexagrams.json"),
-    )
+    private val hexagramsText: String =
+        app.assets.open("Hexagrams.json").bufferedReader().use { it.readText() }
+    val classicBook: HexagramsBook = ClassicYijingCodec.decode(hexagramsText)
+    val hexagramStore: HexagramStore = HexagramStore(classicBook.hexagrams)
     val chineseDateSource = IcuChineseDateSource()
     val readingRepository = ReadingRepository(app)
     val caseRepository = CaseRepository(app)
+    val introBook: YijingIntroBook = YijingIntroCodec.decode(
+        app.assets.open("YijingIntro.json").bufferedReader().use { it.readText() },
+    )
+    val zhengshiBook: ZhengshiBook by lazy {
+        ZhengshiCodec.decode(
+            app.assets.open("Zhengshi.json").bufferedReader().use { it.readText() },
+        )
+    }
 }
 
 class CaseRepository(private val app: Application) {
