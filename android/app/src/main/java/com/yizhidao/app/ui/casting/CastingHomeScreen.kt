@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
@@ -57,21 +58,21 @@ fun CastingHomeScreen(
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
             .imePadding()
-            .padding(14.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp),
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(20.dp),
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text(
                 "易知道",
-                fontSize = 28.sp,
+                fontSize = 34.sp,
                 fontWeight = FontWeight.Bold,
                 color = AppTheme.ink,
-                lineHeight = 34.sp,
+                lineHeight = 41.sp,
                 style = AppTheme.compactText,
             )
             Text(
                 "君子居则观象玩辞，动则观变玩占",
-                fontSize = 13.sp,
+                fontSize = 15.sp,
                 color = AppTheme.secondaryText,
                 style = AppTheme.compactText,
             )
@@ -80,24 +81,22 @@ fun CastingHomeScreen(
         Column {
             Row(
                 Modifier
-                    .fillMaxWidth()
                     .clickable { showRitual = !showRitual }
-                    .padding(vertical = 4.dp),
+                    .padding(vertical = 2.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
                     "起卦礼仪",
-                    fontSize = 13.sp,
+                    fontSize = 15.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = AppTheme.accent,
-                    modifier = Modifier.weight(1f),
                     style = AppTheme.compactText,
                 )
                 Icon(
                     if (showRitual) Icons.Filled.KeyboardArrowDown else Icons.AutoMirrored.Filled.KeyboardArrowRight,
                     contentDescription = if (showRitual) "收起礼仪" else "展开礼仪",
-                    tint = AppTheme.accent,
-                    modifier = Modifier.size(16.dp),
+                    tint = AppTheme.secondaryText,
+                    modifier = Modifier.size(16.dp).padding(start = 2.dp),
                 )
             }
             AnimatedVisibility(showRitual) {
@@ -124,7 +123,7 @@ fun CastingHomeScreen(
             modifier = Modifier.fillMaxWidth(),
             placeholder = "所问何事（可选）",
             singleLine = false,
-            minLines = 1,
+            minLines = 2,
             maxLines = 5,
             trailing = if (question.isNotEmpty()) {
                 {
@@ -151,8 +150,8 @@ fun CastingHomeScreen(
         Column(
             Modifier
                 .fillMaxWidth()
-                .background(AppTheme.cardFill, AppTheme.cardShape)
-                .padding(12.dp),
+                .background(AppTheme.cardFill, RoundedCornerShape(16.dp))
+                .padding(16.dp),
         ) {
             if (methodIsDigital) {
                 DigitalCastPanel(

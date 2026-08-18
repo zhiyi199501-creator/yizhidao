@@ -72,7 +72,7 @@ fun DigitalCastPanel(
 
     val ready = listOf(n1, n2, n3).all { it.toIntOrNull()?.let { n -> n > 0 } == true }
 
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
         PaperSegmentedRow(
             options = listOf("输入三数", "时间起卦"),
             selectedIndex = if (threeNumbers) 0 else 1,
@@ -80,26 +80,28 @@ fun DigitalCastPanel(
         )
 
         if (threeNumbers) {
-            NumberRow("上卦数", n1, { n1 = it.filter(Char::isDigit) }) {
-                n1 = rng.nextInt(10..999).toString()
-            }
-            NumberRow("下卦数", n2, { n2 = it.filter(Char::isDigit) }) {
-                n2 = rng.nextInt(10..999).toString()
-            }
-            NumberRow("动爻数", n3, { n3 = it.filter(Char::isDigit) }) {
-                n3 = rng.nextInt(10..999).toString()
-            }
-            Row {
-                PaperOutlinedButton(onClick = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                NumberRow("上卦数", n1, { n1 = it.filter(Char::isDigit) }) {
                     n1 = rng.nextInt(10..999).toString()
+                }
+                NumberRow("下卦数", n2, { n2 = it.filter(Char::isDigit) }) {
                     n2 = rng.nextInt(10..999).toString()
+                }
+                NumberRow("动爻数", n3, { n3 = it.filter(Char::isDigit) }) {
                     n3 = rng.nextInt(10..999).toString()
-                    error = null
-                }, label = "一键随机")
-                Spacer(Modifier.width(8.dp))
-                PaperOutlinedButton(onClick = {
-                    n1 = ""; n2 = ""; n3 = ""; error = null
-                }, label = "清空")
+                }
+                Row {
+                    PaperOutlinedButton(onClick = {
+                        n1 = rng.nextInt(10..999).toString()
+                        n2 = rng.nextInt(10..999).toString()
+                        n3 = rng.nextInt(10..999).toString()
+                        error = null
+                    }, label = "一键随机")
+                    Spacer(Modifier.width(10.dp))
+                    PaperOutlinedButton(onClick = {
+                        n1 = ""; n2 = ""; n3 = ""; error = null
+                    }, label = "清空")
+                }
             }
         } else {
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
@@ -205,12 +207,17 @@ private fun NumberRow(
     onValueChange: (String) -> Unit,
     onRandom: () -> Unit,
 ) {
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
         Text(
             title,
-            fontSize = 13.sp,
+            fontSize = 15.sp,
             maxLines = 1,
             softWrap = false,
+            modifier = Modifier.width(56.dp),
             style = AppTheme.compactText,
         )
         PaperTextField(

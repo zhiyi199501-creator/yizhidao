@@ -19,6 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.yizhidao.CastResult
 import com.yizhidao.Hexagram
 import com.yizhidao.HexagramStore
@@ -59,26 +60,46 @@ fun HexagramReadingBody(
     var tab by remember { mutableStateOf(HexTab.Primary) }
     val tabs = if (resulting == null) listOf(HexTab.Primary) else HexTab.entries
 
-    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+    Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(24.dp)) {
             Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.weight(1f)) {
                 if (primary != null) {
-                    Text("${primary.symbol} ${primary.name}", style = androidx.compose.material3.MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                    Text("第${primary.number}卦 · 本卦", style = androidx.compose.material3.MaterialTheme.typography.labelSmall, color = androidx.compose.material3.MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f))
+                    Text(
+                        "${primary.symbol} ${primary.name}",
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = AppTheme.ink,
+                        style = AppTheme.compactText,
+                    )
+                    Text(
+                        "第${primary.number}卦 · 本卦",
+                        fontSize = 12.sp,
+                        color = AppTheme.secondaryText,
+                        style = AppTheme.compactText,
+                    )
                 }
                 HexagramFigure(lines = lines, movingPositions = movingPositions)
             }
             if (resulting != null && resultingNumber != null) {
                 val changed = lines.map { if (it.isChanging) it.changed else it }
                 Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.weight(1f)) {
-                    Text("${resulting.symbol} ${resulting.name}", style = androidx.compose.material3.MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                    Text("第${resultingNumber}卦 · 之卦", style = androidx.compose.material3.MaterialTheme.typography.labelSmall, color = androidx.compose.material3.MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f))
+                    Text(
+                        "${resulting.symbol} ${resulting.name}",
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = AppTheme.ink,
+                        style = AppTheme.compactText,
+                    )
+                    Text(
+                        "第${resultingNumber}卦 · 之卦",
+                        fontSize = 12.sp,
+                        color = AppTheme.secondaryText,
+                        style = AppTheme.compactText,
+                    )
                     HexagramFigure(lines = changed, movingPositions = emptyList())
                 }
             }
         }
-
-        Text(focus.summary, style = androidx.compose.material3.MaterialTheme.typography.bodySmall, color = AppTheme.accent)
 
         if (tabs.size > 1) {
             PaperSegmentedRow(
@@ -95,8 +116,9 @@ fun HexagramReadingBody(
 
         Text(
             "经文版本：《易经证释》所引",
-            style = androidx.compose.material3.MaterialTheme.typography.labelSmall,
-            color = androidx.compose.material3.MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+            fontSize = 11.sp,
+            color = AppTheme.secondaryText,
+            style = AppTheme.compactText,
             modifier = Modifier.align(Alignment.End),
         )
     }
@@ -109,15 +131,15 @@ private fun HexagramTextSection(
     focus: ReadingFocus,
     movingPositions: List<Int>,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
         CardSection(showLead = shouldShowGuaciLead(tab, focus)) {
-            Text(hex.guaci, style = androidx.compose.material3.MaterialTheme.typography.bodyLarge, lineHeight = androidx.compose.material3.MaterialTheme.typography.bodyLarge.lineHeight)
+            Text(hex.guaci, fontSize = 16.sp, color = AppTheme.ink, lineHeight = 24.sp)
         }
         CardSection {
-            Text(HexagramText.prefixed("彖曰：", hex.tuanci), style = androidx.compose.material3.MaterialTheme.typography.bodyLarge)
+            Text(HexagramText.prefixed("彖曰：", hex.tuanci), fontSize = 16.sp, color = AppTheme.ink, lineHeight = 24.sp)
         }
         CardSection {
-            Text(HexagramText.prefixed("象曰：", hex.daxiang), style = androidx.compose.material3.MaterialTheme.typography.bodyLarge)
+            Text(HexagramText.prefixed("象曰：", hex.daxiang), fontSize = 16.sp, color = AppTheme.ink, lineHeight = 24.sp)
         }
         CardSection {
             Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
@@ -142,8 +164,8 @@ private fun LineBlock(
     val color = if (moving) Color.Red else Color.Unspecified
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         if (showLead) LeadBadge()
-        Text(hex.yaoCi(position).trim(), color = color, style = androidx.compose.material3.MaterialTheme.typography.bodyLarge)
-        Text(HexagramText.xiangLine(hex.xiaoXiang(position)), color = color, style = androidx.compose.material3.MaterialTheme.typography.bodyLarge)
+        Text(hex.yaoCi(position).trim(), color = color, fontSize = 16.sp, lineHeight = 24.sp)
+        Text(HexagramText.xiangLine(hex.xiaoXiang(position)), color = color, fontSize = 16.sp, lineHeight = 24.sp)
     }
 }
 
@@ -167,7 +189,8 @@ private fun LeadBadge() {
         "主看",
         color = Color.White,
         fontWeight = FontWeight.Bold,
-        style = androidx.compose.material3.MaterialTheme.typography.labelSmall,
+        fontSize = 11.sp,
+        style = AppTheme.compactText,
         modifier = Modifier
             .background(Color.Red, RoundedCornerShape(50))
             .padding(horizontal = 6.dp, vertical = 2.dp),

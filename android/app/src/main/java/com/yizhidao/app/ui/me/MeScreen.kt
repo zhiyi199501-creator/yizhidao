@@ -1,18 +1,36 @@
 package com.yizhidao.app.ui.me
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.automirrored.outlined.MenuBook
+import androidx.compose.material.icons.automirrored.outlined.ReceiptLong
+import androidx.compose.material.icons.outlined.AccountCircle
+import androidx.compose.material.icons.outlined.AutoStories
+import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.Text
@@ -21,20 +39,30 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.yizhidao.Hexagram
 import com.yizhidao.app.AppContainer
 import com.yizhidao.app.classic.ClassicChapter
 import com.yizhidao.app.classic.ClassicWing
+import com.yizhidao.app.classic.YijingIntroBook
 import com.yizhidao.app.classic.YijingIntroChapter
 import com.yizhidao.app.classic.ZhengshiChapter
 import com.yizhidao.app.ui.theme.AppTheme
+import com.yizhidao.app.ui.theme.PaperBackHeader
 
 private sealed interface MeRoute {
     data object Home : MeRoute
+    data object Login : MeRoute
+    data object AIHistory : MeRoute
+    data object Settings : MeRoute
     data object Intro : MeRoute
     data class IntroChapter(val item: YijingIntroChapter) : MeRoute
     data object Hexagrams : MeRoute
@@ -58,103 +86,53 @@ fun MeScreen(container: AppContainer) {
     val intro = container.introBook
 
     when (val page = route) {
-        MeRoute.Home -> Column(Modifier.fillMaxSize().padding(20.dp)) {
-            Text("我的", style = androidx.compose.material3.MaterialTheme.typography.headlineSmall)
-            Spacer(Modifier.height(16.dp))
-            ListItem(
-                headlineContent = { Text("易经基础入门") },
-                supportingContent = { Text("阴阳八卦 · 玩占观辞") },
-                modifier = Modifier.clickable { route = MeRoute.Intro },
-                colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-            )
-            ListItem(
-                headlineContent = { Text("易经六十四卦") },
-                supportingContent = { Text("上经 · 下经") },
-                modifier = Modifier.clickable { route = MeRoute.Hexagrams },
-                colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-            )
-            ListItem(
-                headlineContent = { Text("易经四传") },
-                supportingContent = { Text("系辞 · 说卦 · 序卦 · 杂卦") },
-                modifier = Modifier.clickable { route = MeRoute.Wings },
-                colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-            )
-            Spacer(Modifier.height(16.dp))
-            Text(
-                "登录、AI 解读与回收站将在后续接入。",
-                style = androidx.compose.material3.MaterialTheme.typography.bodyMedium,
-                color = AppTheme.secondaryText,
-            )
-        }
-        MeRoute.Intro -> Column(Modifier.fillMaxSize().padding(16.dp)) {
-            BackLabel("我的") { route = MeRoute.Home }
-            Text("易经基础入门", style = androidx.compose.material3.MaterialTheme.typography.headlineSmall)
-            Text(
-                intro.note,
-                style = androidx.compose.material3.MaterialTheme.typography.bodySmall,
-                color = AppTheme.secondaryText,
-                modifier = Modifier.padding(top = 8.dp, bottom = 8.dp),
-            )
-            LazyColumn {
-                items(intro.chapters, key = { it.id }) { chapter ->
-                    ListItem(
-                        headlineContent = { Text(chapter.title) },
-                        supportingContent = { Text(chapter.subtitle) },
-                        modifier = Modifier.clickable { route = MeRoute.IntroChapter(chapter) },
-                        colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-                    )
-                }
-            }
-        }
+        MeRoute.Home -> MeHome(
+            onLogin = { route = MeRoute.Login },
+            onAIHistory = { route = MeRoute.Login },
+            onIntro = { route = MeRoute.Intro },
+            onHexagrams = { route = MeRoute.Hexagrams },
+            onWings = { route = MeRoute.Wings },
+            onSettings = { route = MeRoute.Settings },
+        )
+        MeRoute.Login -> PlaceholderPage(
+            title = "登录",
+            message = "支持手机号或微信登录。生产短信与微信登录尚未接入。",
+            onBack = { route = MeRoute.Home },
+        )
+        MeRoute.AIHistory -> PlaceholderPage(
+            title = "AI解读历史",
+            message = "登录后可查看保存在本机的 AI 解读。",
+            onBack = { route = MeRoute.Home },
+        )
+        MeRoute.Settings -> SettingsPage(onBack = { route = MeRoute.Home })
+        MeRoute.Intro -> IntroListPage(
+            book = intro,
+            onBack = { route = MeRoute.Home },
+            onOpen = { route = MeRoute.IntroChapter(it) },
+        )
         is MeRoute.IntroChapter -> IntroChapterReader(page.item) { route = MeRoute.Intro }
-        MeRoute.Hexagrams -> Column(Modifier.fillMaxSize().padding(16.dp)) {
-            BackLabel("我的") { route = MeRoute.Home }
-            Text("易经六十四卦", style = androidx.compose.material3.MaterialTheme.typography.headlineSmall)
-            LazyColumn {
-                items(book.hexagrams, key = { it.number }) { hex ->
-                    ListItem(
-                        headlineContent = { Text("${hex.symbol} ${hex.name}") },
-                        supportingContent = { Text(hex.title) },
-                        modifier = Modifier.clickable { route = MeRoute.HexagramDetail(hex) },
-                        colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-                    )
-                }
-            }
-        }
+        MeRoute.Hexagrams -> HexagramListPage(
+            hexagrams = book.hexagrams,
+            onBack = { route = MeRoute.Home },
+            onOpen = { route = MeRoute.HexagramDetail(it) },
+        )
         is MeRoute.HexagramDetail -> HexagramReader(page.item) { route = MeRoute.Hexagrams }
-        MeRoute.Wings -> Column(Modifier.fillMaxSize().padding(16.dp)) {
-            BackLabel("我的") { route = MeRoute.Home }
-            Text("易经四传", style = androidx.compose.material3.MaterialTheme.typography.headlineSmall)
-            book.wings.forEach { wing ->
-                ListItem(
-                    headlineContent = { Text(wing.title) },
-                    supportingContent = {
-                        Text(if (wing.chapters.size == 1) "${wing.chapters[0].paragraphs.size} 节" else "${wing.chapters.size} 章")
-                    },
-                    modifier = Modifier.clickable {
-                        route = if (wing.chapters.size == 1) {
-                            MeRoute.Chapter(wing.title, wing.chapters[0])
-                        } else {
-                            MeRoute.Wing(wing)
-                        }
-                    },
-                    colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-                )
-            }
-        }
-        is MeRoute.Wing -> Column(Modifier.fillMaxSize().padding(16.dp)) {
-            BackLabel("易经四传") { route = MeRoute.Wings }
-            Text(page.item.title, style = androidx.compose.material3.MaterialTheme.typography.headlineSmall)
-            page.item.chapters.forEach { chapter ->
-                ListItem(
-                    headlineContent = { Text(chapter.title) },
-                    modifier = Modifier.clickable {
-                        route = MeRoute.Chapter(page.item.title, chapter)
-                    },
-                    colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-                )
-            }
-        }
+        MeRoute.Wings -> WingListPage(
+            wings = book.wings,
+            onBack = { route = MeRoute.Home },
+            onOpen = { wing ->
+                route = if (wing.chapters.size == 1) {
+                    MeRoute.Chapter(wing.title, wing.chapters[0])
+                } else {
+                    MeRoute.Wing(wing)
+                }
+            },
+        )
+        is MeRoute.Wing -> WingChapterListPage(
+            wing = page.item,
+            onBack = { route = MeRoute.Wings },
+            onOpen = { route = MeRoute.Chapter(page.item.title, it) },
+        )
         is MeRoute.Chapter -> ChapterReader(page.wingTitle, page.chapter) {
             val wing = book.wings.first { it.title == page.wingTitle }
             route = if (wing.chapters.size == 1) MeRoute.Wings else MeRoute.Wing(wing)
@@ -231,7 +209,450 @@ fun MeScreen(container: AppContainer) {
 }
 
 @Composable
+private fun MeHome(
+    onLogin: () -> Unit,
+    onAIHistory: () -> Unit,
+    onIntro: () -> Unit,
+    onHexagrams: () -> Unit,
+    onWings: () -> Unit,
+    onSettings: () -> Unit,
+) {
+    Column(Modifier.fillMaxSize()) {
+        Box(
+            Modifier.fillMaxWidth().padding(vertical = 12.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                "我的",
+                fontSize = 17.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = AppTheme.ink,
+                style = AppTheme.compactText,
+            )
+        }
+        Column(
+            Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 16.dp)
+                .padding(bottom = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            MeCard {
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(
+                        Icons.Outlined.AccountCircle,
+                        contentDescription = null,
+                        tint = AppTheme.secondaryText,
+                        modifier = Modifier.size(32.dp),
+                    )
+                    Spacer(Modifier.width(10.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text("未登录", fontSize = 17.sp, color = AppTheme.ink, style = AppTheme.compactText)
+                        Text(
+                            "支持手机号或微信登录",
+                            fontSize = 12.sp,
+                            color = AppTheme.secondaryText,
+                            style = AppTheme.compactText,
+                        )
+                    }
+                    Text(
+                        "登录",
+                        color = AppTheme.accent,
+                        fontSize = 16.sp,
+                        modifier = Modifier.clickable(onClick = onLogin).padding(start = 8.dp),
+                        style = AppTheme.compactText,
+                    )
+                }
+            }
+            MeCard {
+                MeRow(
+                    icon = Icons.AutoMirrored.Outlined.MenuBook,
+                    title = "AI解读历史",
+                    trailing = {
+                        Text("需登录", fontSize = 12.sp, color = AppTheme.secondaryText, style = AppTheme.compactText)
+                    },
+                    showChevron = false,
+                    onClick = onAIHistory,
+                )
+            }
+            MeCard {
+                MeRow(
+                    icon = Icons.AutoMirrored.Outlined.MenuBook,
+                    title = "易经基础入门",
+                    onClick = onIntro,
+                )
+                MeDivider()
+                MeRow(
+                    icon = Icons.Outlined.AutoStories,
+                    title = "易经六十四卦",
+                    onClick = onHexagrams,
+                )
+                MeDivider()
+                MeRow(
+                    icon = Icons.AutoMirrored.Outlined.ReceiptLong,
+                    title = "易经四传",
+                    onClick = onWings,
+                )
+            }
+            MeCard {
+                MeRow(
+                    icon = Icons.Outlined.Settings,
+                    title = "设置",
+                    onClick = onSettings,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun SettingsPage(onBack: () -> Unit) {
+    Column(Modifier.fillMaxSize()) {
+        PaperBackHeader(title = "设置", onBack = onBack)
+        Column(
+            Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 16.dp)
+                .padding(bottom = 24.dp),
+        ) {
+            MeCard {
+                MeRow(
+                    icon = null,
+                    title = "回收站",
+                    trailing = {
+                        Text("0", fontSize = 15.sp, color = AppTheme.secondaryText, style = AppTheme.compactText)
+                    },
+                    onClick = {},
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun PlaceholderPage(title: String, message: String, onBack: () -> Unit) {
+    Column(Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
+        BackLabel("我的", onBack)
+        Text(
+            title,
+            fontSize = 17.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = AppTheme.ink,
+            style = AppTheme.compactText,
+        )
+        Spacer(Modifier.height(16.dp))
+        Text(message, fontSize = 15.sp, color = AppTheme.secondaryText, lineHeight = 22.sp)
+    }
+}
+
+@Composable
+private fun MeCard(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
+    Column(
+        modifier
+            .fillMaxWidth()
+            .clip(AppTheme.cardShape)
+            .background(Color.White.copy(alpha = 0.92f)),
+    ) { content() }
+}
+
+@Composable
+private fun MeRow(
+    icon: ImageVector?,
+    title: String,
+    trailing: @Composable (() -> Unit)? = null,
+    showChevron: Boolean = true,
+    onClick: () -> Unit,
+) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        if (icon != null) {
+            Icon(icon, contentDescription = null, tint = AppTheme.accent, modifier = Modifier.size(22.dp))
+            Spacer(Modifier.width(12.dp))
+        }
+        Text(
+            title,
+            fontSize = 17.sp,
+            color = AppTheme.ink,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f),
+            style = AppTheme.compactText,
+        )
+        trailing?.invoke()
+        if (showChevron) {
+            Icon(
+                Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                contentDescription = null,
+                tint = AppTheme.secondaryText,
+                modifier = Modifier.size(18.dp),
+            )
+        }
+    }
+}
+
+@Composable
+private fun MeDivider() {
+    HorizontalDivider(
+        modifier = Modifier.padding(start = 50.dp),
+        color = AppTheme.fieldStroke,
+        thickness = 0.5.dp,
+    )
+}
+
+@Composable
+private fun IntroListPage(
+    book: YijingIntroBook,
+    onBack: () -> Unit,
+    onOpen: (YijingIntroChapter) -> Unit,
+) {
+    Column(Modifier.fillMaxSize()) {
+        PaperBackHeader(title = "易经基础入门", onBack = onBack)
+        LazyColumn(contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 24.dp)) {
+            if (book.note.isNotBlank()) {
+                item(key = "note") {
+                    Text(
+                        book.note,
+                        fontSize = 13.sp,
+                        color = AppTheme.secondaryText,
+                        lineHeight = 18.sp,
+                        style = AppTheme.compactText,
+                        modifier = Modifier.padding(start = 4.dp, top = 4.dp, bottom = 12.dp),
+                    )
+                }
+            }
+            item(key = "chapters") {
+                MeCard {
+                    book.chapters.forEachIndexed { index, chapter ->
+                        PaperNavRow(
+                            title = chapter.title,
+                            subtitle = chapter.subtitle,
+                            showDivider = index < book.chapters.lastIndex,
+                            onClick = { onOpen(chapter) },
+                        )
+                    }
+                }
+            }
+            if (book.source.isNotBlank()) {
+                item(key = "source") {
+                    Text(
+                        book.source,
+                        fontSize = 12.sp,
+                        color = AppTheme.secondaryText,
+                        style = AppTheme.compactText,
+                        modifier = Modifier.padding(start = 4.dp, top = 8.dp),
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun WingListPage(
+    wings: List<ClassicWing>,
+    onBack: () -> Unit,
+    onOpen: (ClassicWing) -> Unit,
+) {
+    Column(Modifier.fillMaxSize()) {
+        PaperBackHeader(title = "易经四传", onBack = onBack)
+        LazyColumn(contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 24.dp)) {
+            item(key = "wings") {
+                MeCard {
+                    wings.forEachIndexed { index, wing ->
+                        PaperNavRow(
+                            title = wing.title,
+                            subtitle = if (wing.chapters.size == 1) {
+                                "${wing.chapters[0].paragraphs.size} 节"
+                            } else {
+                                "${wing.chapters.size} 章"
+                            },
+                            showDivider = index < wings.lastIndex,
+                            onClick = { onOpen(wing) },
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun WingChapterListPage(
+    wing: ClassicWing,
+    onBack: () -> Unit,
+    onOpen: (ClassicChapter) -> Unit,
+) {
+    Column(Modifier.fillMaxSize()) {
+        PaperBackHeader(title = wing.title, onBack = onBack)
+        LazyColumn(contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 24.dp)) {
+            item(key = "chapters") {
+                MeCard {
+                    wing.chapters.forEachIndexed { index, chapter ->
+                        PaperNavRow(
+                            title = chapter.title,
+                            showDivider = index < wing.chapters.lastIndex,
+                            onClick = { onOpen(chapter) },
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun PaperNavRow(
+    title: String,
+    subtitle: String? = null,
+    showDivider: Boolean,
+    onClick: () -> Unit,
+) {
+    Column {
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .clickable(onClick = onClick)
+                .then(if (subtitle.isNullOrBlank()) Modifier.heightIn(min = 44.dp) else Modifier)
+                .padding(horizontal = 16.dp, vertical = if (subtitle.isNullOrBlank()) 0.dp else 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(Modifier.weight(1f).padding(end = 8.dp)) {
+                Text(
+                    title,
+                    fontSize = 17.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = AppTheme.ink,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    style = AppTheme.compactText,
+                )
+                if (!subtitle.isNullOrBlank()) {
+                    Text(
+                        subtitle,
+                        fontSize = 13.sp,
+                        color = AppTheme.secondaryText,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        style = AppTheme.compactText,
+                        modifier = Modifier.padding(top = 2.dp),
+                    )
+                }
+            }
+            Icon(
+                Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                contentDescription = null,
+                tint = Color.Black.copy(alpha = 0.22f),
+                modifier = Modifier.size(18.dp),
+            )
+        }
+        if (showDivider) {
+            HorizontalDivider(
+                modifier = Modifier.padding(start = 16.dp),
+                color = AppTheme.fieldStroke,
+                thickness = 0.5.dp,
+            )
+        }
+    }
+}
+
+@Composable
+private fun HexagramListPage(
+    hexagrams: List<Hexagram>,
+    onBack: () -> Unit,
+    onOpen: (Hexagram) -> Unit,
+) {
+    val upper = hexagrams.filter { it.part == "上经" }.ifEmpty { hexagrams.take(30) }
+    val lower = hexagrams.filter { it.part == "下经" }.ifEmpty { hexagrams.drop(upper.size) }
+    Column(Modifier.fillMaxSize()) {
+        PaperBackHeader(title = "易经六十四卦", onBack = onBack)
+        LazyColumn(contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 24.dp)) {
+            hexagramSection("上经", upper, onOpen)
+            hexagramSection("下经", lower, onOpen)
+        }
+    }
+}
+
+private fun LazyListScope.hexagramSection(
+    title: String,
+    hexagrams: List<Hexagram>,
+    onOpen: (Hexagram) -> Unit,
+) {
+    if (hexagrams.isEmpty()) return
+    item(key = "header-$title") {
+        Text(
+            title,
+            fontSize = 13.sp,
+            color = AppTheme.secondaryText,
+            style = AppTheme.compactText,
+            modifier = Modifier.padding(start = 4.dp, top = 8.dp, bottom = 6.dp),
+        )
+    }
+    item(key = "card-$title") {
+        Column(
+            Modifier
+                .clip(AppTheme.cardShape)
+                .background(Color.White.copy(alpha = 0.92f)),
+        ) {
+            hexagrams.forEachIndexed { index, hex ->
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .clickable { onOpen(hex) }
+                        .heightIn(min = 44.dp)
+                        .padding(horizontal = 16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        "${hex.symbol} ${hex.name}",
+                        fontSize = 17.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = AppTheme.ink,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        style = AppTheme.compactText,
+                    )
+                    Spacer(Modifier.weight(1f))
+                    Text(
+                        hex.title,
+                        fontSize = 13.sp,
+                        color = AppTheme.secondaryText,
+                        maxLines = 1,
+                        style = AppTheme.compactText,
+                    )
+                    Icon(
+                        Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                        contentDescription = null,
+                        tint = Color.Black.copy(alpha = 0.22f),
+                        modifier = Modifier.size(18.dp),
+                    )
+                }
+                if (index < hexagrams.lastIndex) {
+                    HorizontalDivider(
+                        modifier = Modifier.padding(start = 16.dp),
+                        color = AppTheme.fieldStroke,
+                        thickness = 0.5.dp,
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
 private fun BackLabel(label: String, onClick: () -> Unit) {
+    BackHandler(onBack = onClick)
     Text(
         "← $label",
         color = AppTheme.accent,
@@ -241,65 +662,81 @@ private fun BackLabel(label: String, onClick: () -> Unit) {
 
 @Composable
 private fun IntroChapterReader(chapter: YijingIntroChapter, onBack: () -> Unit) {
-    Column(
-        Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(16.dp),
-    ) {
-        BackLabel("易经基础入门", onBack)
-        Text(chapter.title, style = androidx.compose.material3.MaterialTheme.typography.headlineSmall)
-        Text(
-            chapter.subtitle,
-            color = AppTheme.secondaryText,
-            modifier = Modifier.padding(top = 4.dp, bottom = 12.dp),
-        )
-        chapter.paragraphs.forEach { paragraph ->
-            ScriptureCard(body = paragraph)
+    Column(Modifier.fillMaxSize()) {
+        PaperBackHeader(title = chapter.title, onBack = onBack)
+        Column(
+            Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(16.dp),
+        ) {
+            if (chapter.subtitle.isNotBlank()) {
+                Text(
+                    chapter.subtitle,
+                    fontSize = 15.sp,
+                    color = AppTheme.secondaryText,
+                    style = AppTheme.compactText,
+                    modifier = Modifier.padding(bottom = 16.dp),
+                )
+            }
+            chapter.paragraphs.forEach { paragraph ->
+                ScriptureCard(body = paragraph)
+            }
         }
     }
 }
 
 @Composable
 private fun HexagramReader(hex: Hexagram, onBack: () -> Unit) {
-    Column(
-        Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(16.dp),
-    ) {
-        BackLabel("六十四卦", onBack)
-        Text("${hex.symbol} ${hex.title}", style = androidx.compose.material3.MaterialTheme.typography.headlineSmall)
-        Text(hex.figure, color = AppTheme.secondaryText, modifier = Modifier.padding(bottom = 12.dp))
-        ScriptureCard("卦辞", hex.guaci)
-        ScriptureCard("彖曰", hex.tuanci)
-        ScriptureCard("象曰", hex.daxiang)
-        hex.yaoci.zip(hex.xiaoxiang).forEach { (ci, xiang) ->
-            ScriptureCard(body = ci, footnote = "象曰：$xiang")
-        }
-        hex.yong?.let { ScriptureCard(body = it.ci, footnote = "象曰：${it.xiang}") }
-        if (hex.wenyan.isNotEmpty()) {
-            ScriptureCard("文言", hex.wenyan.joinToString("\n\n"))
+    Column(Modifier.fillMaxSize()) {
+        PaperBackHeader(title = hex.name, onBack = onBack)
+        Column(
+            Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(16.dp),
+        ) {
+            Text(
+                hex.title,
+                fontSize = 20.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = AppTheme.ink,
+                style = AppTheme.compactText,
+            )
+            Text(
+                hex.figure,
+                fontSize = 15.sp,
+                color = AppTheme.secondaryText,
+                modifier = Modifier.padding(bottom = 12.dp),
+            )
+            ScriptureCard("卦辞", hex.guaci)
+            ScriptureCard("彖曰", hex.tuanci)
+            ScriptureCard("象曰", hex.daxiang)
+            hex.yaoci.zip(hex.xiaoxiang).forEach { (ci, xiang) ->
+                ScriptureCard(body = ci, footnote = "象曰：$xiang")
+            }
+            hex.yong?.let { ScriptureCard(body = it.ci, footnote = "象曰：${it.xiang}") }
+            if (hex.wenyan.isNotEmpty()) {
+                ScriptureCard("文言", hex.wenyan.joinToString("\n\n"))
+            }
         }
     }
 }
 
 @Composable
 private fun ChapterReader(wingTitle: String, chapter: ClassicChapter, onBack: () -> Unit) {
-    Column(
-        Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(16.dp),
-    ) {
-        BackLabel(wingTitle, onBack)
-        Text(
-            if (chapter.title == wingTitle) wingTitle else chapter.title,
-            style = androidx.compose.material3.MaterialTheme.typography.headlineSmall,
-            modifier = Modifier.padding(bottom = 12.dp),
-        )
-        chapter.paragraphs.forEach { paragraph ->
-            ScriptureCard(body = paragraph)
+    val title = if (chapter.title == wingTitle) wingTitle else chapter.title
+    Column(Modifier.fillMaxSize()) {
+        PaperBackHeader(title = title, onBack = onBack)
+        Column(
+            Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(16.dp),
+        ) {
+            chapter.paragraphs.forEach { paragraph ->
+                ScriptureCard(body = paragraph)
+            }
         }
     }
 }
@@ -336,9 +773,20 @@ private fun ScriptureCard(title: String? = null, body: String, footnote: String?
         if (title != null) {
             Text(title, fontWeight = FontWeight.SemiBold, color = AppTheme.accent, modifier = Modifier.padding(bottom = 6.dp))
         }
-        Text(body)
+        Text(
+            body,
+            fontSize = 16.sp,
+            color = AppTheme.ink,
+            lineHeight = 24.sp,
+        )
         if (footnote != null) {
-            Text(footnote, modifier = Modifier.padding(top = 6.dp))
+            Text(
+                footnote,
+                fontSize = 16.sp,
+                color = AppTheme.ink,
+                lineHeight = 24.sp,
+                modifier = Modifier.padding(top = 6.dp),
+            )
         }
     }
 }

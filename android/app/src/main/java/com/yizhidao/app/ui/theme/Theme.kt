@@ -1,11 +1,11 @@
 package com.yizhidao.app.ui.theme
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.defaultMinSize
@@ -16,17 +16,26 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.lightColorScheme
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -34,12 +43,14 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.PlatformTextStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
@@ -57,11 +68,12 @@ object AppTheme {
     val yangRed = Color(0xFFBF3333)
     val movingHighlight = Color(0xFFFF9800).copy(alpha = 0.15f)
     val segmentTrack = Color(0xFF767680).copy(alpha = 0.14f)
-    val disabledFill = Color(0xFFD8D3CC)
-    val controlShape = RoundedCornerShape(7.dp)
+    val disabledFill = Color(0xFFE4E3E1)
+    val disabledText = Color(0xFF8E8E93)
+    val controlShape = RoundedCornerShape(8.dp)
     val cardShape = RoundedCornerShape(14.dp)
-    val segmentShape = RoundedCornerShape(8.dp)
-    val pillShape = RoundedCornerShape(6.dp)
+    val segmentShape = RoundedCornerShape(9.dp)
+    val pillShape = RoundedCornerShape(7.dp)
 
     val compactText = TextStyle(
         platformStyle = PlatformTextStyle(includeFontPadding = false),
@@ -97,10 +109,17 @@ private val LightColors = lightColorScheme(
 
 @Composable
 fun YizhidaoTheme(content: @Composable () -> Unit) {
-    MaterialTheme(
-        colorScheme = LightColors,
-        content = content,
+    val density = LocalDensity.current
+    val scaled = Density(
+        density = density.density,
+        fontScale = 16f / 17f,
     )
+    CompositionLocalProvider(LocalDensity provides scaled) {
+        MaterialTheme(
+            colorScheme = LightColors,
+            content = content,
+        )
+    }
 }
 
 @Composable
@@ -108,15 +127,7 @@ fun paperButtonColors() = ButtonDefaults.buttonColors(
     containerColor = AppTheme.accent,
     contentColor = Color.White,
     disabledContainerColor = AppTheme.disabledFill,
-    disabledContentColor = Color.White.copy(alpha = 0.78f),
-)
-
-@Composable
-fun paperBorderedButtonColors() = ButtonDefaults.buttonColors(
-    containerColor = AppTheme.accent.copy(alpha = 0.12f),
-    contentColor = AppTheme.accent,
-    disabledContainerColor = AppTheme.accent.copy(alpha = 0.06f),
-    disabledContentColor = AppTheme.accent.copy(alpha = 0.4f),
+    disabledContentColor = AppTheme.disabledText,
 )
 
 @Composable
@@ -134,15 +145,18 @@ fun PaperSegmentedRow(
     onSelect: (Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    BoxWithConstraints(
+    val density = LocalDensity.current
+    var trackWidth by remember { mutableStateOf(0.dp) }
+    Box(
         modifier
             .fillMaxWidth()
-            .height(28.dp)
+            .height(32.dp)
             .background(AppTheme.segmentTrack, AppTheme.segmentShape)
-            .padding(1.5.dp),
+            .padding(1.5.dp)
+            .onSizeChanged { trackWidth = with(density) { it.width.toDp() } },
     ) {
         val count = options.size.coerceAtLeast(1)
-        val pillWidth = maxWidth / count
+        val pillWidth = trackWidth / count
         val offset by animateDpAsState(
             targetValue = pillWidth * selectedIndex.coerceIn(0, count - 1),
             label = "segment",
@@ -169,7 +183,7 @@ fun PaperSegmentedRow(
                         label,
                         color = AppTheme.ink.copy(alpha = if (selected) 1f else 0.72f),
                         fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
-                        fontSize = 12.sp,
+                        fontSize = 13.sp,
                         style = AppTheme.compactText,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
@@ -195,12 +209,12 @@ fun PaperTextField(
     val textStyle = AppTheme.compactText.merge(
         TextStyle(
             color = AppTheme.ink,
-            fontSize = 15.sp,
-            lineHeight = 20.sp,
+            fontSize = 17.sp,
+            lineHeight = 22.sp,
         ),
     )
-    val lineHeight = with(LocalDensity.current) { 20.sp.toDp() }
-    val verticalPad = 5.dp
+    val lineHeight = with(LocalDensity.current) { 22.sp.toDp() }
+    val verticalPad = 8.dp
     BasicTextField(
         value = value,
         onValueChange = onValueChange,
@@ -214,7 +228,7 @@ fun PaperTextField(
                     Modifier.heightIn(min = lineHeight * minLines + verticalPad * 2)
                 },
             )
-            .padding(horizontal = 8.dp, vertical = verticalPad),
+            .padding(horizontal = 10.dp, vertical = verticalPad),
         textStyle = textStyle,
         singleLine = singleLine,
         minLines = minLines,
@@ -240,12 +254,13 @@ fun PaperTextField(
     )
 }
 
-/** iOS `.bordered`：浅赭石底 + 赭石字，高度贴近系统小按钮。 */
+/** iOS `.bordered`：浅赭石底 + 赭石字。`compact` 对应金钱卦行内「选 / 摇」（minWidth 28）。 */
 @Composable
 fun PaperOutlinedButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
+    compact: Boolean = false,
     label: String,
 ) {
     val bg = AppTheme.accent.copy(alpha = if (enabled) 0.12f else 0.06f)
@@ -255,14 +270,20 @@ fun PaperOutlinedButton(
             .clip(AppTheme.controlShape)
             .background(bg)
             .clickable(enabled = enabled, onClick = onClick)
-            .padding(horizontal = 10.dp, vertical = 5.dp)
-            .defaultMinSize(minWidth = 36.dp, minHeight = 26.dp),
+            .padding(
+                horizontal = if (compact) 8.dp else 12.dp,
+                vertical = if (compact) 5.dp else 7.dp,
+            )
+            .defaultMinSize(
+                minWidth = if (compact) 28.dp else 44.dp,
+                minHeight = if (compact) 26.dp else 32.dp,
+            ),
         contentAlignment = Alignment.Center,
     ) {
         Text(
             label,
             color = fg,
-            fontSize = 13.sp,
+            fontSize = if (compact) 13.sp else 15.sp,
             style = AppTheme.compactText,
             maxLines = 1,
         )
@@ -278,15 +299,101 @@ fun PaperPrimaryButton(
 ) {
     Button(
         onClick = onClick,
-        modifier = modifier
-            .fillMaxWidth()
-            .height(40.dp),
+        modifier = modifier.fillMaxWidth(),
         enabled = enabled,
-        shape = RoundedCornerShape(10.dp),
+        shape = RoundedCornerShape(12.dp),
         colors = paperButtonColors(),
         elevation = paperButtonElevation(),
-        contentPadding = PaddingValues(0.dp),
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
     ) {
-        Text(label, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, style = AppTheme.compactText)
+        Text(label, fontSize = 17.sp, fontWeight = FontWeight.SemiBold, style = AppTheme.compactText)
+    }
+}
+
+@Composable
+fun PaperCircleIconButton(
+    onClick: () -> Unit,
+    contentDescription: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    iconSize: androidx.compose.ui.unit.Dp = 18.dp,
+) {
+    Box(
+        Modifier
+            .size(32.dp)
+            .shadow(2.dp, CircleShape, clip = false)
+            .clip(CircleShape)
+            .background(Color.White)
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            icon,
+            contentDescription = contentDescription,
+            tint = AppTheme.ink,
+            modifier = Modifier.size(iconSize),
+        )
+    }
+}
+
+@Composable
+fun PaperBackHeader(
+    title: String,
+    onBack: () -> Unit,
+    trailing: @Composable (() -> Unit)? = null,
+) {
+    BackHandler(onBack = onBack)
+    Box(
+        Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 12.dp, vertical = 8.dp)
+            .height(44.dp),
+    ) {
+        Box(Modifier.align(Alignment.CenterStart)) {
+            PaperCircleIconButton(
+                onClick = onBack,
+                contentDescription = "返回",
+                icon = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
+                iconSize = 22.dp,
+            )
+        }
+        Text(
+            title,
+            fontSize = 17.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = AppTheme.ink,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.align(Alignment.Center).padding(horizontal = 48.dp),
+            style = AppTheme.compactText,
+        )
+        if (trailing != null) {
+            Box(Modifier.align(Alignment.CenterEnd)) {
+                trailing()
+            }
+        }
+    }
+}
+
+@Composable
+fun AIFloatingButton(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Box(
+        modifier
+            .size(50.dp)
+            .shadow(4.dp, CircleShape, clip = false)
+            .clip(CircleShape)
+            .background(AppTheme.accent)
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            "AI",
+            color = Color.White,
+            fontSize = 20.sp,
+            fontWeight = FontWeight.Bold,
+            style = AppTheme.compactText,
+        )
     }
 }
