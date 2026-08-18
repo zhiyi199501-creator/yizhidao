@@ -13,7 +13,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Layers
 import androidx.compose.material.icons.outlined.WorkspacePremium
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
@@ -38,7 +37,8 @@ import com.yizhidao.app.AppContainer
 import com.yizhidao.app.ui.theme.AIFloatingButton
 import com.yizhidao.app.ui.theme.AppTheme
 import com.yizhidao.app.ui.theme.PaperBackHeader
-import com.yizhidao.app.ui.theme.PaperCircleIconButton
+import com.yizhidao.app.ui.theme.PaperHeaderButton
+import com.yizhidao.app.ui.theme.PaperStackIcon
 import com.yizhidao.app.ui.theme.PaperSegmentedRow
 import com.yizhidao.app.ui.theme.PaperTextField
 import kotlinx.coroutines.launch
@@ -53,7 +53,7 @@ fun ResultScreen(
     isNew: Boolean,
     container: AppContainer,
     onBack: () -> Unit,
-    onOpenSimilar: ((Int) -> Unit)? = null,
+    onOpenSimilar: ((CastResult) -> Unit)? = null,
     existing: ReadingRecord? = null,
 ) {
     val scope = rememberCoroutineScope()
@@ -81,11 +81,12 @@ fun ResultScreen(
                 onBack = onBack,
                 trailing = if (onOpenSimilar != null) {
                     {
-                        PaperCircleIconButton(
-                            onClick = { onOpenSimilar(result.primaryNumber) },
+                        PaperHeaderButton(
+                            onClick = { onOpenSimilar(result) },
                             contentDescription = "查看同类卦",
-                            icon = Icons.Outlined.Layers,
-                        )
+                        ) {
+                            PaperStackIcon()
+                        }
                     }
                 } else {
                     null

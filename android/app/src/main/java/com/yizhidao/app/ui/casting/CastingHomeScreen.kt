@@ -1,6 +1,7 @@
 package com.yizhidao.app.ui.casting
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -15,9 +16,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Cancel
-import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -33,6 +32,7 @@ import androidx.compose.ui.unit.sp
 import com.yizhidao.CastResult
 import com.yizhidao.app.AppContainer
 import com.yizhidao.app.ui.theme.AppTheme
+import com.yizhidao.app.ui.theme.PaperChevron
 import com.yizhidao.app.ui.theme.PaperSegmentedRow
 import com.yizhidao.app.ui.theme.PaperTextField
 
@@ -92,11 +92,15 @@ fun CastingHomeScreen(
                     color = AppTheme.accent,
                     style = AppTheme.compactText,
                 )
-                Icon(
-                    if (showRitual) Icons.Filled.KeyboardArrowDown else Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                    contentDescription = if (showRitual) "收起礼仪" else "展开礼仪",
-                    tint = AppTheme.secondaryText,
-                    modifier = Modifier.size(16.dp).padding(start = 2.dp),
+                val chevronTurn by animateFloatAsState(
+                    targetValue = if (showRitual) 90f else 0f,
+                    label = "ritualChevron",
+                )
+                PaperChevron(
+                    modifier = Modifier.padding(start = 6.dp),
+                    color = AppTheme.accent.copy(alpha = 0.7f),
+                    height = 11.dp,
+                    rotation = chevronTurn,
                 )
             }
             AnimatedVisibility(showRitual) {

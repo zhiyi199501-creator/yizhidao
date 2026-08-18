@@ -5,11 +5,13 @@ struct YijingIntroListView: View {
 
     var body: some View {
         List {
-            Section {
-                Text(store.note)
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-                    .listRowBackground(Color.clear)
+            if !store.note.isEmpty {
+                Section {
+                    Text(store.note)
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                        .listRowBackground(Color.clear)
+                }
             }
             Section {
                 ForEach(store.chapters) { chapter in

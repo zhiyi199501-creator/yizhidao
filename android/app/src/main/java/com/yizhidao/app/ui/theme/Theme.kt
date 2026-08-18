@@ -2,9 +2,12 @@ package com.yizhidao.app.ui.theme
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -24,39 +27,59 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.lightColorScheme
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.composed
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.changedToUpIgnoreConsumed
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.LayoutCoordinates
+import androidx.compose.ui.layout.boundsInWindow
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.PlatformTextStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 object AppTheme {
-    val parchmentTop = Color(0xFFF5EDE0)
-    val parchmentBottom = Color(0xFFEBE5DB)
+    // iOS 原值是 #F5EDE0 / #EBE5DB。安卓屏幕多为鲜艳模式，会把暖米色拉得更饱和，
+    // 这里整体提亮并压一点黄，让观感与 iOS 持平。
+    val parchmentTop = Color(0xFFF8F2E9)
+    val parchmentBottom = Color(0xFFF1ECE3)
     val accent = Color(0xFF73382E)
     val accentSoft = Color(0xFFE8D4C8)
     val cardFill = Color.White.copy(alpha = 0.72f)
@@ -88,6 +111,57 @@ object AppTheme {
     )
 }
 
+/** 记录输入框窗口坐标，点空白时避开它们再失焦（对齐 iOS DismissKeyboardBackground）。 */
+class TextFieldHitRegistry {
+    private val rects = mutableMapOf<Any, Rect>()
+
+    fun update(key: Any, rect: Rect) {
+        rects[key] = rect
+    }
+
+    fun remove(key: Any) {
+        rects.remove(key)
+    }
+
+    fun contains(windowOffset: Offset): Boolean = rects.values.any { it.contains(windowOffset) }
+}
+
+val LocalTextFieldHitRegistry = compositionLocalOf { TextFieldHitRegistry() }
+
+private fun Modifier.dismissFocusOnTapOutside(): Modifier = composed {
+    val focusManager = LocalFocusManager.current
+    val keyboard = LocalSoftwareKeyboardController.current
+    val registry = LocalTextFieldHitRegistry.current
+    val coordsRef = remember { arrayOfNulls<LayoutCoordinates>(1) }
+    onGloballyPositioned { coordsRef[0] = it }
+        .pointerInput(Unit) {
+            awaitEachGesture {
+                val down = awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
+                val pointerId = down.id
+                val start = down.position
+                val slop = viewConfiguration.touchSlop
+                while (true) {
+                    val event = awaitPointerEvent(PointerEventPass.Initial)
+                    val change = event.changes.firstOrNull { it.id == pointerId } ?: return@awaitEachGesture
+                    if (change.changedToUpIgnoreConsumed()) {
+                        if ((change.position - start).getDistance() < slop) {
+                            val box = coordsRef[0]
+                            if (box != null && box.isAttached) {
+                                val windowPos = box.localToWindow(change.position)
+                                if (!registry.contains(windowPos)) {
+                                    focusManager.clearFocus()
+                                    keyboard?.hide()
+                                }
+                            }
+                        }
+                        break
+                    }
+                    if (!change.pressed) break
+                }
+            }
+        }
+}
+
 private val LightColors = lightColorScheme(
     primary = AppTheme.accent,
     onPrimary = Color.White,
@@ -114,11 +188,18 @@ fun YizhidaoTheme(content: @Composable () -> Unit) {
         density = density.density,
         fontScale = 16f / 17f,
     )
-    CompositionLocalProvider(LocalDensity provides scaled) {
+    val hitRegistry = remember { TextFieldHitRegistry() }
+    CompositionLocalProvider(
+        LocalDensity provides scaled,
+        LocalTextFieldHitRegistry provides hitRegistry,
+    ) {
         MaterialTheme(
             colorScheme = LightColors,
-            content = content,
-        )
+        ) {
+            Box(Modifier.fillMaxSize().dismissFocusOnTapOutside()) {
+                content()
+            }
+        }
     }
 }
 
@@ -215,6 +296,11 @@ fun PaperTextField(
     )
     val lineHeight = with(LocalDensity.current) { 22.sp.toDp() }
     val verticalPad = 8.dp
+    val hitRegistry = LocalTextFieldHitRegistry.current
+    val hitKey = remember { Any() }
+    DisposableEffect(hitRegistry) {
+        onDispose { hitRegistry.remove(hitKey) }
+    }
     BasicTextField(
         value = value,
         onValueChange = onValueChange,
@@ -228,6 +314,7 @@ fun PaperTextField(
                     Modifier.heightIn(min = lineHeight * minLines + verticalPad * 2)
                 },
             )
+            .onGloballyPositioned { hitRegistry.update(hitKey, it.boundsInWindow()) }
             .padding(horizontal = 10.dp, vertical = verticalPad),
         textStyle = textStyle,
         singleLine = singleLine,
@@ -254,6 +341,38 @@ fun PaperTextField(
     )
 }
 
+/**
+ * iOS 列表右侧的 `chevron.right`。Material 的 KeyboardArrowRight 是粗直角箭头，
+ * 这里手绘一个更细、更尖、圆头的折线，贴近 SF Symbol。
+ * [rotation] 供 DisclosureGroup 式展开使用（90 度即指向下方）。
+ */
+@Composable
+fun PaperChevron(
+    modifier: Modifier = Modifier,
+    color: Color = Color.Black.copy(alpha = 0.25f),
+    height: Dp = 13.dp,
+    rotation: Float = 0f,
+) {
+    Canvas(
+        modifier
+            .size(width = height * 7f / 12f, height = height)
+            .graphicsLayer { rotationZ = rotation },
+    ) {
+        // 笔画随尺寸走，放大成返回键时才不会显得过细。
+        val line = (height / 6.5f).toPx()
+        val inset = line / 2
+        drawPath(
+            path = Path().apply {
+                moveTo(inset, inset)
+                lineTo(size.width - inset, size.height / 2f)
+                lineTo(inset, size.height - inset)
+            },
+            color = color,
+            style = Stroke(width = line, cap = StrokeCap.Round, join = StrokeJoin.Round),
+        )
+    }
+}
+
 /** iOS `.bordered`：浅赭石底 + 赭石字。`compact` 对应金钱卦行内「选 / 摇」（minWidth 28）。 */
 @Composable
 fun PaperOutlinedButton(
@@ -270,13 +389,14 @@ fun PaperOutlinedButton(
             .clip(AppTheme.controlShape)
             .background(bg)
             .clickable(enabled = enabled, onClick = onClick)
+            // defaultMinSize 必须在 padding 之前，否则最小尺寸叠加内边距，按钮会被撑大一圈。
+            .defaultMinSize(
+                minWidth = if (compact) 44.dp else 54.dp,
+                minHeight = if (compact) 36.dp else 32.dp,
+            )
             .padding(
                 horizontal = if (compact) 8.dp else 12.dp,
-                vertical = if (compact) 5.dp else 7.dp,
-            )
-            .defaultMinSize(
-                minWidth = if (compact) 28.dp else 44.dp,
-                minHeight = if (compact) 26.dp else 32.dp,
+                vertical = if (compact) 5.dp else 6.dp,
             ),
         contentAlignment = Alignment.Center,
     ) {
@@ -310,27 +430,54 @@ fun PaperPrimaryButton(
     }
 }
 
+/** iOS 导航栏按钮：只有图标，无底衬，44dp 的透明点击区保证手感。 */
 @Composable
-fun PaperCircleIconButton(
+fun PaperHeaderButton(
     onClick: () -> Unit,
     contentDescription: String,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    iconSize: androidx.compose.ui.unit.Dp = 18.dp,
+    content: @Composable () -> Unit,
 ) {
     Box(
         Modifier
-            .size(32.dp)
-            .shadow(2.dp, CircleShape, clip = false)
+            .size(44.dp)
             .clip(CircleShape)
-            .background(Color.White)
-            .clickable(onClick = onClick),
+            .clickable(onClick = onClick, onClickLabel = contentDescription),
         contentAlignment = Alignment.Center,
     ) {
-        Icon(
-            icon,
-            contentDescription = contentDescription,
-            tint = AppTheme.ink,
-            modifier = Modifier.size(iconSize),
+        content()
+    }
+}
+
+/** iOS `rectangle.stack`：一张卡片 + 上方两道渐窄的叠层线。 */
+@Composable
+fun PaperStackIcon(
+    modifier: Modifier = Modifier,
+    color: Color = AppTheme.accent,
+) {
+    Canvas(modifier.size(width = 22.dp, height = 19.dp)) {
+        val line = 1.6.dp.toPx()
+        val half = line / 2
+        val radius = CornerRadius(2.5.dp.toPx(), 2.5.dp.toPx())
+        drawRoundRect(
+            color = color,
+            topLeft = Offset(half, size.height * 0.36f),
+            size = Size(size.width - line, size.height * 0.64f - half),
+            cornerRadius = radius,
+            style = Stroke(width = line),
+        )
+        drawLine(
+            color,
+            Offset(size.width * 0.10f, size.height * 0.19f),
+            Offset(size.width * 0.90f, size.height * 0.19f),
+            line,
+            StrokeCap.Round,
+        )
+        drawLine(
+            color,
+            Offset(size.width * 0.24f, half),
+            Offset(size.width * 0.76f, half),
+            line,
+            StrokeCap.Round,
         )
     }
 }
@@ -345,16 +492,13 @@ fun PaperBackHeader(
     Box(
         Modifier
             .fillMaxWidth()
-            .padding(horizontal = 12.dp, vertical = 8.dp)
+            .padding(horizontal = 6.dp, vertical = 8.dp)
             .height(44.dp),
     ) {
         Box(Modifier.align(Alignment.CenterStart)) {
-            PaperCircleIconButton(
-                onClick = onBack,
-                contentDescription = "返回",
-                icon = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
-                iconSize = 22.dp,
-            )
+            PaperHeaderButton(onClick = onBack, contentDescription = "返回") {
+                PaperChevron(color = AppTheme.accent, height = 18.dp, rotation = 180f)
+            }
         }
         Text(
             title,
@@ -363,7 +507,7 @@ fun PaperBackHeader(
             color = AppTheme.ink,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.align(Alignment.Center).padding(horizontal = 48.dp),
+            modifier = Modifier.align(Alignment.Center).padding(horizontal = 50.dp),
             style = AppTheme.compactText,
         )
         if (trailing != null) {

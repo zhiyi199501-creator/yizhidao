@@ -40,6 +40,7 @@ import com.yizhidao.app.AppContainer
 import com.yizhidao.app.ui.cases.CaseListScreen
 import com.yizhidao.app.ui.casting.CastingHomeScreen
 import com.yizhidao.app.ui.history.HistoryListScreen
+import com.yizhidao.app.ui.history.SimilarHexagramJump
 import com.yizhidao.app.ui.me.MeScreen
 import com.yizhidao.app.ui.reading.ResultScreen
 import com.yizhidao.app.ui.theme.AppTheme
@@ -57,7 +58,7 @@ fun YizhidaoRoot(container: AppContainer) {
     var pendingResult by remember { mutableStateOf<CastResult?>(null) }
     var historyOpenId by remember { mutableStateOf<String?>(null) }
     var similarJumpTick by remember { mutableIntStateOf(0) }
-    var similarPrimary by remember { mutableStateOf<Int?>(null) }
+    var similarJump by remember { mutableStateOf<SimilarHexagramJump?>(null) }
 
     Scaffold(
         containerColor = Color.Transparent,
@@ -80,8 +81,8 @@ fun YizhidaoRoot(container: AppContainer) {
                             isNew = true,
                             container = container,
                             onBack = { pendingResult = null },
-                            onOpenSimilar = { hex ->
-                                similarPrimary = hex
+                            onOpenSimilar = { result ->
+                                similarJump = SimilarHexagramJump.from(result)
                                 similarJumpTick += 1
                                 pendingResult = null
                                 tab = AppTab.History
@@ -97,7 +98,7 @@ fun YizhidaoRoot(container: AppContainer) {
                 AppTab.History -> HistoryListScreen(
                     container = container,
                     openRecordId = historyOpenId,
-                    similarPrimary = similarPrimary,
+                    similarJump = similarJump,
                     similarJumpTick = similarJumpTick,
                     onOpenRecord = { historyOpenId = it },
                     onCloseRecord = { historyOpenId = null },

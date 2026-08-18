@@ -174,7 +174,7 @@ final class YijingIntroStoreTests: XCTestCase {
             "what", "purpose", "yin-yang-bagua", "hexagrams-lines",
             "how-to-read", "play-the-text", "changing-lines", "path",
         ])
-        XCTAssertFalse(store.note.isEmpty)
+        XCTAssertTrue(store.note.isEmpty)
         XCTAssertTrue(store.chapters[5].paragraphs.joined().contains("观其象"))
         XCTAssertTrue(store.chapters[6].paragraphs.joined().contains("主看"))
     }

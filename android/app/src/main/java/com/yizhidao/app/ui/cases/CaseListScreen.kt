@@ -1,6 +1,5 @@
 package com.yizhidao.app.ui.cases
 
-import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -25,7 +24,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.outlined.MenuBook
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -52,6 +50,7 @@ import com.yizhidao.app.AppContainer
 import com.yizhidao.app.ui.reading.HexagramReadingBody
 import com.yizhidao.app.ui.theme.AppTheme
 import com.yizhidao.app.ui.theme.PaperBackHeader
+import com.yizhidao.app.ui.theme.PaperChevron
 
 private enum class PositionFilter(val label: String, val position: Int?) {
     All("全部", null),
@@ -165,12 +164,8 @@ private fun CaseGroupListScreen(
                                 color = AppTheme.secondaryText,
                                 style = AppTheme.compactText,
                             )
-                            Icon(
-                                Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                                contentDescription = null,
-                                tint = AppTheme.secondaryText,
-                                modifier = Modifier.size(18.dp),
-                            )
+                            Spacer(Modifier.width(8.dp))
+                            PaperChevron()
                         }
                         if (index < entries.lastIndex) {
                             HorizontalDivider(
@@ -198,29 +193,17 @@ private fun CaseGroupDetailScreen(
     val hex = container.hexagramStore.hexagram(number)
     val visible = cases.filter { positionFilter.matches(it.movingPositions) }
 
-    BackHandler(onBack = onBack)
     Column(Modifier.fillMaxSize()) {
+        PaperBackHeader(
+            title = "${hexTitle(hex, number)} · ${cases.size} 例",
+            onBack = onBack,
+        )
         Column(
             Modifier
                 .fillMaxWidth()
                 .background(AppTheme.cardFill)
                 .padding(horizontal = 16.dp, vertical = 10.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            Row(
-                Modifier.clickable(onClick = onBack),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text("‹", fontSize = 22.sp, color = AppTheme.accent)
-                Spacer(Modifier.width(6.dp))
-                Text(
-                    "${hexTitle(hex, number)} · ${cases.size} 例",
-                    fontSize = 17.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = AppTheme.ink,
-                    style = AppTheme.compactText,
-                )
-            }
             Row(
                 Modifier.horizontalScroll(rememberScrollState()),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -363,12 +346,8 @@ private fun CaseRow(
                 )
             }
         }
-        Icon(
-            Icons.AutoMirrored.Filled.KeyboardArrowRight,
-            contentDescription = null,
-            tint = AppTheme.secondaryText,
-            modifier = Modifier.size(18.dp),
-        )
+        Spacer(Modifier.width(8.dp))
+        PaperChevron()
     }
 }
 

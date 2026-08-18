@@ -105,10 +105,19 @@ fun DigitalCastPanel(
             }
         } else {
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-                Text("占问时刻", modifier = Modifier.weight(1f))
+                Text(
+                    "占问时刻",
+                    fontSize = 17.sp,
+                    color = AppTheme.ink,
+                    style = AppTheme.compactText,
+                    modifier = Modifier.weight(1f),
+                )
                 Text(
                     selected.format(dateTimeFmt),
                     fontFamily = FontFamily.Monospace,
+                    fontSize = 15.sp,
+                    color = AppTheme.ink,
+                    style = AppTheme.compactText,
                     modifier = Modifier
                         .background(AppTheme.fieldFill, RoundedCornerShape(8.dp))
                         .border(1.dp, AppTheme.fieldStroke, RoundedCornerShape(8.dp))
@@ -117,7 +126,13 @@ fun DigitalCastPanel(
                 )
             }
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("公历取数", modifier = Modifier.weight(1f))
+                Text(
+                    "公历取数",
+                    fontSize = 17.sp,
+                    color = AppTheme.ink,
+                    style = AppTheme.compactText,
+                    modifier = Modifier.weight(1f),
+                )
                 Switch(
                     checked = useSolar,
                     onCheckedChange = { useSolar = it },
@@ -138,18 +153,27 @@ fun DigitalCastPanel(
                 } else {
                     "取数：${LunarCalendarHelper.branchName(comps.yearBranch)}年(${comps.yearBranch}) + 农历${comps.month}月${comps.day}日 + ${LunarCalendarHelper.branchName(comps.hourBranch)}时(${comps.hourBranch})"
                 },
-                style = androidx.compose.material3.MaterialTheme.typography.bodySmall,
-                color = androidx.compose.material3.MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                fontSize = 12.sp,
+                lineHeight = 17.sp,
+                color = AppTheme.secondaryText,
+                style = AppTheme.compactText,
             )
             Text(
                 "上卦=(年+月+日)÷8余；下卦与动爻=(年+月+日+时)分别÷8、÷6取余。",
-                style = androidx.compose.material3.MaterialTheme.typography.labelSmall,
-                color = androidx.compose.material3.MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                fontSize = 11.sp,
+                lineHeight = 15.sp,
+                color = AppTheme.secondaryText,
+                style = AppTheme.compactText,
             )
         }
 
         error?.let {
-            Text(it, color = androidx.compose.material3.MaterialTheme.colorScheme.error, style = androidx.compose.material3.MaterialTheme.typography.bodySmall)
+            Text(
+                it,
+                fontSize = 13.sp,
+                color = AppTheme.yangRed,
+                style = AppTheme.compactText,
+            )
         }
 
         PaperPrimaryButton(

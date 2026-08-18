@@ -23,21 +23,24 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.outlined.MenuBook
 import androidx.compose.material.icons.automirrored.outlined.ReceiptLong
 import androidx.compose.material.icons.outlined.AccountCircle
 import androidx.compose.material.icons.outlined.AutoStories
 import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -48,8 +51,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.launch
 import com.yizhidao.Hexagram
 import com.yizhidao.app.AppContainer
+import com.yizhidao.app.HistoryTrashEntry
 import com.yizhidao.app.classic.ClassicChapter
 import com.yizhidao.app.classic.ClassicWing
 import com.yizhidao.app.classic.YijingIntroBook
@@ -57,12 +62,14 @@ import com.yizhidao.app.classic.YijingIntroChapter
 import com.yizhidao.app.classic.ZhengshiChapter
 import com.yizhidao.app.ui.theme.AppTheme
 import com.yizhidao.app.ui.theme.PaperBackHeader
+import com.yizhidao.app.ui.theme.PaperChevron
 
 private sealed interface MeRoute {
     data object Home : MeRoute
     data object Login : MeRoute
     data object AIHistory : MeRoute
     data object Settings : MeRoute
+    data object Recycle : MeRoute
     data object Intro : MeRoute
     data class IntroChapter(val item: YijingIntroChapter) : MeRoute
     data object Hexagrams : MeRoute
@@ -104,7 +111,15 @@ fun MeScreen(container: AppContainer) {
             message = "登录后可查看保存在本机的 AI 解读。",
             onBack = { route = MeRoute.Home },
         )
-        MeRoute.Settings -> SettingsPage(onBack = { route = MeRoute.Home })
+        MeRoute.Settings -> SettingsPage(
+            container = container,
+            onBack = { route = MeRoute.Home },
+            onOpenRecycle = { route = MeRoute.Recycle },
+        )
+        MeRoute.Recycle -> RecycleBinPage(
+            container = container,
+            onBack = { route = MeRoute.Settings },
+        )
         MeRoute.Intro -> IntroListPage(
             book = intro,
             onBack = { route = MeRoute.Home },
@@ -235,14 +250,14 @@ private fun MeHome(
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 16.dp)
-                .padding(bottom = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+                .padding(top = 8.dp, bottom = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(18.dp),
         ) {
             MeCard {
                 Row(
                     Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                        .padding(start = 16.dp, end = 8.dp, top = 12.dp, bottom = 12.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Icon(
@@ -265,7 +280,10 @@ private fun MeHome(
                         "登录",
                         color = AppTheme.accent,
                         fontSize = 16.sp,
-                        modifier = Modifier.clickable(onClick = onLogin).padding(start = 8.dp),
+                        modifier = Modifier
+                            .clip(AppTheme.controlShape)
+                            .clickable(onClick = onLogin)
+                            .padding(horizontal = 10.dp, vertical = 6.dp),
                         style = AppTheme.compactText,
                     )
                 }
@@ -312,7 +330,12 @@ private fun MeHome(
 }
 
 @Composable
-private fun SettingsPage(onBack: () -> Unit) {
+private fun SettingsPage(
+    container: AppContainer,
+    onBack: () -> Unit,
+    onOpenRecycle: () -> Unit,
+) {
+    val trash by container.readingRepository.trash.collectAsState()
     Column(Modifier.fillMaxSize()) {
         PaperBackHeader(title = "设置", onBack = onBack)
         Column(
@@ -327,11 +350,149 @@ private fun SettingsPage(onBack: () -> Unit) {
                     icon = null,
                     title = "回收站",
                     trailing = {
-                        Text("0", fontSize = 15.sp, color = AppTheme.secondaryText, style = AppTheme.compactText)
+                        Text(
+                            "${trash.size}",
+                            fontSize = 15.sp,
+                            color = AppTheme.secondaryText,
+                            style = AppTheme.compactText,
+                        )
                     },
-                    onClick = {},
+                    onClick = onOpenRecycle,
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun RecycleBinPage(
+    container: AppContainer,
+    onBack: () -> Unit,
+) {
+    val entries by container.readingRepository.trash.collectAsState()
+    val scope = rememberCoroutineScope()
+    var showClearConfirm by remember { mutableStateOf(false) }
+    val store = container.hexagramStore
+
+    Column(Modifier.fillMaxSize()) {
+        PaperBackHeader(
+            title = "回收站",
+            onBack = onBack,
+            trailing = if (entries.isNotEmpty()) {
+                {
+                    Text(
+                        "清空",
+                        color = Color(0xFFA64040),
+                        fontSize = 16.sp,
+                        modifier = Modifier.clickable { showClearConfirm = true },
+                        style = AppTheme.compactText,
+                    )
+                }
+            } else {
+                null
+            },
+        )
+        if (entries.isEmpty()) {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text("回收站为空", fontSize = 17.sp, fontWeight = FontWeight.SemiBold, color = AppTheme.ink)
+                    Spacer(Modifier.height(6.dp))
+                    Text(
+                        "删除的记录会先放在这里，可恢复",
+                        fontSize = 13.sp,
+                        color = AppTheme.secondaryText,
+                    )
+                }
+            }
+        } else {
+            LazyColumn(
+                contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 24.dp, top = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                items(entries, key = { it.id }) { entry ->
+                    RecycleRow(
+                        entry = entry,
+                        hexTitle = { n ->
+                            val hex = store.hexagram(n)
+                            if (hex != null) "${hex.symbol} ${hex.name}" else "第${n}卦"
+                        },
+                        onRestore = { scope.launch { container.readingRepository.restoreTrash(entry.id) } },
+                        onRemove = { scope.launch { container.readingRepository.removeTrash(entry.id) } },
+                    )
+                }
+            }
+        }
+    }
+
+    if (showClearConfirm) {
+        AlertDialog(
+            onDismissRequest = { showClearConfirm = false },
+            title = { Text("确认清空？") },
+            text = { Text("回收站中的记录将被彻底删除，无法恢复。") },
+            confirmButton = {
+                TextButton(onClick = {
+                    showClearConfirm = false
+                    scope.launch { container.readingRepository.clearTrash() }
+                }) {
+                    Text("确定", color = Color(0xFFA64040))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showClearConfirm = false }) {
+                    Text("取消", color = AppTheme.accent)
+                }
+            },
+            containerColor = AppTheme.parchmentTop,
+        )
+    }
+}
+
+@Composable
+private fun RecycleRow(
+    entry: HistoryTrashEntry,
+    hexTitle: (Int) -> String,
+    onRestore: () -> Unit,
+    onRemove: () -> Unit,
+) {
+    val rec = entry.record
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .clip(AppTheme.cardShape)
+            .background(AppTheme.cardFill)
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        Text(
+            buildString {
+                append(hexTitle(rec.primaryNumber))
+                rec.resultingNumber?.let { append(" → "); append(hexTitle(it)) }
+            },
+            fontSize = 17.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = AppTheme.ink,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            style = AppTheme.compactText,
+        )
+        rec.question?.takeIf { it.isNotBlank() }?.let { q ->
+            Text(q, fontSize = 15.sp, color = AppTheme.ink, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            Text(
+                "恢复",
+                color = Color(0xFF338C59),
+                fontSize = 15.sp,
+                modifier = Modifier.clickable(onClick = onRestore),
+                style = AppTheme.compactText,
+            )
+            Text(
+                "彻底删除",
+                color = Color(0xFFA64040),
+                fontSize = 15.sp,
+                modifier = Modifier.clickable(onClick = onRemove),
+                style = AppTheme.compactText,
+            )
         }
     }
 }
@@ -392,12 +553,8 @@ private fun MeRow(
         )
         trailing?.invoke()
         if (showChevron) {
-            Icon(
-                Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                contentDescription = null,
-                tint = AppTheme.secondaryText,
-                modifier = Modifier.size(18.dp),
-            )
+            Spacer(Modifier.width(6.dp))
+            PaperChevron()
         }
     }
 }
@@ -550,12 +707,7 @@ private fun PaperNavRow(
                     )
                 }
             }
-            Icon(
-                Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                contentDescription = null,
-                tint = Color.Black.copy(alpha = 0.22f),
-                modifier = Modifier.size(18.dp),
-            )
+            PaperChevron()
         }
         if (showDivider) {
             HorizontalDivider(
@@ -631,12 +783,8 @@ private fun LazyListScope.hexagramSection(
                         maxLines = 1,
                         style = AppTheme.compactText,
                     )
-                    Icon(
-                        Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                        contentDescription = null,
-                        tint = Color.Black.copy(alpha = 0.22f),
-                        modifier = Modifier.size(18.dp),
-                    )
+                    Spacer(Modifier.width(8.dp))
+                    PaperChevron()
                 }
                 if (index < hexagrams.lastIndex) {
                     HorizontalDivider(

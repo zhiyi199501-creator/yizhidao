@@ -1,8 +1,9 @@
 package com.yizhidao.app.ui.history
 
-import androidx.activity.compose.BackHandler
+import androidx.compose.animation.core.Animatable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -23,8 +24,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.outlined.MenuBook
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -32,8 +33,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -41,11 +44,15 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.yizhidao.CastingMethod
+import com.yizhidao.CastResult
 import com.yizhidao.Hexagram
 import com.yizhidao.HexagramStore
 import com.yizhidao.ReadingRecord
@@ -53,9 +60,13 @@ import com.yizhidao.VerificationStatus
 import com.yizhidao.app.AppContainer
 import com.yizhidao.app.ui.reading.ResultScreen
 import com.yizhidao.app.ui.theme.AppTheme
+import com.yizhidao.app.ui.theme.PaperBackHeader
+import com.yizhidao.app.ui.theme.PaperChevron
 import com.yizhidao.app.ui.theme.PaperSegmentedRow
+import kotlinx.coroutines.launch
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import kotlin.math.roundToInt
 
 private val rowFmt = DateTimeFormatter.ofPattern("yyyy/M/d HH:mm").withZone(ZoneId.systemDefault())
 
@@ -108,13 +119,38 @@ private enum class MovingCountFilter(val id: String, val label: String, val coun
         val c = count ?: return true
         return movingCount == c
     }
+
+    companion object {
+        fun from(movingCount: Int): MovingCountFilter =
+            entries.find { it.count == movingCount } ?: All
+    }
+}
+
+/** 从卦象结果跳到历史同卦明细时预填方法与动爻筛选。 */
+data class SimilarHexagramJump(
+    val primaryNumber: Int,
+    val digitalTab: Boolean,
+    val position: Int?,
+    val movingCount: Int?,
+) {
+    companion object {
+        fun from(result: CastResult): SimilarHexagramJump {
+            val digital = result.method != CastingMethod.COIN
+            return SimilarHexagramJump(
+                primaryNumber = result.primaryNumber,
+                digitalTab = digital,
+                position = result.movingPositions.singleOrNull().takeIf { digital },
+                movingCount = result.movingPositions.size.takeIf { !digital },
+            )
+        }
+    }
 }
 
 @Composable
 fun HistoryListScreen(
     container: AppContainer,
     openRecordId: String?,
-    similarPrimary: Int?,
+    similarJump: SimilarHexagramJump?,
     similarJumpTick: Int,
     onOpenRecord: (String) -> Unit,
     onCloseRecord: () -> Unit,
@@ -123,11 +159,20 @@ fun HistoryListScreen(
     var byHexagram by remember { mutableStateOf(false) }
     var filterPrimary by remember { mutableStateOf<Int?>(null) }
     var statusFilter by remember { mutableStateOf(StatusFilter.All) }
+    var appliedJump by remember { mutableStateOf<SimilarHexagramJump?>(null) }
+    var filterResetKey by remember { mutableIntStateOf(0) }
+    val scope = rememberCoroutineScope()
+    val onDelete: (ReadingRecord) -> Unit = { rec ->
+        scope.launch { container.readingRepository.archive(rec.id) }
+    }
 
     LaunchedEffect(similarJumpTick) {
-        if (similarJumpTick > 0) {
+        if (similarJumpTick > 0 && similarJump != null) {
             byHexagram = true
-            filterPrimary = similarPrimary
+            filterPrimary = similarJump.primaryNumber
+            appliedJump = similarJump
+            filterResetKey += 1
+            onCloseRecord()
         }
     }
 
@@ -139,6 +184,13 @@ fun HistoryListScreen(
             container = container,
             existing = opened,
             onBack = onCloseRecord,
+            onOpenSimilar = { result ->
+                appliedJump = SimilarHexagramJump.from(result)
+                filterPrimary = result.primaryNumber
+                byHexagram = true
+                filterResetKey += 1
+                onCloseRecord()
+            },
         )
         return
     }
@@ -149,8 +201,18 @@ fun HistoryListScreen(
             container = container,
             records = records.filter { it.primaryNumber == detailPrimary },
             primaryNumber = detailPrimary,
-            onBack = { filterPrimary = null },
+            initialDigitalTab = appliedJump?.digitalTab ?: true,
+            initialPositionFilter = appliedJump?.position?.let { MovingPositionFilter.from(it) }
+                ?: MovingPositionFilter.All,
+            initialCountFilter = appliedJump?.movingCount?.let { MovingCountFilter.from(it) }
+                ?: MovingCountFilter.All,
+            filterResetKey = filterResetKey,
+            onBack = {
+                filterPrimary = null
+                appliedJump = null
+            },
             onOpenRecord = onOpenRecord,
+            onDelete = onDelete,
         )
         return
     }
@@ -199,7 +261,11 @@ fun HistoryListScreen(
             HexagramGroupList(
                 records = records,
                 store = container.hexagramStore,
-                onOpenGroup = { filterPrimary = it },
+                onOpenGroup = {
+                    appliedJump = null
+                    filterResetKey += 1
+                    filterPrimary = it
+                },
             )
         } else {
             val visible = records.filter { statusFilter.matches(it) }
@@ -212,6 +278,7 @@ fun HistoryListScreen(
                     records = visible,
                     store = container.hexagramStore,
                     onOpenRecord = onOpenRecord,
+                    onDelete = onDelete,
                 )
             }
         }
@@ -294,12 +361,8 @@ private fun HexagramGroupList(
                         }
                     }
                 }
-                Icon(
-                    Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                    contentDescription = null,
-                    tint = AppTheme.secondaryText,
-                    modifier = Modifier.size(18.dp),
-                )
+                Spacer(Modifier.width(8.dp))
+                PaperChevron()
             }
             if (index < groups.size - 1) {
                 HorizontalDivider(color = AppTheme.fieldStroke, thickness = 0.5.dp)
@@ -313,12 +376,17 @@ private fun HexagramGroupDetail(
     container: AppContainer,
     records: List<ReadingRecord>,
     primaryNumber: Int,
+    initialDigitalTab: Boolean,
+    initialPositionFilter: MovingPositionFilter,
+    initialCountFilter: MovingCountFilter,
+    filterResetKey: Int,
     onBack: () -> Unit,
     onOpenRecord: (String) -> Unit,
+    onDelete: (ReadingRecord) -> Unit,
 ) {
-    var digitalTab by remember { mutableStateOf(true) }
-    var positionFilter by remember { mutableStateOf(MovingPositionFilter.All) }
-    var countFilter by remember { mutableStateOf(MovingCountFilter.All) }
+    var digitalTab by remember(filterResetKey) { mutableStateOf(initialDigitalTab) }
+    var positionFilter by remember(filterResetKey) { mutableStateOf(initialPositionFilter) }
+    var countFilter by remember(filterResetKey) { mutableStateOf(initialCountFilter) }
     val hex = container.hexagramStore.hexagram(primaryNumber)
     val methodFiltered = records.filter { rec ->
         if (digitalTab) rec.method.isDigital else rec.method == CastingMethod.COIN
@@ -328,8 +396,11 @@ private fun HexagramGroupDetail(
         else countFilter.matches(rec.movingPositions.size)
     }
 
-    BackHandler(onBack = onBack)
     Column(Modifier.fillMaxSize()) {
+        PaperBackHeader(
+            title = "${hexTitle(hex, primaryNumber)} · ${records.size} 次",
+            onBack = onBack,
+        )
         Column(
             Modifier
                 .fillMaxWidth()
@@ -337,20 +408,6 @@ private fun HexagramGroupDetail(
                 .padding(horizontal = 16.dp, vertical = 10.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            Row(
-                Modifier.clickable(onClick = onBack),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text("‹", fontSize = 22.sp, color = AppTheme.accent)
-                Spacer(Modifier.width(6.dp))
-                Text(
-                    "${hexTitle(hex, primaryNumber)} · ${records.size} 次",
-                    fontSize = 17.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = AppTheme.ink,
-                    style = AppTheme.compactText,
-                )
-            }
             PaperSegmentedRow(
                 options = listOf("数字起卦", "金钱起卦"),
                 selectedIndex = if (digitalTab) 0 else 1,
@@ -395,6 +452,7 @@ private fun HexagramGroupDetail(
                 records = visible,
                 store = container.hexagramStore,
                 onOpenRecord = onOpenRecord,
+                onDelete = onDelete,
             )
         }
     }
@@ -405,7 +463,9 @@ private fun GroupedRecordList(
     records: List<ReadingRecord>,
     store: HexagramStore,
     onOpenRecord: (String) -> Unit,
+    onDelete: (ReadingRecord) -> Unit,
 ) {
+    var revealedId by remember { mutableStateOf<String?>(null) }
     LazyColumn(
         contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 24.dp),
     ) {
@@ -417,11 +477,28 @@ private fun GroupedRecordList(
                 else -> RectangleShape
             }
             Column(Modifier.clip(shape).background(AppTheme.cardFill)) {
-                HistoryRecordRow(
-                    rec = rec,
-                    store = store,
-                    onClick = { onOpenRecord(rec.id) },
-                )
+                SwipeRevealDelete(
+                    revealed = revealedId == rec.id,
+                    onRevealedChange = { open ->
+                        revealedId = if (open) rec.id else if (revealedId == rec.id) null else revealedId
+                    },
+                    onDelete = {
+                        revealedId = null
+                        onDelete(rec)
+                    },
+                ) {
+                    HistoryRecordRow(
+                        rec = rec,
+                        store = store,
+                        onClick = {
+                            if (revealedId == rec.id) {
+                                revealedId = null
+                            } else {
+                                onOpenRecord(rec.id)
+                            }
+                        },
+                    )
+                }
                 if (index < records.lastIndex) {
                     HorizontalDivider(
                         modifier = Modifier.padding(start = 16.dp),
@@ -430,6 +507,69 @@ private fun GroupedRecordList(
                     )
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun SwipeRevealDelete(
+    revealed: Boolean,
+    onRevealedChange: (Boolean) -> Unit,
+    onDelete: () -> Unit,
+    content: @Composable () -> Unit,
+) {
+    val revealWidth = 64.dp
+    val density = LocalDensity.current
+    val revealPx = with(density) { revealWidth.toPx() }
+    val offset = remember { Animatable(0f) }
+    val scope = rememberCoroutineScope()
+
+    LaunchedEffect(revealed, revealPx) {
+        offset.animateTo(if (revealed) -revealPx else 0f)
+    }
+
+    Box {
+        Box(
+            Modifier
+                .matchParentSize()
+                .padding(end = 12.dp),
+            contentAlignment = Alignment.CenterEnd,
+        ) {
+            Box(
+                Modifier
+                    .size(36.dp)
+                    .clip(CircleShape)
+                    .background(Color(0xFFFF3B30))
+                    .clickable(onClick = onDelete),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    Icons.Filled.Delete,
+                    contentDescription = "删除",
+                    tint = Color.White,
+                    modifier = Modifier.size(18.dp),
+                )
+            }
+        }
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .offset { IntOffset(offset.value.roundToInt(), 0) }
+                .background(AppTheme.parchmentTop)
+                .pointerInput(revealPx) {
+                    detectHorizontalDragGestures(
+                        onDragEnd = {
+                            onRevealedChange(offset.value <= -revealPx * 0.45f)
+                        },
+                        onHorizontalDrag = { change, dragAmount ->
+                            change.consume()
+                            val next = (offset.value + dragAmount).coerceIn(-revealPx, 0f)
+                            scope.launch { offset.snapTo(next) }
+                        },
+                    )
+                },
+        ) {
+            content()
         }
     }
 }
@@ -508,12 +648,8 @@ private fun HistoryRecordRow(
                 )
             }
         }
-        Icon(
-            Icons.AutoMirrored.Filled.KeyboardArrowRight,
-            contentDescription = null,
-            tint = AppTheme.secondaryText,
-            modifier = Modifier.size(18.dp),
-        )
+        Spacer(Modifier.width(8.dp))
+        PaperChevron()
     }
 }
 
