@@ -40,25 +40,25 @@ struct HexagramGroupListView: View {
         VStack(alignment: .leading, spacing: 4) {
             HStack {
                 if let hex = store.hexagram(number: group.primaryNumber) {
-                    Text("\(hex.symbol) \(hex.name)")
+                    Text("\(hex.symbol) \(hex.name)".zh)
                         .font(.headline)
                 } else {
-                    Text("第\(group.primaryNumber)卦")
+                    Text("第\(group.primaryNumber)卦".zh)
                         .font(.headline)
                 }
                 Spacer()
-                Text("\(group.records.count) 次")
+                Text("\(group.records.count) 次".zh)
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
             HStack(spacing: 8) {
                 if let latest = group.records.first {
-                    Text(ReadingRecordRow.timeString(latest.createdAt))
+                    Text(ReadingRecordRow.timeString(latest.createdAt).zh)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
                 if let summary = ReadingRecordRow.verificationSummary(for: group.records) {
-                    Text(summary)
+                    Text(summary.zh)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
@@ -133,9 +133,9 @@ struct HexagramGroupDetailView: View {
     var body: some View {
         VStack(spacing: 0) {
             VStack(alignment: .leading, spacing: 10) {
-                Picker("方法", selection: $methodTab) {
+                Picker("方法".zh, selection: $methodTab) {
                     ForEach(HexagramMethodTab.allCases) { tab in
-                        Text(tab.rawValue).tag(tab)
+                        Text(tab.rawValue.zh).tag(tab)
                     }
                 }
                 .pickerStyle(.segmented)
@@ -150,13 +150,13 @@ struct HexagramGroupDetailView: View {
                 ContentUnavailableView(
                     emptyMethodTitle,
                     systemImage: "tray",
-                    description: Text(emptyMethodDescription)
+                    description: Text(emptyMethodDescription.zh)
                 )
             } else if filteredRecords.isEmpty {
                 ContentUnavailableView(
                     "无匹配记录",
                     systemImage: "line.3.horizontal.decrease.circle",
-                    description: Text("试试调整上方分类")
+                    description: Text("试试调整上方分类".zh)
                 )
             } else {
                 List {
@@ -179,7 +179,7 @@ struct HexagramGroupDetailView: View {
                                 Image(systemName: "trash.fill")
                             }
                             .tint(.red)
-                            .accessibilityLabel("删除")
+                            .accessibilityLabel("删除".zh)
                         }
                     }
                 }
@@ -187,7 +187,7 @@ struct HexagramGroupDetailView: View {
                 .scrollContentBackground(.hidden)
             }
         }
-        .navigationTitle(navigationTitle)
+        .navigationTitle(navigationTitle.zh)
         .navigationBarTitleDisplayMode(.inline)
         .parchmentBackground()
     }
@@ -249,7 +249,7 @@ struct HexagramGroupDetailView: View {
                     Button {
                         onSelect(item.0)
                     } label: {
-                        Text(item.1)
+                        Text(item.1.zh)
                             .font(.caption.weight(.semibold))
                             .padding(.horizontal, 10)
                             .padding(.vertical, 6)

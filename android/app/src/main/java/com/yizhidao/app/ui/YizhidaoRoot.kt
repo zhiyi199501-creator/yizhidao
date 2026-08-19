@@ -21,13 +21,18 @@ import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
+import com.yizhidao.app.ui.theme.Text
+import com.yizhidao.app.ui.theme.zh
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import com.yizhidao.app.lang.AppLanguageStore
+import com.yizhidao.app.lang.LocalAppLanguage
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -59,7 +64,9 @@ fun YizhidaoRoot(container: AppContainer) {
     var historyOpenId by remember { mutableStateOf<String?>(null) }
     var similarJumpTick by remember { mutableIntStateOf(0) }
     var similarJump by remember { mutableStateOf<SimilarHexagramJump?>(null) }
+    val language by AppLanguageStore.language.collectAsState()
 
+    CompositionLocalProvider(LocalAppLanguage provides language) {
     Scaffold(
         containerColor = Color.Transparent,
         bottomBar = {
@@ -108,6 +115,7 @@ fun YizhidaoRoot(container: AppContainer) {
             }
         }
     }
+    }
 }
 
 @Composable
@@ -132,7 +140,7 @@ private fun PaperTabBar(
             Row(
                 Modifier
                     .fillMaxWidth()
-                    .height(52.dp)
+                    .height(58.dp)
                     .padding(horizontal = 4.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -145,25 +153,25 @@ private fun PaperTabBar(
                             .clickable { onSelect(item) }
                             .padding(vertical = 4.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center,
+                        verticalArrangement = Arrangement.spacedBy(2.dp, Alignment.CenterVertically),
                     ) {
                         Box(
                             Modifier
                                 .clip(RoundedCornerShape(12.dp))
                                 .background(if (isSelected) AppTheme.accentSoft.copy(alpha = 0.85f) else Color.Transparent)
-                                .padding(horizontal = 10.dp, vertical = 2.dp),
+                                .padding(horizontal = 12.dp, vertical = 3.dp),
                             contentAlignment = Alignment.Center,
                         ) {
                             Icon(
                                 item.icon,
-                                contentDescription = item.label,
+                                contentDescription = zh(item.label),
                                 tint = if (isSelected) AppTheme.accent else AppTheme.ink.copy(alpha = 0.78f),
-                                modifier = Modifier.size(20.dp),
+                                modifier = Modifier.size(24.dp),
                             )
                         }
                         Text(
                             item.label,
-                            fontSize = 10.sp,
+                            fontSize = 11.sp,
                             color = if (isSelected) AppTheme.accent else AppTheme.ink.copy(alpha = 0.78f),
                             style = AppTheme.compactText,
                         )

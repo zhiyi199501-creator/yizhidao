@@ -45,7 +45,8 @@ struct Hexagram: Codable, Identifiable, Hashable, Sendable {
     var id: Int { number }
 
     var displayName: String {
-        name.hasSuffix("卦") ? name : name + "卦"
+        let raw = name.hasSuffix("卦") ? name : name + "卦"
+        return raw.zh
     }
 
     var figureLines: [LineValue] {

@@ -11,7 +11,7 @@ struct CoinCastView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("三钱摇六次，自下而上成卦。字面为阳，背面为阴；也可点「选」手选四象。")
+            Text("三钱摇六次，自下而上成卦。字面为阳，背面为阴；也可点「选」手选四象。".zh)
                 .font(.caption)
                 .foregroundStyle(.secondary)
 
@@ -19,32 +19,33 @@ struct CoinCastView: View {
                 // 视觉上自上而下：上爻 → 初爻（数组仍是初爻在 index 0）
                 ForEach((0..<6).reversed(), id: \.self) { index in
                     HStack {
-                        Text(yaoTitle(index))
+                        Text(yaoTitle(index).zh)
                             .frame(width: 40, alignment: .leading)
                             .font(.subheadline)
                         if let line = lines[index] {
                             YaoBarView(line: line, highlighted: line.isChanging)
-                            Text(lineLabel(line))
+                            Text(lineLabel(line).zh)
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         } else {
-                            Text("未摇")
+                            Text("未摇".zh)
                                 .font(.caption)
                                 .foregroundStyle(.tertiary)
                         }
                         Spacer()
                         Menu {
                             ForEach(Self.manualOptions, id: \.line) { option in
-                                Button(option.title) {
+                                Button(option.title.zh) {
                                     lines[index] = option.line
                                 }
                             }
                         } label: {
-                            Text("选")
+                            Text("选".zh)
                                 .frame(minWidth: 28)
                         }
                         .buttonStyle(.bordered)
-                        Button("摇") {
+                        Button("摇".zh) {
+                            TapSoundPlayer.shared.play()
                             var rng = SystemRandomNumberGenerator()
                             lines[index] = CoinCastingEngine.tossLine(using: &rng)
                         }
@@ -54,20 +55,21 @@ struct CoinCastView: View {
             }
 
             HStack {
-                Button("一键摇满") {
+                Button("一键摇满".zh) {
+                    TapSoundPlayer.shared.play()
                     var rng = SystemRandomNumberGenerator()
                     lines = (0..<6).map { _ in CoinCastingEngine.tossLine(using: &rng) }
                 }
                 .buttonStyle(.bordered)
 
-                Button("清空") {
+                Button("清空".zh) {
                     lines = Array(repeating: nil, count: 6)
                 }
                 .buttonStyle(.bordered)
             }
 
             if let errorMessage {
-                Text(errorMessage)
+                Text(errorMessage.zh)
                     .font(.footnote)
                     .foregroundStyle(.red)
             }
@@ -75,7 +77,7 @@ struct CoinCastView: View {
             Button {
                 cast()
             } label: {
-                Text("起卦")
+                Text("起卦".zh)
                     .font(.headline)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 12)
@@ -95,22 +97,22 @@ struct CoinCastView: View {
 
     private func yaoTitle(_ index: Int) -> String {
         switch index {
-        case 0: return "初爻"
-        case 1: return "二爻"
-        case 2: return "三爻"
-        case 3: return "四爻"
-        case 4: return "五爻"
-        case 5: return "上爻"
-        default: return "爻"
+        case 0: return "初爻".zh
+        case 1: return "二爻".zh
+        case 2: return "三爻".zh
+        case 3: return "四爻".zh
+        case 4: return "五爻".zh
+        case 5: return "上爻".zh
+        default: return "爻".zh
         }
     }
 
     private func lineLabel(_ line: LineValue) -> String {
         switch line {
-        case .oldYang: return "阳动 9"
-        case .oldYin: return "阴动 6"
-        case .youngYang: return "少阳 7"
-        case .youngYin: return "少阴 8"
+        case .oldYang: return "阳动 9".zh
+        case .oldYin: return "阴动 6".zh
+        case .youngYang: return "少阳 7".zh
+        case .youngYin: return "少阴 8".zh
         }
     }
 

@@ -14,7 +14,9 @@ struct YizhidaoApp: App {
     }()
 
     init() {
+        AppLanguage.installBundleHook()
         _ = HexagramStore.shared
+        TapSoundPlayer.shared.prepare()
     }
 
     var body: some Scene {
@@ -27,34 +29,40 @@ struct YizhidaoApp: App {
 
 struct RootTabView: View {
     @State private var appNavigation = AppNavigation()
+    @AppStorage(AppLanguage.storageKey) private var languageRaw = AppLanguage.simplified.rawValue
 
     var body: some View {
         @Bindable var appNavigation = appNavigation
+        let language = AppLanguage(rawValue: languageRaw) ?? .simplified
         TabView(selection: $appNavigation.selectedTab) {
             CastingHomeView()
+                .id(languageRaw)
                 .tabItem {
-                    Label("起卦", systemImage: "sparkles")
+                    Label("起卦".zh, systemImage: "sparkles")
                 }
                 .tag(AppTab.cast)
             HistoryListView()
+                .id(languageRaw)
                 .tabItem {
-                    Label("历史", systemImage: "clock")
+                    Label("历史".zh, systemImage: "clock")
                 }
                 .tag(AppTab.history)
             CaseListView()
+                .id(languageRaw)
                 .tabItem {
-                    Label("案例", systemImage: "books.vertical")
+                    Label("案例".zh, systemImage: "books.vertical")
                 }
                 .tag(AppTab.cases)
             MyMenuView()
+                .id(languageRaw)
                 .tabItem {
-                    Label("我的", systemImage: "person.crop.circle")
+                    Label("我的".zh, systemImage: "person.crop.circle")
                 }
                 .tag(AppTab.me)
         }
         .tint(AppTheme.accent)
         .preferredColorScheme(.light)
-        .environment(\.locale, Locale(identifier: "zh_CN"))
+        .environment(\.locale, language.locale)
         .environment(appNavigation)
         .animation(nil, value: appNavigation.selectedTab)
     }
@@ -79,7 +87,7 @@ struct MyMenuView: View {
                                     .font(.title2)
                                     .foregroundStyle(AppTheme.accent)
                                 VStack(alignment: .leading, spacing: 2) {
-                                    Text(session.displayName)
+                                    Text(session.displayName.zh)
                                         .foregroundStyle(.primary)
                                 }
                                 Spacer()
@@ -90,13 +98,13 @@ struct MyMenuView: View {
                             Image(systemName: "person.crop.circle.badge.exclamationmark")
                                 .foregroundStyle(.secondary)
                             VStack(alignment: .leading, spacing: 2) {
-                                Text("未登录")
-                                Text("支持手机号或微信登录")
+                                Text("未登录".zh)
+                                Text("支持手机号或微信登录".zh)
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
                             }
                             Spacer()
-                            Button("登录") {
+                            Button("登录".zh) {
                                 showLoginSheet = true
                             }
                         }
@@ -113,10 +121,10 @@ struct MyMenuView: View {
                         }
                     } label: {
                         HStack {
-                            Label("AI解读历史", systemImage: "text.book.closed")
+                            Label("AI解读历史".zh, systemImage: "text.book.closed")
                             Spacer()
                             if !session.isLoggedIn {
-                                Text("需登录")
+                                Text("需登录".zh)
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
                             }
@@ -128,17 +136,17 @@ struct MyMenuView: View {
                     NavigationLink {
                         YijingIntroListView()
                     } label: {
-                        Label("易经基础入门", systemImage: "text.book.closed")
+                        Label("易经基础入门".zh, systemImage: "text.book.closed")
                     }
                     NavigationLink {
                         ClassicHexagramListView()
                     } label: {
-                        Label("易经六十四卦", systemImage: "book")
+                        Label("易经六十四卦".zh, systemImage: "book")
                     }
                     NavigationLink {
                         ClassicWingListView()
                     } label: {
-                        Label("易经四传", systemImage: "scroll")
+                        Label("易经四传".zh, systemImage: "scroll")
                     }
                 }
 
@@ -146,11 +154,11 @@ struct MyMenuView: View {
                     NavigationLink {
                         SettingsView(session: $session)
                     } label: {
-                        Label("设置", systemImage: "gearshape")
+                        Label("设置".zh, systemImage: "gearshape")
                     }
                 }
             }
-            .navigationTitle("我的")
+            .navigationTitle("我的".zh)
             .navigationBarTitleDisplayMode(.inline)
             .parchmentBackground()
             .navigationDestination(isPresented: $openAIAnalysisPage) {
@@ -246,20 +254,20 @@ struct LoginSheetView: View {
                     }
                     showWechatTip = true
                 } label: {
-                    Label("微信登录（待接入）", systemImage: "message.fill")
+                    Label("微信登录（待接入）".zh, systemImage: "message.fill")
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.borderedProminent)
                 .tint(AppTheme.accent)
-                .alert("暂未接入", isPresented: $showWechatTip) {
-                    Button("知道了", role: .cancel) {}
+                .alert("暂未接入".zh, isPresented: $showWechatTip) {
+                    Button("知道了".zh, role: .cancel) {}
                 } message: {
-                    Text("当前为本地演示版，后续接入真实微信登录。")
+                    Text("当前为本地演示版，后续接入真实微信登录。".zh)
                 }
 
                 HStack {
                     Rectangle().fill(Color.black.opacity(0.1)).frame(height: 1)
-                    Text("或使用手机号")
+                    Text("或使用手机号".zh)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                     Rectangle().fill(Color.black.opacity(0.1)).frame(height: 1)
@@ -272,13 +280,13 @@ struct LoginSheetView: View {
                     TextField("验证码", text: $code)
                         .keyboardType(.numberPad)
                         .appTextFieldStyle()
-                    Button(cooldownSec > 0 ? "\(cooldownSec)s" : "发送验证码") {
+                    Button(cooldownSec > 0 ? "\(cooldownSec)s" : "发送验证码".zh) {
                         Task { await sendCode() }
                     }
                     .buttonStyle(.bordered)
                     .disabled(isSendingCode || cooldownSec > 0 || phone.trimmingCharacters(in: .whitespacesAndNewlines).count < 6)
                 }
-                Button("手机号登录") {
+                Button("手机号登录".zh) {
                     guard agreed else {
                         errorMessage = "请先勾选并同意用户协议与隐私政策"
                         return
@@ -290,12 +298,12 @@ struct LoginSheetView: View {
                 .disabled(isLoggingIn || phone.count < 6 || code.isEmpty)
 
                 Toggle(isOn: $agreed) {
-                    Text("已阅读并同意《用户协议》《隐私政策》")
+                    Text("已阅读并同意《用户协议》《隐私政策》".zh)
                         .font(.caption)
                 }
 
                 if let errorMessage {
-                    Text(errorMessage)
+                    Text(errorMessage.zh)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -303,11 +311,11 @@ struct LoginSheetView: View {
                 Spacer()
             }
             .padding()
-            .navigationTitle("登录")
+            .navigationTitle("登录".zh)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button("取消") { dismiss() }
+                    Button("取消".zh) { dismiss() }
                 }
             }
             .parchmentBackground()
@@ -608,7 +616,7 @@ private struct AIAnalysisHistoryView: View {
                 ContentUnavailableView(
                     "还没有保存的解读",
                     systemImage: "sparkles",
-                    description: Text("觉得合适的 AI 解读，可在结果页点「保存」")
+                    description: Text("觉得合适的 AI 解读，可在结果页点「保存」".zh)
                 )
             } else {
                 List {
@@ -626,14 +634,14 @@ private struct AIAnalysisHistoryView: View {
                                 Image(systemName: "trash.fill")
                             }
                             .tint(.red)
-                            .accessibilityLabel("删除")
+                            .accessibilityLabel("删除".zh)
                         }
                     }
                 }
                 .scrollContentBackground(.hidden)
             }
         }
-        .navigationTitle("AI解读历史")
+        .navigationTitle("AI解读历史".zh)
         .navigationBarTitleDisplayMode(.inline)
         .parchmentBackground()
         .onAppear {
@@ -645,21 +653,21 @@ private struct AIAnalysisHistoryView: View {
     private func savedRow(_ item: SavedAIAnalysis) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             if let hex = store.hexagram(number: item.primaryNumber) {
-                Text("\(hex.symbol) \(hex.name)")
+                Text("\(hex.symbol) \(hex.name)".zh)
                     .font(.headline)
             } else {
-                Text("第\(item.primaryNumber)卦")
+                Text("第\(item.primaryNumber)卦".zh)
                     .font(.headline)
             }
-            Text(ReadingRecordRow.timeString(item.updatedAt))
+            Text(ReadingRecordRow.timeString(item.updatedAt).zh)
                 .font(.caption)
                 .foregroundStyle(.secondary)
             if let question = item.question, !question.isEmpty {
-                Text(question)
+                Text(question.zh)
                     .font(.subheadline)
                     .lineLimit(1)
             } else {
-                Text(item.analysis.summary)
+                Text(item.analysis.summary.zh)
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
@@ -695,7 +703,7 @@ private struct ProfileEditView: View {
 
     var body: some View {
         List {
-            Section("头像") {
+            Section("头像".zh) {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 12) {
                         ForEach(Self.avatarOptions, id: \.self) { symbol in
@@ -721,16 +729,16 @@ private struct ProfileEditView: View {
                 }
             }
 
-            Section("昵称") {
+            Section("昵称".zh) {
                 TextField("输入昵称", text: $nicknameDraft)
                     .appTextFieldStyle()
             }
         }
-        .navigationTitle("编辑资料")
+        .navigationTitle("编辑资料".zh)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                Button("保存") {
+                Button("保存".zh) {
                     let trimmed = nicknameDraft.trimmingCharacters(in: .whitespacesAndNewlines)
                     let limited = String(trimmed.prefix(20))
                     if !(2...20).contains(limited.count) {
@@ -746,10 +754,10 @@ private struct ProfileEditView: View {
             }
         }
         .parchmentBackground()
-        .alert("保存失败", isPresented: $showValidationAlert) {
-            Button("知道了", role: .cancel) {}
+        .alert("保存失败".zh, isPresented: $showValidationAlert) {
+            Button("知道了".zh, role: .cancel) {}
         } message: {
-            Text(validationMessage)
+            Text(validationMessage.zh)
         }
     }
 }
@@ -757,19 +765,42 @@ private struct ProfileEditView: View {
 private struct SettingsView: View {
     @Binding var session: LocalUserSession
     @Environment(\.dismiss) private var dismiss
+    @AppStorage(TapSoundPlayer.defaultsKey) private var tapSound: TapSoundKind = .none
+    @AppStorage(AppLanguage.storageKey) private var appLanguage: AppLanguage = .simplified
     @State private var showLogoutConfirm = false
     @State private var recycleCount = HistoryTrashStore.load().count
 
     var body: some View {
         List {
             Section {
+                Picker("语言".zh, selection: $appLanguage) {
+                    ForEach(AppLanguage.allCases) { language in
+                        Text(language.title.zh).tag(language)
+                    }
+                }
+            }
+
+            Section {
+                Picker("按键音效".zh, selection: $tapSound) {
+                    ForEach(TapSoundKind.allCases) { kind in
+                        Text(kind.title.zh).tag(kind)
+                    }
+                }
+                .onChange(of: tapSound) { _, newValue in
+                    TapSoundPlayer.shared.play(kind: newValue)
+                }
+            } footer: {
+                Text("点按「随机」「一键随机」「摇」「一键摇满」时播放。系统静音时不会出声。".zh)
+            }
+
+            Section {
                 NavigationLink {
                     RecycleBinView()
                 } label: {
                     HStack {
-                        Label("回收站", systemImage: "trash")
+                        Label("回收站".zh, systemImage: "trash")
                         Spacer()
-                        Text("\(recycleCount)")
+                        Text("\(recycleCount)".zh)
                             .foregroundStyle(.secondary)
                     }
                 }
@@ -777,22 +808,22 @@ private struct SettingsView: View {
 
             if session.isLoggedIn {
                 Section {
-                    Button("退出登录", role: .destructive) {
+                    Button("退出登录".zh, role: .destructive) {
                         showLogoutConfirm = true
                     }
                 }
             }
         }
         .scrollContentBackground(.hidden)
-        .navigationTitle("设置")
+        .navigationTitle("设置".zh)
         .navigationBarTitleDisplayMode(.inline)
         .parchmentBackground()
         .onAppear {
             recycleCount = HistoryTrashStore.load().count
         }
-        .alert("确认退出登录？", isPresented: $showLogoutConfirm) {
-            Button("取消", role: .cancel) {}
-            Button("退出登录", role: .destructive) {
+        .alert("确认退出登录？".zh, isPresented: $showLogoutConfirm) {
+            Button("取消".zh, role: .cancel) {}
+            Button("退出登录".zh, role: .destructive) {
                 session = .guest
                 LocalAuthStore.save(session)
                 dismiss()
@@ -813,7 +844,7 @@ private struct RecycleBinView: View {
                 ContentUnavailableView(
                     "回收站为空",
                     systemImage: "trash",
-                    description: Text("删除的记录会先放在这里，可恢复")
+                    description: Text("删除的记录会先放在这里，可恢复".zh)
                 )
             } else {
                 List {
@@ -821,36 +852,36 @@ private struct RecycleBinView: View {
                         VStack(alignment: .leading, spacing: 4) {
                             HStack(spacing: 6) {
                                 if let hex = store.hexagram(number: entry.primaryNumber) {
-                                    Text("\(hex.symbol) \(hex.name)")
+                                    Text("\(hex.symbol) \(hex.name)".zh)
                                         .font(.headline)
                                 } else {
-                                    Text("第\(entry.primaryNumber)卦")
+                                    Text("第\(entry.primaryNumber)卦".zh)
                                         .font(.headline)
                                 }
                                 if let resulting = entry.resultingNumber {
-                                    Text("→")
+                                    Text("→".zh)
                                         .foregroundStyle(.secondary)
                                     if let hex = store.hexagram(number: resulting) {
-                                        Text("\(hex.symbol) \(hex.name)")
+                                        Text("\(hex.symbol) \(hex.name)".zh)
                                             .font(.headline)
                                     } else {
-                                        Text("第\(resulting)卦")
+                                        Text("第\(resulting)卦".zh)
                                             .font(.headline)
                                     }
                                 }
                             }
                             .lineLimit(1)
-                            Text(ReadingRecordRow.timeString(entry.createdAt))
+                            Text(ReadingRecordRow.timeString(entry.createdAt).zh)
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                             if let question = entry.question, !question.isEmpty {
-                                Text(question)
+                                Text(question.zh)
                                     .font(.subheadline)
                                     .lineLimit(1)
                             }
                         }
                         .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                            Button("恢复") {
+                            Button("恢复".zh) {
                                 modelContext.insert(entry.toReadingRecord())
                                 try? modelContext.save()
                                 HistoryTrashStore.remove(entryID: entry.id)
@@ -858,7 +889,7 @@ private struct RecycleBinView: View {
                             }
                             .tint(.green)
 
-                            Button("彻底删除", role: .destructive) {
+                            Button("彻底删除".zh, role: .destructive) {
                                 HistoryTrashStore.remove(entryID: entry.id)
                                 entries = HistoryTrashStore.load()
                             }
@@ -869,26 +900,26 @@ private struct RecycleBinView: View {
                 .scrollContentBackground(.hidden)
             }
         }
-        .navigationTitle("回收站")
+        .navigationTitle("回收站".zh)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             if !entries.isEmpty {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("清空") {
+                    Button("清空".zh) {
                         showClearConfirm = true
                     }
                     .tint(.red)
                 }
             }
         }
-        .alert("确认清空？", isPresented: $showClearConfirm) {
-            Button("取消", role: .cancel) {}
-            Button("确定", role: .destructive) {
+        .alert("确认清空？".zh, isPresented: $showClearConfirm) {
+            Button("取消".zh, role: .cancel) {}
+            Button("确定".zh, role: .destructive) {
                 HistoryTrashStore.clearAll()
                 entries = []
             }
         } message: {
-            Text("回收站中的记录将被彻底删除，无法恢复。")
+            Text("回收站中的记录将被彻底删除，无法恢复。".zh)
         }
         .parchmentBackground()
         .onAppear {

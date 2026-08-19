@@ -10,11 +10,11 @@ struct ReadingRecordRow: View {
             HStack(spacing: 6) {
                 if showPrimaryTitle {
                     if let hex = store.hexagram(number: record.primaryNumber) {
-                        Text("\(hex.symbol) \(hex.name)")
+                        Text("\(hex.symbol) \(hex.name)".zh)
                             .font(.headline)
                             .lineLimit(1)
                     } else {
-                        Text("第\(record.primaryNumber)卦")
+                        Text("第\(record.primaryNumber)卦".zh)
                             .font(.headline)
                             .lineLimit(1)
                     }
@@ -28,28 +28,28 @@ struct ReadingRecordRow: View {
                     resultingTitle(number: resulting, prefix: "之卦 · ")
                     verificationBadge
                 } else if record.movingPositions.isEmpty {
-                    Text("六爻不变")
+                    Text("六爻不变".zh)
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(.secondary)
                     verificationBadge
                 } else {
-                    Text("\(record.movingPositions.count) 爻变")
+                    Text("\(record.movingPositions.count) 爻变".zh)
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(.secondary)
                     verificationBadge
                 }
                 Spacer(minLength: 0)
             }
-            Text(Self.timeString(record.createdAt))
+            Text(Self.timeString(record.createdAt).zh)
                 .font(.caption)
                 .foregroundStyle(.secondary)
             if let question = record.question, !question.isEmpty {
-                Text(question)
+                Text(question.zh)
                     .font(.subheadline)
                     .lineLimit(1)
             }
             if let note = record.verificationNote, !note.isEmpty {
-                Text(note)
+                Text(note.zh)
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
@@ -71,7 +71,7 @@ struct ReadingRecordRow: View {
     @ViewBuilder
     private var verificationBadge: some View {
         if record.verificationStatus != .none {
-            Text(record.verificationStatus.displayName)
+            Text(record.verificationStatus.displayName.zh)
                 .font(.caption2.weight(.semibold))
                 .foregroundStyle(.white)
                 .padding(.horizontal, 6)
@@ -81,14 +81,14 @@ struct ReadingRecordRow: View {
     }
 
     private var changeArrow: some View {
-        Text("⟶")
+        Text("⟶".zh)
             .font(.title2)
             .foregroundStyle(.secondary)
             .scaleEffect(x: 1.25, y: 1, anchor: .center)
             .frame(width: 28)
             .overlay(alignment: .top) {
                 if let digitalMovingLabel {
-                    Text(digitalMovingLabel)
+                    Text(digitalMovingLabel.zh)
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(.red)
                         .offset(y: -1)
@@ -99,17 +99,17 @@ struct ReadingRecordRow: View {
     @ViewBuilder
     private func resultingTitle(number: Int, prefix: String = "") -> some View {
         if let hex = store.hexagram(number: number) {
-            Text("\(prefix)\(hex.symbol) \(hex.name)")
+            Text("\(prefix)\(hex.symbol) \(hex.name)".zh)
                 .font(prefix.isEmpty ? .headline : .subheadline.weight(.semibold))
         } else {
-            Text("\(prefix)第\(number)卦")
+            Text("\(prefix)第\(number)卦".zh)
                 .font(prefix.isEmpty ? .headline : .subheadline.weight(.semibold))
         }
     }
 
     static func timeString(_ date: Date) -> String {
         let f = DateFormatter()
-        f.locale = Locale(identifier: "zh_CN")
+        f.locale = AppLanguage.current.locale
         f.dateFormat = "yyyy/M/d HH:mm"
         return f.string(from: date)
     }

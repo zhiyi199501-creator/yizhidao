@@ -3,6 +3,7 @@ package com.yizhidao.app.ui.casting
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import com.yizhidao.app.sound.TapSoundPlayer
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -18,8 +19,8 @@ import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
-import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import com.yizhidao.app.ui.theme.Text
 import androidx.compose.material3.TimePicker
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberTimePickerState
@@ -76,7 +77,11 @@ fun DigitalCastPanel(
         PaperSegmentedRow(
             options = listOf("输入三数", "时间起卦"),
             selectedIndex = if (threeNumbers) 0 else 1,
-            onSelect = { threeNumbers = it == 0; error = null },
+            onSelect = {
+                threeNumbers = it == 0
+                error = null
+                if (it == 1) selected = ZonedDateTime.now()
+            },
         )
 
         if (threeNumbers) {
@@ -92,6 +97,7 @@ fun DigitalCastPanel(
                 }
                 Row {
                     PaperOutlinedButton(onClick = {
+                        TapSoundPlayer.play()
                         n1 = rng.nextInt(10..999).toString()
                         n2 = rng.nextInt(10..999).toString()
                         n3 = rng.nextInt(10..999).toString()
@@ -251,7 +257,10 @@ private fun NumberRow(
             placeholder = "输入数字",
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
         )
-        PaperOutlinedButton(onClick = onRandom, label = "随机")
+        PaperOutlinedButton(onClick = {
+            TapSoundPlayer.play()
+            onRandom()
+        }, label = "随机")
     }
 }
 

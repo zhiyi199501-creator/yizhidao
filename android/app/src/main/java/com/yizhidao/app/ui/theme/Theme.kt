@@ -27,9 +27,16 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
+import androidx.compose.material3.Text as MaterialText
 import androidx.compose.material3.lightColorScheme
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.unit.TextUnit
+import com.yizhidao.app.lang.LocalAppLanguage
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
@@ -74,6 +81,53 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+
+@Composable
+fun zh(text: String): String {
+    val language = LocalAppLanguage.current
+    return remember(text, language) { language.convert(text) }
+}
+
+@Composable
+fun Text(
+    text: String,
+    modifier: Modifier = Modifier,
+    color: Color = Color.Unspecified,
+    fontSize: TextUnit = TextUnit.Unspecified,
+    fontStyle: FontStyle? = null,
+    fontWeight: FontWeight? = null,
+    fontFamily: FontFamily? = null,
+    letterSpacing: TextUnit = TextUnit.Unspecified,
+    textDecoration: TextDecoration? = null,
+    textAlign: TextAlign? = null,
+    lineHeight: TextUnit = TextUnit.Unspecified,
+    overflow: TextOverflow = TextOverflow.Clip,
+    softWrap: Boolean = true,
+    maxLines: Int = Int.MAX_VALUE,
+    minLines: Int = 1,
+    style: TextStyle = LocalTextStyle.current,
+) {
+    val language = LocalAppLanguage.current
+    val shown = remember(text, language) { language.convert(text) }
+    MaterialText(
+        text = shown,
+        modifier = modifier,
+        color = color,
+        fontSize = fontSize,
+        fontStyle = fontStyle,
+        fontWeight = fontWeight,
+        fontFamily = fontFamily,
+        letterSpacing = letterSpacing,
+        textDecoration = textDecoration,
+        textAlign = textAlign,
+        lineHeight = lineHeight,
+        overflow = overflow,
+        softWrap = softWrap,
+        maxLines = maxLines,
+        minLines = minLines,
+        style = style,
+    )
+}
 
 object AppTheme {
     // iOS 原值是 #F5EDE0 / #EBE5DB。安卓屏幕多为鲜艳模式，会把暖米色拉得更饱和，
@@ -496,7 +550,7 @@ fun PaperBackHeader(
             .height(44.dp),
     ) {
         Box(Modifier.align(Alignment.CenterStart)) {
-            PaperHeaderButton(onClick = onBack, contentDescription = "返回") {
+            PaperHeaderButton(onClick = onBack, contentDescription = zh("返回")) {
                 PaperChevron(color = AppTheme.accent, height = 18.dp, rotation = 180f)
             }
         }

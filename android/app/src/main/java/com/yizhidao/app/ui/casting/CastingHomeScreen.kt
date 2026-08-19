@@ -18,7 +18,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material3.Icon
-import androidx.compose.material3.Text
+import com.yizhidao.app.ui.theme.Text
+import com.yizhidao.app.ui.theme.zh
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -133,7 +134,7 @@ fun CastingHomeScreen(
                 {
                     Icon(
                         Icons.Filled.Cancel,
-                        contentDescription = "清除所问",
+                        contentDescription = zh("清除所问"),
                         tint = AppTheme.secondaryText,
                         modifier = Modifier
                             .size(20.dp)

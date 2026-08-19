@@ -7,7 +7,7 @@ struct YijingIntroListView: View {
         List {
             if !store.note.isEmpty {
                 Section {
-                    Text(store.note)
+                    Text(store.note.zh)
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                         .listRowBackground(Color.clear)
@@ -19,20 +19,20 @@ struct YijingIntroListView: View {
                         YijingIntroChapterView(chapter: chapter)
                     } label: {
                         VStack(alignment: .leading, spacing: 2) {
-                            Text(chapter.title)
+                            Text(chapter.title.zh)
                                 .font(.headline)
-                            Text(chapter.subtitle)
+                            Text(chapter.subtitle.zh)
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
                     }
                 }
             } footer: {
-                Text(store.source)
+                Text(store.source.zh)
             }
         }
         .scrollContentBackground(.hidden)
-        .navigationTitle("易经基础入门")
+        .navigationTitle("易经基础入门".zh)
         .navigationBarTitleDisplayMode(.inline)
         .parchmentBackground()
     }
@@ -44,11 +44,11 @@ struct YijingIntroChapterView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
-                Text(chapter.subtitle)
+                Text(chapter.subtitle.zh)
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                 ForEach(Array(chapter.paragraphs.enumerated()), id: \.offset) { _, paragraph in
-                    Text(paragraph)
+                    Text(paragraph.zh)
                         .font(.body)
                         .lineSpacing(6)
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -58,7 +58,7 @@ struct YijingIntroChapterView: View {
             }
             .padding()
         }
-        .navigationTitle(chapter.title)
+        .navigationTitle(chapter.title.zh)
         .navigationBarTitleDisplayMode(.inline)
         .parchmentBackground()
     }
@@ -70,16 +70,16 @@ struct ClassicHexagramListView: View {
     var body: some View {
         List {
             ForEach(["上经", "下经"], id: \.self) { part in
-                Section(part) {
+                Section(part.zh) {
                     ForEach(store.hexagrams.filter { $0.part == part }) { hex in
                         NavigationLink {
                             ClassicHexagramDetailView(hexagram: hex)
                         } label: {
                             HStack {
-                                Text("\(hex.symbol) \(hex.name)")
+                                Text("\(hex.symbol) \(hex.name)".zh)
                                     .font(.headline)
                                 Spacer()
-                                Text(hex.title)
+                                Text(hex.title.zh)
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
                             }
@@ -89,7 +89,7 @@ struct ClassicHexagramListView: View {
             }
         }
         .scrollContentBackground(.hidden)
-        .navigationTitle("易经六十四卦")
+        .navigationTitle("易经六十四卦".zh)
         .navigationBarTitleDisplayMode(.inline)
         .parchmentBackground()
     }
@@ -107,9 +107,9 @@ struct ClassicHexagramDetailView: View {
                         movingPositions: []
                     )
                     VStack(alignment: .leading, spacing: 6) {
-                        Text(hexagram.title)
+                        Text(hexagram.title.zh)
                             .font(.title3.weight(.semibold))
-                        Text(hexagram.figure)
+                        Text(hexagram.figure.zh)
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
                     }
@@ -120,37 +120,37 @@ struct ClassicHexagramDetailView: View {
                 .background(RoundedRectangle(cornerRadius: 12).fill(AppTheme.cardFill))
 
                 card("卦辞") {
-                    Text(hexagram.guaci)
+                    Text(hexagram.guaci.zh)
                 }
                 card("彖曰") {
-                    Text(hexagram.tuanci)
+                    Text(hexagram.tuanci.zh)
                 }
                 card("象曰") {
-                    Text(hexagram.daxiang)
+                    Text(hexagram.daxiang.zh)
                 }
                 ForEach(Array(zip(hexagram.yaoci, hexagram.xiaoxiang).enumerated()), id: \.offset) { _, pair in
                     card {
-                        Text(pair.0)
-                        Text("象曰：\(pair.1)")
+                        Text(pair.0.zh)
+                        Text("象曰：\(pair.1)".zh)
                     }
                 }
                 if let yong = hexagram.yong {
                     card {
-                        Text(yong.ci)
-                        Text("象曰：\(yong.xiang)")
+                        Text(yong.ci.zh)
+                        Text("象曰：\(yong.xiang)".zh)
                     }
                 }
                 if !hexagram.wenyan.isEmpty {
                     card("文言") {
                         ForEach(Array(hexagram.wenyan.enumerated()), id: \.offset) { _, paragraph in
-                            Text(paragraph)
+                            Text(paragraph.zh)
                         }
                     }
                 }
             }
             .padding()
         }
-        .navigationTitle(hexagram.name)
+        .navigationTitle(hexagram.name.zh)
         .navigationBarTitleDisplayMode(.inline)
         .parchmentBackground()
     }
@@ -158,7 +158,7 @@ struct ClassicHexagramDetailView: View {
     private func card(_ title: String? = nil, @ViewBuilder content: () -> some View) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             if let title {
-                Text(title)
+                Text(title.zh)
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(AppTheme.accent)
             }
@@ -185,16 +185,16 @@ struct ClassicWingListView: View {
                 }
             } label: {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(wing.title)
+                    Text(wing.title.zh)
                         .font(.headline)
-                    Text(chapterSummary(wing))
+                    Text(chapterSummary(wing).zh)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
             }
         }
         .scrollContentBackground(.hidden)
-        .navigationTitle("易经四传")
+        .navigationTitle("易经四传".zh)
         .navigationBarTitleDisplayMode(.inline)
         .parchmentBackground()
     }
@@ -215,11 +215,11 @@ struct ClassicChapterListView: View {
             NavigationLink {
                 ClassicChapterDetailView(wingTitle: wing.title, chapter: chapter)
             } label: {
-                Text(chapter.title)
+                Text(chapter.title.zh)
             }
         }
         .scrollContentBackground(.hidden)
-        .navigationTitle(wing.title)
+        .navigationTitle(wing.title.zh)
         .navigationBarTitleDisplayMode(.inline)
         .parchmentBackground()
     }
@@ -233,7 +233,7 @@ struct ClassicChapterDetailView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 ForEach(Array(chapter.paragraphs.enumerated()), id: \.offset) { _, paragraph in
-                    Text(paragraph)
+                    Text(paragraph.zh)
                         .font(.body)
                         .lineSpacing(6)
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -243,7 +243,7 @@ struct ClassicChapterDetailView: View {
             }
             .padding()
         }
-        .navigationTitle(chapter.title == wingTitle ? wingTitle : chapter.title)
+        .navigationTitle(chapter.title == wingTitle ? wingTitle : chapter.title.zh)
         .navigationBarTitleDisplayMode(.inline)
         .parchmentBackground()
     }
@@ -255,29 +255,29 @@ struct ZhengshiListView: View {
     var body: some View {
         List {
             Section {
-                Text(store.note)
+                Text(store.note.zh)
                     .font(.footnote)
                     .foregroundStyle(.secondary)
                     .listRowBackground(Color.clear)
             } footer: {
-                Text(store.source)
+                Text(store.source.zh)
             }
             ForEach(store.parts) { part in
-                Section(part.title) {
+                Section(part.title.zh) {
                     ForEach(part.chapters) { chapter in
                         NavigationLink {
                             ZhengshiChapterView(chapter: chapter)
                         } label: {
                             HStack {
                                 if !chapter.symbol.isEmpty {
-                                    Text(chapter.symbol)
+                                    Text(chapter.symbol.zh)
                                         .font(.headline)
                                 }
                                 VStack(alignment: .leading, spacing: 2) {
-                                    Text(chapter.title)
+                                    Text(chapter.title.zh)
                                         .font(.headline)
                                     if !chapter.subtitle.isEmpty {
-                                        Text(chapter.subtitle)
+                                        Text(chapter.subtitle.zh)
                                             .font(.caption)
                                             .foregroundStyle(.secondary)
                                             .lineLimit(1)
@@ -290,7 +290,7 @@ struct ZhengshiListView: View {
             }
         }
         .scrollContentBackground(.hidden)
-        .navigationTitle("易经证释")
+        .navigationTitle("易经证释".zh)
         .navigationBarTitleDisplayMode(.inline)
         .parchmentBackground()
     }
@@ -307,11 +307,11 @@ struct ZhengshiChapterView: View {
                 NavigationLink {
                     ZhengshiSectionView(title: section.title, paragraphs: section.paragraphs)
                 } label: {
-                    Text(section.title)
+                    Text(section.title.zh)
                 }
             }
             .scrollContentBackground(.hidden)
-            .navigationTitle(chapter.title)
+            .navigationTitle(chapter.title.zh)
             .navigationBarTitleDisplayMode(.inline)
             .parchmentBackground()
         }
@@ -326,7 +326,7 @@ struct ZhengshiSectionView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 ForEach(Array(paragraphs.enumerated()), id: \.offset) { _, paragraph in
-                    Text(paragraph)
+                    Text(paragraph.zh)
                         .font(.body)
                         .lineSpacing(6)
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -336,7 +336,7 @@ struct ZhengshiSectionView: View {
             }
             .padding()
         }
-        .navigationTitle(title)
+        .navigationTitle(title.zh)
         .navigationBarTitleDisplayMode(.inline)
         .parchmentBackground()
     }

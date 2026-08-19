@@ -15,8 +15,9 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.WorkspacePremium
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import com.yizhidao.app.ui.theme.Text
+import com.yizhidao.app.ui.theme.zh
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -83,7 +84,7 @@ fun ResultScreen(
                     {
                         PaperHeaderButton(
                             onClick = { onOpenSimilar(result) },
-                            contentDescription = "查看同类卦",
+                            contentDescription = zh("查看同类卦"),
                         ) {
                             PaperStackIcon()
                         }

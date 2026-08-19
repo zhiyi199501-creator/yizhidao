@@ -2,6 +2,13 @@ package com.yizhidao.app.ui.me
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
+import androidx.compose.material.icons.outlined.Check
+import androidx.compose.material.icons.outlined.Language
+import androidx.compose.material.icons.outlined.VolumeUp
+import com.yizhidao.app.lang.AppLanguage
+import com.yizhidao.app.lang.AppLanguageStore
+import com.yizhidao.app.sound.TapSoundKind
+import com.yizhidao.app.sound.TapSoundPlayer
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -33,8 +40,9 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
-import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import com.yizhidao.app.ui.theme.Text
+import com.yizhidao.app.ui.theme.zh
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -69,6 +77,8 @@ private sealed interface MeRoute {
     data object Login : MeRoute
     data object AIHistory : MeRoute
     data object Settings : MeRoute
+    data object TapSound : MeRoute
+    data object Language : MeRoute
     data object Recycle : MeRoute
     data object Intro : MeRoute
     data class IntroChapter(val item: YijingIntroChapter) : MeRoute
@@ -115,6 +125,14 @@ fun MeScreen(container: AppContainer) {
             container = container,
             onBack = { route = MeRoute.Home },
             onOpenRecycle = { route = MeRoute.Recycle },
+            onOpenTapSound = { route = MeRoute.TapSound },
+            onOpenLanguage = { route = MeRoute.Language },
+        )
+        MeRoute.TapSound -> TapSoundPage(
+            onBack = { route = MeRoute.Settings },
+        )
+        MeRoute.Language -> LanguagePage(
+            onBack = { route = MeRoute.Settings },
         )
         MeRoute.Recycle -> RecycleBinPage(
             container = container,
@@ -334,8 +352,12 @@ private fun SettingsPage(
     container: AppContainer,
     onBack: () -> Unit,
     onOpenRecycle: () -> Unit,
+    onOpenTapSound: () -> Unit,
+    onOpenLanguage: () -> Unit,
 ) {
     val trash by container.readingRepository.trash.collectAsState()
+    var tapSound by remember { mutableStateOf(TapSoundPlayer.current()) }
+    val language by AppLanguageStore.language.collectAsState()
     Column(Modifier.fillMaxSize()) {
         PaperBackHeader(title = "设置", onBack = onBack)
         Column(
@@ -345,6 +367,38 @@ private fun SettingsPage(
                 .padding(horizontal = 16.dp)
                 .padding(bottom = 24.dp),
         ) {
+            MeCard {
+                MeRow(
+                    icon = Icons.Outlined.Language,
+                    title = "语言",
+                    trailing = {
+                        Text(
+                            language.title,
+                            fontSize = 15.sp,
+                            color = AppTheme.secondaryText,
+                            style = AppTheme.compactText,
+                        )
+                    },
+                    onClick = onOpenLanguage,
+                )
+            }
+            Spacer(Modifier.height(12.dp))
+            MeCard {
+                MeRow(
+                    icon = Icons.Outlined.VolumeUp,
+                    title = "按键音效",
+                    trailing = {
+                        Text(
+                            tapSound.title,
+                            fontSize = 15.sp,
+                            color = AppTheme.secondaryText,
+                            style = AppTheme.compactText,
+                        )
+                    },
+                    onClick = onOpenTapSound,
+                )
+            }
+            Spacer(Modifier.height(12.dp))
             MeCard {
                 MeRow(
                     icon = null,
@@ -359,6 +413,96 @@ private fun SettingsPage(
                     },
                     onClick = onOpenRecycle,
                 )
+            }
+        }
+    }
+}
+
+@Composable
+private fun LanguagePage(onBack: () -> Unit) {
+    val language by AppLanguageStore.language.collectAsState()
+    val context = androidx.compose.ui.platform.LocalContext.current
+    Column(Modifier.fillMaxSize()) {
+        PaperBackHeader(title = "语言", onBack = onBack)
+        Column(
+            Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 16.dp)
+                .padding(bottom = 24.dp),
+        ) {
+            MeCard {
+                AppLanguage.entries.forEachIndexed { index, item ->
+                    MeRow(
+                        icon = null,
+                        title = item.title,
+                        showChevron = false,
+                        trailing = {
+                            if (language == item) {
+                                Icon(
+                                    Icons.Outlined.Check,
+                                    contentDescription = zh("已选"),
+                                    tint = AppTheme.accent,
+                                    modifier = Modifier.size(20.dp),
+                                )
+                            }
+                        },
+                        onClick = { AppLanguageStore.set(context, item) },
+                    )
+                    if (index < AppLanguage.entries.lastIndex) {
+                        MeDivider()
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun TapSoundPage(onBack: () -> Unit) {
+    var selected by remember { mutableStateOf(TapSoundPlayer.current()) }
+    val context = androidx.compose.ui.platform.LocalContext.current
+    Column(Modifier.fillMaxSize()) {
+        PaperBackHeader(title = "按键音效", onBack = onBack)
+        Column(
+            Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 16.dp)
+                .padding(bottom = 24.dp),
+        ) {
+            Text(
+                "点按按钮、标签和列表时播放。系统静音时可能不出声。",
+                fontSize = 13.sp,
+                color = AppTheme.secondaryText,
+                style = AppTheme.compactText,
+                modifier = Modifier.padding(start = 4.dp, bottom = 10.dp),
+            )
+            MeCard {
+                TapSoundKind.entries.forEachIndexed { index, kind ->
+                    MeRow(
+                        icon = null,
+                        title = kind.title,
+                        showChevron = false,
+                        trailing = {
+                            if (selected == kind) {
+                                Icon(
+                                    Icons.Outlined.Check,
+                                    contentDescription = zh("已选"),
+                                    tint = AppTheme.accent,
+                                    modifier = Modifier.size(20.dp),
+                                )
+                            }
+                        },
+                        onClick = {
+                            selected = kind
+                            TapSoundPlayer.setKind(context, kind)
+                        },
+                    )
+                    if (index < TapSoundKind.entries.lastIndex) {
+                        MeDivider()
+                    }
+                }
             }
         }
     }

@@ -10,6 +10,8 @@ import com.yizhidao.app.classic.YijingIntroBook
 import com.yizhidao.app.classic.YijingIntroCodec
 import com.yizhidao.app.classic.ZhengshiBook
 import com.yizhidao.app.classic.ZhengshiCodec
+import com.yizhidao.app.lang.AppLanguageStore
+import com.yizhidao.app.sound.TapSoundPlayer
 
 class YizhidaoApplication : Application() {
     lateinit var container: AppContainer
@@ -17,6 +19,8 @@ class YizhidaoApplication : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        TapSoundPlayer.init(this)
+        AppLanguageStore.init(this)
         container = AppContainer(this)
     }
 }

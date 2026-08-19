@@ -2,9 +2,12 @@ import Foundation
 
 @Observable
 final class HexagramStore {
-    private(set) var hexagrams: [Hexagram] = []
-    private(set) var wings: [HexagramWing] = []
+    private var rawHexagrams: [Hexagram] = []
+    private var rawWings: [HexagramWing] = []
     private var byNumber: [Int: Hexagram] = [:]
+
+    var hexagrams: [Hexagram] { rawHexagrams.map(\.zhDisplayed) }
+    var wings: [HexagramWing] { rawWings.map(\.zhDisplayed) }
 
     static let shared = HexagramStore()
 
@@ -13,7 +16,7 @@ final class HexagramStore {
     }
 
     func hexagram(number: Int) -> Hexagram? {
-        byNumber[number]
+        byNumber[number]?.zhDisplayed
     }
 
     func load(from bundle: Bundle) {
@@ -24,9 +27,9 @@ final class HexagramStore {
         do {
             let data = try Data(contentsOf: url)
             let file = try JSONDecoder().decode(HexagramsFile.self, from: data)
-            hexagrams = file.hexagrams.sorted { $0.number < $1.number }
-            wings = file.wings
-            byNumber = Dictionary(uniqueKeysWithValues: hexagrams.map { ($0.number, $0) })
+            rawHexagrams = file.hexagrams.sorted { $0.number < $1.number }
+            rawWings = file.wings
+            byNumber = Dictionary(uniqueKeysWithValues: rawHexagrams.map { ($0.number, $0) })
         } catch {
             assertionFailure("Failed to load Hexagrams.json: \(error)")
         }

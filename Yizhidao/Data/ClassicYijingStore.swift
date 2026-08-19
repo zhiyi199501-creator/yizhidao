@@ -16,9 +16,13 @@ struct YijingIntroBook: Codable, Sendable {
 final class YijingIntroStore {
     static let shared = YijingIntroStore()
 
-    private(set) var source: String = ""
-    private(set) var note: String = ""
-    private(set) var chapters: [YijingIntroChapter] = []
+    private var rawSource: String = ""
+    private var rawNote: String = ""
+    private var rawChapters: [YijingIntroChapter] = []
+
+    var source: String { rawSource.zh }
+    var note: String { rawNote.zh }
+    var chapters: [YijingIntroChapter] { rawChapters.map(\.zhDisplayed) }
 
     init(bundle: Bundle = .main) {
         load(from: bundle)
@@ -31,9 +35,9 @@ final class YijingIntroStore {
         }
         do {
             let book = try JSONDecoder().decode(YijingIntroBook.self, from: Data(contentsOf: url))
-            source = book.source
-            note = book.note
-            chapters = book.chapters
+            rawSource = book.source
+            rawNote = book.note
+            rawChapters = book.chapters
         } catch {
             assertionFailure("Failed to load YijingIntro.json: \(error)")
         }
@@ -75,17 +79,17 @@ final class ZhengshiStore {
 
     var source: String {
         loadIfNeeded()
-        return book?.source ?? ""
+        return book?.source.zh ?? ""
     }
 
     var note: String {
         loadIfNeeded()
-        return book?.note ?? ""
+        return book?.note.zh ?? ""
     }
 
     var parts: [ZhengshiPart] {
         loadIfNeeded()
-        return book?.parts ?? []
+        return book?.parts.map(\.zhDisplayed) ?? []
     }
 
     init(bundle: Bundle = .main) {

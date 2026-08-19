@@ -90,12 +90,14 @@ enum VerificationStatus: String, CaseIterable, Identifiable, Sendable {
     var id: String { rawValue }
 
     var displayName: String {
+        let raw: String
         switch self {
-        case .none: return "未验证"
-        case .fulfilled: return "应验"
-        case .partial: return "部分应验"
-        case .unfulfilled: return "未应验"
+        case .none: raw = "未验证"
+        case .fulfilled: raw = "应验"
+        case .partial: raw = "部分应验"
+        case .unfulfilled: raw = "未应验"
         }
+        return raw.zh
     }
 }
 

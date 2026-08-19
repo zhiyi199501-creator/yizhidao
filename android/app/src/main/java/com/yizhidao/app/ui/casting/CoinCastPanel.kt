@@ -10,7 +10,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.Text
+import com.yizhidao.app.ui.theme.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -25,6 +25,7 @@ import com.yizhidao.CoinCastingEngine
 import com.yizhidao.LineValue
 import com.yizhidao.ReadingGuide
 import com.yizhidao.SecureRandomSource
+import com.yizhidao.app.sound.TapSoundPlayer
 import com.yizhidao.app.ui.reading.YaoBar
 import com.yizhidao.app.ui.theme.AppTheme
 import com.yizhidao.app.ui.theme.PaperOutlinedButton
@@ -74,6 +75,7 @@ fun CoinCastPanel(
         }
         Row {
             PaperOutlinedButton(onClick = {
+                TapSoundPlayer.play()
                 lines = List(6) { CoinCastingEngine.tossLine(rng) }
             }, label = "一键摇满")
             Spacer(Modifier.width(8.dp))
@@ -171,6 +173,9 @@ private fun CoinYaoRow(
                 }
             }
         }
-        PaperOutlinedButton(onClick = onToss, compact = true, label = "摇")
+        PaperOutlinedButton(onClick = {
+            TapSoundPlayer.play()
+            onToss()
+        }, compact = true, label = "摇")
     }
 }
