@@ -98,6 +98,10 @@ struct ClassicHexagramListView: View {
 struct ClassicHexagramDetailView: View {
     let hexagram: Hexagram
 
+    @State private var imaSelection: ImaExplanationSelection?
+
+    private var imaStore: ImaExplanationStore { .shared }
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
@@ -119,25 +123,29 @@ struct ClassicHexagramDetailView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .background(RoundedRectangle(cornerRadius: 12).fill(AppTheme.cardFill))
 
-                card("卦辞") {
+                scriptureCard("卦辞", explanationId: ImaExplanationId.guaci(number: hexagram.number)) {
                     Text(hexagram.guaci.zh)
                 }
-                card("彖辞") {
+                scriptureCard("彖辞", explanationId: ImaExplanationId.tuanci(number: hexagram.number)) {
                     Text(prefixed("彖曰：", hexagram.tuanci).zh)
                 }
-                card("大象") {
+                scriptureCard("大象", explanationId: ImaExplanationId.daxiang(number: hexagram.number)) {
                     Text(prefixed("象曰：", hexagram.daxiang).zh)
                 }
-                ForEach(Array(zip(hexagram.yaoci, hexagram.xiaoxiang).enumerated()), id: \.offset) { _, pair in
-                    card {
-                        Text(pair.0.zh)
-                        Text("象曰：\(pair.1)".zh)
+                ForEach(Array(zip(hexagram.yaoci, hexagram.xiaoxiang).enumerated()), id: \.offset) { index, pair in
+                    scriptureCard(explanationId: ImaExplanationId.yaoPair(number: hexagram.number, position: index + 1)) {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(pair.0.zh)
+                            Text("象曰：\(pair.1)".zh)
+                        }
                     }
                 }
                 if let yong = hexagram.yong {
                     card {
-                        Text(yong.ci.zh)
-                        Text("象曰：\(yong.xiang)".zh)
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(yong.ci.zh)
+                            Text("象曰：\(yong.xiang)".zh)
+                        }
                     }
                 }
                 if !hexagram.wenyan.isEmpty {
@@ -153,6 +161,19 @@ struct ClassicHexagramDetailView: View {
         .navigationTitle(hexagram.name.zh)
         .navigationBarTitleDisplayMode(.inline)
         .parchmentBackground()
+        .sheet(item: $imaSelection) { selection in
+            ImaExplanationSheet(entry: selection.entry, source: imaStore.source)
+        }
+    }
+
+    private func scriptureCard(
+        _ title: String? = nil,
+        explanationId: String,
+        @ViewBuilder content: @escaping () -> some View
+    ) -> some View {
+        card(title) {
+            TappableScripture(explanationId: explanationId, selection: $imaSelection, content: content)
+        }
     }
 
     private func card(_ title: String? = nil, @ViewBuilder content: () -> some View) -> some View {

@@ -402,6 +402,7 @@ private fun CaseDetailScreen(study: CaseStudy, container: AppContainer, onBack: 
                 lines = study.lines,
                 movingPositions = study.movingPositions,
                 store = container.hexagramStore,
+                imaStore = container.imaExplanationStore,
             )
         }
     }

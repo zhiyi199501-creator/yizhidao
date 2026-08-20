@@ -27,6 +27,9 @@ import com.yizhidao.HexagramText
 import com.yizhidao.LineValue
 import com.yizhidao.ReadingFocus
 import com.yizhidao.ReadingGuide
+import com.yizhidao.app.ima.ImaExplanationEntry
+import com.yizhidao.app.ima.ImaExplanationId
+import com.yizhidao.app.ima.ImaExplanationStore
 import com.yizhidao.app.ui.theme.AppTheme
 import com.yizhidao.app.ui.theme.PaperSegmentedRow
 
@@ -36,6 +39,7 @@ private enum class HexTab(val label: String) { Primary("本卦"), Resulting("之
 fun HexagramReadingBody(
     result: CastResult,
     store: HexagramStore,
+    imaStore: ImaExplanationStore,
 ) {
     HexagramReadingBody(
         primaryNumber = result.primaryNumber,
@@ -43,6 +47,7 @@ fun HexagramReadingBody(
         lines = result.lines,
         movingPositions = result.movingPositions,
         store = store,
+        imaStore = imaStore,
     )
 }
 
@@ -53,7 +58,9 @@ fun HexagramReadingBody(
     lines: List<LineValue>,
     movingPositions: List<Int>,
     store: HexagramStore,
+    imaStore: ImaExplanationStore,
 ) {
+    var selectedEntry by remember { mutableStateOf<ImaExplanationEntry?>(null) }
     val primary = store.hexagram(primaryNumber)
     val resulting = resultingNumber?.let { store.hexagram(it) }
     val focus = remember(movingPositions) { ReadingGuide.focus(movingPositions) }
@@ -111,7 +118,14 @@ fun HexagramReadingBody(
 
         val hex = if (tab == HexTab.Primary) primary else resulting
         if (hex != null) {
-            HexagramTextSection(hex = hex, tab = tab, focus = focus, movingPositions = movingPositions)
+            HexagramTextSection(
+                hex = hex,
+                tab = tab,
+                focus = focus,
+                movingPositions = movingPositions,
+                imaStore = imaStore,
+                onSelectExplanation = { selectedEntry = it },
+            )
         }
 
         Text(
@@ -122,6 +136,14 @@ fun HexagramReadingBody(
             modifier = Modifier.align(Alignment.End),
         )
     }
+
+    selectedEntry?.let { entry ->
+        ImaExplanationSheet(
+            entry = entry,
+            source = imaStore.source,
+            onDismiss = { selectedEntry = null },
+        )
+    }
 }
 
 @Composable
@@ -130,21 +152,41 @@ private fun HexagramTextSection(
     tab: HexTab,
     focus: ReadingFocus,
     movingPositions: List<Int>,
+    imaStore: ImaExplanationStore,
+    onSelectExplanation: (ImaExplanationEntry) -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
         CardSection(showLead = shouldShowGuaciLead(tab, focus)) {
-            Text(hex.guaci, fontSize = 16.sp, color = AppTheme.ink, lineHeight = 24.sp)
+            TappableScripture(
+                explanationId = ImaExplanationId.guaci(hex.number),
+                imaStore = imaStore,
+                onSelect = onSelectExplanation,
+            ) {
+                Text(hex.guaci, fontSize = 16.sp, color = AppTheme.ink, lineHeight = 24.sp)
+            }
         }
         CardSection {
-            Text(HexagramText.prefixed("彖曰：", hex.tuanci), fontSize = 16.sp, color = AppTheme.ink, lineHeight = 24.sp)
+            TappableScripture(
+                explanationId = ImaExplanationId.tuanci(hex.number),
+                imaStore = imaStore,
+                onSelect = onSelectExplanation,
+            ) {
+                Text(HexagramText.prefixed("彖曰：", hex.tuanci), fontSize = 16.sp, color = AppTheme.ink, lineHeight = 24.sp)
+            }
         }
         CardSection {
-            Text(HexagramText.prefixed("象曰：", hex.daxiang), fontSize = 16.sp, color = AppTheme.ink, lineHeight = 24.sp)
+            TappableScripture(
+                explanationId = ImaExplanationId.daxiang(hex.number),
+                imaStore = imaStore,
+                onSelect = onSelectExplanation,
+            ) {
+                Text(HexagramText.prefixed("象曰：", hex.daxiang), fontSize = 16.sp, color = AppTheme.ink, lineHeight = 24.sp)
+            }
         }
         CardSection {
             Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
                 (6 downTo 1).forEach { pos ->
-                    LineBlock(hex, tab, pos, focus, movingPositions)
+                    LineBlock(hex, tab, pos, focus, movingPositions, imaStore, onSelectExplanation)
                 }
             }
         }
@@ -158,14 +200,22 @@ private fun LineBlock(
     position: Int,
     focus: ReadingFocus,
     movingPositions: List<Int>,
+    imaStore: ImaExplanationStore,
+    onSelectExplanation: (ImaExplanationEntry) -> Unit,
 ) {
     val moving = position in movingPositions
     val showLead = shouldShowLead(tab, position, movingPositions, focus)
     val color = if (moving) Color.Red else Color.Unspecified
-    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        if (showLead) LeadBadge()
-        Text(hex.yaoCi(position).trim(), color = color, fontSize = 16.sp, lineHeight = 24.sp)
-        Text(HexagramText.xiangLine(hex.xiaoXiang(position)), color = color, fontSize = 16.sp, lineHeight = 24.sp)
+    TappableScripture(
+        explanationId = ImaExplanationId.yaoPair(hex.number, position),
+        imaStore = imaStore,
+        onSelect = onSelectExplanation,
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            if (showLead) LeadBadge()
+            Text(hex.yaoCi(position).trim(), color = color, fontSize = 16.sp, lineHeight = 24.sp)
+            Text(HexagramText.xiangLine(hex.xiaoXiang(position)), color = color, fontSize = 16.sp, lineHeight = 24.sp)
+        }
     }
 }
 

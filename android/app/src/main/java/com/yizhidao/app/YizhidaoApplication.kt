@@ -9,6 +9,7 @@ import com.yizhidao.app.classic.HexagramsBook
 import com.yizhidao.app.classic.YijingIntroBook
 import com.yizhidao.app.classic.YijingIntroCodec
 import com.yizhidao.app.ai.SavedAIAnalysisStore
+import com.yizhidao.app.ima.ImaExplanationStore
 import com.yizhidao.app.lang.AppLanguageStore
 import com.yizhidao.app.sound.TapSoundPlayer
 
@@ -36,5 +37,8 @@ class AppContainer(app: Application) {
     val savedAIStore = SavedAIAnalysisStore(app)
     val introBook: YijingIntroBook = YijingIntroCodec.decode(
         app.assets.open("YijingIntro.json").bufferedReader().use { it.readText() },
+    )
+    val imaExplanationStore: ImaExplanationStore = ImaExplanationStore(
+        app.assets.open("ImaExplanations.json").bufferedReader().use { it.readText() },
     )
 }

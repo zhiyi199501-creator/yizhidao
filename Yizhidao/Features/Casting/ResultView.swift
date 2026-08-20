@@ -203,8 +203,10 @@ struct HexagramReadingBody: View {
     let movingPositions: [Int]
 
     @State private var selectedTab: HexTab = .primary
+    @State private var imaSelection: ImaExplanationSelection?
 
     private var store: HexagramStore { .shared }
+    private var imaStore: ImaExplanationStore { .shared }
     private var primary: Hexagram? { store.hexagram(number: primaryNumber) }
     private var resulting: Hexagram? {
         guard let n = resultingNumber else { return nil }
@@ -255,6 +257,9 @@ struct HexagramReadingBody: View {
         .onAppear {
             if resulting == nil { selectedTab = .primary }
         }
+        .sheet(item: $imaSelection) { selection in
+            ImaExplanationSheet(entry: selection.entry, source: imaStore.source)
+        }
     }
 
     private var figuresSection: some View {
@@ -292,17 +297,20 @@ struct HexagramReadingBody: View {
         let hex: Hexagram? = tab == .primary ? primary : resulting
         if let hex {
             VStack(alignment: .leading, spacing: 16) {
-                section(showLead: shouldShowGuaciLead(tab: tab)) {
+                scriptureSection(
+                    explanationId: ImaExplanationId.guaci(number: hex.number),
+                    showLead: shouldShowGuaciLead(tab: tab)
+                ) {
                     Text(hex.guaci.zh)
                         .font(.body)
                         .lineSpacing(4)
                 }
-                section {
+                scriptureSection(explanationId: ImaExplanationId.tuanci(number: hex.number)) {
                     Text(prefixed("彖曰：", hex.tuanci).zh)
                         .font(.body)
                         .lineSpacing(4)
                 }
-                section {
+                scriptureSection(explanationId: ImaExplanationId.daxiang(number: hex.number)) {
                     Text(prefixed("象曰：", hex.daxiang).zh)
                         .font(.body)
                         .lineSpacing(4)
@@ -348,18 +356,22 @@ struct HexagramReadingBody: View {
         let showLead = shouldShowLead(tab: tab, position: position)
         let accent = moving ? Color.red : Color.primary
 
-        return VStack(alignment: .leading, spacing: 6) {
-            if showLead {
-                leadBadge
+        let explanationId = ImaExplanationId.yaoPair(number: hex.number, position: position)
+
+        return TappableScripture(explanationId: explanationId, selection: $imaSelection) {
+            VStack(alignment: .leading, spacing: 6) {
+                if showLead {
+                    leadBadge
+                }
+                Text(trimmedYaoCi(hex: hex, position: position).zh)
+                    .font(.body)
+                    .foregroundStyle(accent)
+                    .lineSpacing(4)
+                Text(xiangLine(hex: hex, position: position).zh)
+                    .font(.body)
+                    .foregroundStyle(accent)
+                    .lineSpacing(4)
             }
-            Text(trimmedYaoCi(hex: hex, position: position).zh)
-                .font(.body)
-                .foregroundStyle(accent)
-                .lineSpacing(4)
-            Text(xiangLine(hex: hex, position: position).zh)
-                .font(.body)
-                .foregroundStyle(accent)
-                .lineSpacing(4)
         }
     }
 
@@ -402,6 +414,16 @@ struct HexagramReadingBody: View {
             return tab == .resulting && lead == position
         default:
             return false
+        }
+    }
+
+    private func scriptureSection(
+        explanationId: String,
+        showLead: Bool = false,
+        @ViewBuilder content: @escaping () -> some View
+    ) -> some View {
+        section(showLead: showLead) {
+            TappableScripture(explanationId: explanationId, selection: $imaSelection, content: content)
         }
     }
 

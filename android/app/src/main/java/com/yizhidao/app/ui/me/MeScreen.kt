@@ -76,6 +76,11 @@ import com.yizhidao.Hexagram
 import com.yizhidao.HexagramText
 import com.yizhidao.app.AppContainer
 import com.yizhidao.app.auth.LocalAuthStore
+import com.yizhidao.app.ima.ImaExplanationEntry
+import com.yizhidao.app.ima.ImaExplanationId
+import com.yizhidao.app.ima.ImaExplanationStore
+import com.yizhidao.app.ui.reading.ImaExplanationSheet
+import com.yizhidao.app.ui.reading.TappableScripture
 import com.yizhidao.app.auth.LocalUserSession
 import com.yizhidao.app.auth.AuthApi
 import com.yizhidao.app.auth.LoginError
@@ -246,7 +251,11 @@ fun MeScreen(
             onBack = { route = MeRoute.Home },
             onOpen = { route = MeRoute.HexagramDetail(it) },
         )
-        is MeRoute.HexagramDetail -> HexagramReader(page.item) { route = MeRoute.Hexagrams }
+        is MeRoute.HexagramDetail -> HexagramReader(
+            hex = page.item,
+            imaStore = container.imaExplanationStore,
+            onBack = { route = MeRoute.Hexagrams },
+        )
         MeRoute.Wings -> WingListPage(
             wings = book.wings,
             onBack = { route = MeRoute.Home },
@@ -1270,7 +1279,8 @@ private fun IntroChapterReader(chapter: YijingIntroChapter, onBack: () -> Unit) 
 }
 
 @Composable
-private fun HexagramReader(hex: Hexagram, onBack: () -> Unit) {
+private fun HexagramReader(hex: Hexagram, imaStore: ImaExplanationStore, onBack: () -> Unit) {
+    var selectedEntry by remember { mutableStateOf<ImaExplanationEntry?>(null) }
     Column(Modifier.fillMaxSize()) {
         PaperBackHeader(title = hex.name, onBack = onBack)
         Column(
@@ -1307,17 +1317,48 @@ private fun HexagramReader(hex: Hexagram, onBack: () -> Unit) {
                     )
                 }
             }
-            ScriptureCard("卦辞", hex.guaci)
-            ScriptureCard("彖辞", HexagramText.prefixed("彖曰：", hex.tuanci))
-            ScriptureCard("大象", HexagramText.prefixed("象曰：", hex.daxiang))
-            hex.yaoci.zip(hex.xiaoxiang).forEach { (ci, xiang) ->
-                ScriptureCard(body = ci, footnote = "象曰：$xiang")
+            ScriptureCard(
+                title = "卦辞",
+                body = hex.guaci,
+                explanationId = ImaExplanationId.guaci(hex.number),
+                imaStore = imaStore,
+                onSelectExplanation = { selectedEntry = it },
+            )
+            ScriptureCard(
+                title = "彖辞",
+                body = HexagramText.prefixed("彖曰：", hex.tuanci),
+                explanationId = ImaExplanationId.tuanci(hex.number),
+                imaStore = imaStore,
+                onSelectExplanation = { selectedEntry = it },
+            )
+            ScriptureCard(
+                title = "大象",
+                body = HexagramText.prefixed("象曰：", hex.daxiang),
+                explanationId = ImaExplanationId.daxiang(hex.number),
+                imaStore = imaStore,
+                onSelectExplanation = { selectedEntry = it },
+            )
+            hex.yaoci.zip(hex.xiaoxiang).forEachIndexed { index, (ci, xiang) ->
+                ScriptureCard(
+                    body = ci,
+                    footnote = "象曰：$xiang",
+                    explanationId = ImaExplanationId.yaoPair(hex.number, index + 1),
+                    imaStore = imaStore,
+                    onSelectExplanation = { selectedEntry = it },
+                )
             }
             hex.yong?.let { ScriptureCard(body = it.ci, footnote = "象曰：${it.xiang}") }
             if (hex.wenyan.isNotEmpty()) {
                 ScriptureCard("文言", hex.wenyan.joinToString("\n\n"))
             }
         }
+    }
+    selectedEntry?.let { entry ->
+        ImaExplanationSheet(
+            entry = entry,
+            source = imaStore.source,
+            onDismiss = { selectedEntry = null },
+        )
     }
 }
 
@@ -1340,7 +1381,14 @@ private fun ChapterReader(wingTitle: String, chapter: ClassicChapter, onBack: ()
 }
 
 @Composable
-private fun ScriptureCard(title: String? = null, body: String, footnote: String? = null) {
+private fun ScriptureCard(
+    title: String? = null,
+    body: String,
+    footnote: String? = null,
+    explanationId: String? = null,
+    imaStore: ImaExplanationStore? = null,
+    onSelectExplanation: ((ImaExplanationEntry) -> Unit)? = null,
+) {
     Column(
         Modifier
             .fillMaxWidth()
@@ -1351,20 +1399,35 @@ private fun ScriptureCard(title: String? = null, body: String, footnote: String?
         if (title != null) {
             Text(title, fontWeight = FontWeight.SemiBold, color = AppTheme.accent, modifier = Modifier.padding(bottom = 6.dp))
         }
-        Text(
-            body,
-            fontSize = 16.sp,
-            color = AppTheme.ink,
-            lineHeight = 24.sp,
-        )
-        if (footnote != null) {
-            Text(
-                footnote,
-                fontSize = 16.sp,
-                color = AppTheme.ink,
-                lineHeight = 24.sp,
-                modifier = Modifier.padding(top = 6.dp),
-            )
+        val textContent: @Composable () -> Unit = {
+            Column {
+                Text(
+                    body,
+                    fontSize = 16.sp,
+                    color = AppTheme.ink,
+                    lineHeight = 24.sp,
+                )
+                if (footnote != null) {
+                    Text(
+                        footnote,
+                        fontSize = 16.sp,
+                        color = AppTheme.ink,
+                        lineHeight = 24.sp,
+                        modifier = Modifier.padding(top = 6.dp),
+                    )
+                }
+            }
+        }
+        if (explanationId != null && imaStore != null && onSelectExplanation != null) {
+            TappableScripture(
+                explanationId = explanationId,
+                imaStore = imaStore,
+                onSelect = onSelectExplanation,
+            ) {
+                textContent()
+            }
+        } else {
+            textContent()
         }
     }
 }

@@ -17,6 +17,7 @@ struct YizhidaoApp: App {
         UserDefaults.standard.set(false, forKey: "NSURLSessionHTTP3Enabled")
         AppLanguage.installBundleHook()
         _ = HexagramStore.shared
+        _ = ImaExplanationStore.shared
         TapSoundPlayer.shared.prepare()
     }
 

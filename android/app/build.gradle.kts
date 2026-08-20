@@ -10,7 +10,7 @@ val generatedAssets = layout.buildDirectory.dir("generated/iosAssets")
 
 val copyIosAssets by tasks.registering(Copy::class) {
     from(iosResources) {
-        include("Hexagrams.json", "cases.json", "YijingIntro.json")
+        include("Hexagrams.json", "cases.json", "YijingIntro.json", "ImaExplanations.json")
     }
     into(generatedAssets)
 }
