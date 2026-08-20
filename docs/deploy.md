@@ -141,7 +141,7 @@ docker compose -f docker-compose.prod.yml up -d --build
 ```bash
 # 在服务器 ~/yizhidao/backend
 docker compose -f docker-compose.prod.yml cp \
-  ../Yizhidao/Resources/cases.json api:/app/data/cases.json
+  ../ios/Yizhidao/Resources/cases.json api:/app/data/cases.json
 ```
 
 或随代码一起重建镜像（卷里若已有 `cases.json` 会继续盖过镜像，要镜像生效就先删卷内该文件）。

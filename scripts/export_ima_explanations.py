@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Export slim ImaExplanations.json into Yizhidao/Resources (iOS bundle; Android copies via copyIosAssets)."""
+"""Export slim ImaExplanations.json into ios/Yizhidao/Resources (iOS bundle; Android copies via copyIosAssets)."""
 from __future__ import annotations
 
 import json
@@ -11,7 +11,7 @@ sys.path.insert(0, str(ROOT / "scripts"))
 from ima_units import is_bad  # noqa: E402
 
 ANSWERS = ROOT / "data/ima-explanations/answers.json"
-OUT = ROOT / "Yizhidao/Resources/ImaExplanations.json"
+OUT = ROOT / "ios/Yizhidao/Resources/ImaExplanations.json"
 
 
 def yao_head(yaoci_text: str) -> str:

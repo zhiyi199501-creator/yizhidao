@@ -10,8 +10,8 @@ import json
 from collections import Counter
 
 ROOT = Path(__file__).resolve().parents[1]
-CASES = ROOT / "Yizhidao/Resources/cases.json"
-HEXES = ROOT / "Yizhidao/Resources/Hexagrams.json"
+CASES = ROOT / "ios/Yizhidao/Resources/cases.json"
+HEXES = ROOT / "ios/Yizhidao/Resources/Hexagrams.json"
 OUT = ROOT / "案例编辑表.xlsx"
 
 FONT = Font(name="Arial", size=11)
@@ -42,7 +42,7 @@ info = [
     ("删除：删整行。", FONT),
     ("卦名：写「屯」或「屯卦」均可，写回 App 时会重新对应卦号。", FONT),
     ("爻位：初爻 / 二爻 / 三爻 / 四爻 / 五爻 / 上爻 / 卦辞（可写「三爻、四爻」）。", FONT),
-    ("改完保存本文件，在对话里说「写回案例」，会同步到 Yizhidao/Resources/cases.json。", FONT),
+    ("改完保存本文件，在对话里说「写回案例」，会同步到 ios/Yizhidao/Resources/cases.json。", FONT),
 ]
 for i, (text, font) in enumerate(info, start=1):
     cell = ws_info.cell(i, 1, text)
@@ -102,7 +102,7 @@ for i, h in enumerate(hexes, start=2):
 ws_g.cell(66, 3, "合计").font = FONT_BOLD
 ws_g.cell(66, 4, total).font = FONT_BOLD
 ws_g.cell(66, 4).alignment = Alignment(horizontal="right")
-note = ws_g.cell(68, 1, "案例数来自 Yizhidao/Resources/cases.json 导出当时的条数（2026-08-17）。改「案例」表后重新运行 scripts/export_cases.py 会刷新本表。")
+note = ws_g.cell(68, 1, "案例数来自 ios/Yizhidao/Resources/cases.json 导出当时的条数（2026-08-17）。改「案例」表后重新运行 scripts/export_cases.py 会刷新本表。")
 note.font = Font(name="Arial", size=10, italic=True)
 note.alignment = Alignment(wrap_text=True)
 ws_g.merge_cells("A68:D69")

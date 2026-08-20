@@ -11,7 +11,7 @@ from collections import defaultdict
 from pathlib import Path
 
 XLSX = Path(__file__).resolve().parents[1] / "易经正文编辑表.xlsx"
-HEXES = Path(__file__).resolve().parents[1] / "Yizhidao/Resources/Hexagrams.json"
+HEXES = Path(__file__).resolve().parents[1] / "ios/Yizhidao/Resources/Hexagrams.json"
 
 NS = "http://schemas.openxmlformats.org/spreadsheetml/2006/main"
 REL_NS = "http://schemas.openxmlformats.org/officeDocument/2006/relationships"

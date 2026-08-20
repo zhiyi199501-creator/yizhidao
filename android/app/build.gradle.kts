@@ -5,7 +5,7 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
 }
 
-val iosResources = rootProject.projectDir.resolve("../Yizhidao/Resources")
+val iosResources = rootProject.projectDir.resolve("../ios/Yizhidao/Resources")
 val generatedAssets = layout.buildDirectory.dir("generated/iosAssets")
 
 val copyIosAssets by tasks.registering(Copy::class) {

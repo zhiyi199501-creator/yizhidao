@@ -9,9 +9,10 @@ whisper 识别成同音/音近字的经文片段逐字纠正回标准经文。
 输出目录缺省时原地覆盖源目录。报告为 markdown。
 """
 import json, re, os, sys, glob
+from pathlib import Path
 from pypinyin import lazy_pinyin
 
-HEXES = "Yizhidao/Resources/Hexagrams.json"
+HEXES = Path(__file__).resolve().parents[1] / "ios/Yizhidao/Resources/Hexagrams.json"
 PUNCT = set("，。、；：！？ ！？\"'（）()·—…～~")
 
 def norm_pinyin(p):

@@ -9,8 +9,8 @@
 **/.DS_Store
 **/xcuserdata
 **/*.xcuserstate
-Yizhidao.xcodeproj
-YizhidaoTests
+ios/Yizhidao.xcodeproj
+ios/YizhidaoTests
 docs
 backend/.venv
 backend/*.db

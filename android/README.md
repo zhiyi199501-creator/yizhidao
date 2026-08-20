@@ -19,7 +19,7 @@ cd android
 ./gradlew :engines:test
 ```
 
-应与 iOS `YizhidaoTests` 对齐：三数 / 时间起卦、金钱卦、文王序、主看规则、经文加载。
+应与 iOS `ios/YizhidaoTests` 对齐：三数 / 时间起卦、金钱卦、文王序、主看规则、经文加载。
 
 ## 打开 App
 
@@ -34,7 +34,7 @@ cd android
 
 `applicationId`：`com.yizhidao.app`。Release API：`https://yzh.codedance.work`（与 iOS 相同；勿用 `yizhidao.codedance.work`）。生产 HTTPS 必须走 **Cronet**，不要改回 `HttpURLConnection`。
 
-经文／案例／入门／IMA 讲解 JSON 构建时从 `Yizhidao/Resources/` 拷贝（`copyIosAssets`），勿在 `android/` 另维护一份。重新导出讲解：`python3 scripts/export_ima_explanations.py`。
+经文／案例／入门／IMA 讲解 JSON 构建时从 `ios/Yizhidao/Resources/` 拷贝（`copyIosAssets`），勿在 `android/` 另维护一份。重新导出讲解：`python3 scripts/export_ima_explanations.py`。
 
 ## 连生产
 

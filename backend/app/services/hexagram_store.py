@@ -6,7 +6,7 @@ from typing import Any, Dict, Optional
 from app.config import settings
 
 _REPO_ROOT = Path(__file__).resolve().parents[3]
-_DEFAULT_HEXAGRAMS_PATH = _REPO_ROOT / "Yizhidao/Resources/Hexagrams.json"
+_DEFAULT_HEXAGRAMS_PATH = _REPO_ROOT / "ios/Yizhidao/Resources/Hexagrams.json"
 _DOCKER_HEXAGRAMS_PATH = Path(__file__).resolve().parents[2] / "data" / "Hexagrams.json"
 
 

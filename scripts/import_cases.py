@@ -10,8 +10,8 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 
 XLSX = Path(__file__).resolve().parents[1] / "案例编辑表.xlsx"
-HEXES = Path(__file__).resolve().parents[1] / "Yizhidao/Resources/Hexagrams.json"
-OUT = Path(__file__).resolve().parents[1] / "Yizhidao/Resources/cases.json"
+HEXES = Path(__file__).resolve().parents[1] / "ios/Yizhidao/Resources/Hexagrams.json"
+OUT = Path(__file__).resolve().parents[1] / "ios/Yizhidao/Resources/cases.json"
 
 NS = "http://schemas.openxmlformats.org/spreadsheetml/2006/main"
 REL_NS = "http://schemas.openxmlformats.org/officeDocument/2006/relationships"

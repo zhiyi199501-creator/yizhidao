@@ -5,13 +5,13 @@
 ## 要求
 
 - Xcode 15+ / iOS 17+
-- macOS 上打开 `Yizhidao.xcodeproj`
+- macOS 上打开 `ios/Yizhidao.xcodeproj`
 - 联调登录 / AI：Python 3.9+（见 `backend/`）
 
 ## 打开与运行
 
 ```bash
-open Yizhidao.xcodeproj
+open ios/Yizhidao.xcodeproj
 ```
 
 选择任意 iPhone Simulator，⌘R 运行。
@@ -19,7 +19,7 @@ open Yizhidao.xcodeproj
 ## 测试
 
 ```bash
-xcodebuild test -scheme Yizhidao -destination 'platform=iOS Simulator,name=iPhone 17' -derivedDataPath .derivedData -quiet
+xcodebuild test -project ios/Yizhidao.xcodeproj -scheme Yizhidao -destination 'platform=iOS Simulator,name=iPhone 17' -derivedDataPath .derivedData -quiet
 ```
 
 ## 功能
@@ -42,17 +42,18 @@ xcodebuild test -scheme Yizhidao -destination 'platform=iOS Simulator,name=iPhon
 
 | 路径 | 内容 |
 |---|---|
+| `ios/` | SwiftUI App（`Yizhidao.xcodeproj`） |
 | `android/` | Kotlin 引擎 + Compose App（见 `android/README.md`） |
-| `Yizhidao/App/` | 入口、`AppTheme`、`AppNavigation`、登录与「我的」 |
-| `Yizhidao/Engines/` | 数字 / 金钱起卦、京房卦序、农历／公历时辰 |
-| `Yizhidao/Domain/` | 模型与 `ReadingGuide` 解卦焦点 |
-| `Yizhidao/Features/` | 起卦 UI、结果（含 AI 追问/保存）、历史（含按卦）、案例 |
-| `Yizhidao/Data/` | SwiftData `ReadingRecord`、回收站、`SavedAIAnalysis`、经文加载、`ImaExplanationStore` |
-| `Yizhidao/Resources/Hexagrams.json` | 64 卦（卦辞／彖／象／爻／用九用六／文言）+ 系辞／说卦／序卦／杂卦。编辑根目录 `易经正文编辑表.xlsx` → `python3 scripts/import_jingwen.py` |
-| `Yizhidao/Resources/Zhengshi.json` | 《易经证释》全册阅读稿；由 `scripts/import_zhengshi.py` 从全册 `.doc` 生成，暂未挂「我的」入口 |
-| `Yizhidao/Resources/cases.json` | 讲习案例底稿（按卦号；离线与 AI 提示词共用）。App 打开案例页走 `GET /v1/cases`；线上以服务端列表为准 |
-| `Yizhidao/Resources/ImaExplanations.json` | IMA 黄庭书院讲解（卦辞／彖／大象／爻+小象／用九用六／文言）；`python3 scripts/export_ima_explanations.py` 自 `data/ima-explanations/`（gitignore）导出 |
-| `YizhidaoTests/` | 起卦、时辰、`ReadingGuide` 单测 |
+| `ios/Yizhidao/App/` | 入口、`AppTheme`、`AppNavigation`、登录与「我的」 |
+| `ios/Yizhidao/Engines/` | 数字 / 金钱起卦、京房卦序、农历／公历时辰 |
+| `ios/Yizhidao/Domain/` | 模型与 `ReadingGuide` 解卦焦点 |
+| `ios/Yizhidao/Features/` | 起卦 UI、结果（含 AI 追问/保存）、历史（含按卦）、案例 |
+| `ios/Yizhidao/Data/` | SwiftData `ReadingRecord`、回收站、`SavedAIAnalysis`、经文加载、`ImaExplanationStore` |
+| `ios/Yizhidao/Resources/Hexagrams.json` | 64 卦（卦辞／彖／象／爻／用九用六／文言）+ 系辞／说卦／序卦／杂卦。编辑根目录 `易经正文编辑表.xlsx` → `python3 scripts/import_jingwen.py` |
+| `ios/Yizhidao/Resources/Zhengshi.json` | 《易经证释》全册阅读稿；由 `scripts/import_zhengshi.py` 从全册 `.doc` 生成，暂未挂「我的」入口 |
+| `ios/Yizhidao/Resources/cases.json` | 讲习案例底稿（按卦号；离线与 AI 提示词共用）。App 打开案例页走 `GET /v1/cases`；线上以服务端列表为准 |
+| `ios/Yizhidao/Resources/ImaExplanations.json` | IMA 黄庭书院讲解（卦辞／彖／大象／爻+小象／用九用六／文言）；`python3 scripts/export_ima_explanations.py` 自 `data/ima-explanations/`（gitignore）导出 |
+| `ios/YizhidaoTests/` | 起卦、时辰、`ReadingGuide` 单测 |
 | `docs/backend-min-spec.md` | 登录与 AI（含追问）现役接口 |
 | `docs/deploy.md` | 后端 Docker + Caddy 上线指南 |
 | `backend/` | FastAPI：短信登录 + AI 解读 |

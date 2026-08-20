@@ -13,7 +13,7 @@ android/.kotlin/
 *.xcuserstate
 xcuserdata/
 .DS_Store
-Yizhidao/Resources/AppIcon-source.png
+ios/Yizhidao/Resources/AppIcon-source.png
 backend/.venv/
 backend/.env
 backend/*.db

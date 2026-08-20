@@ -7,8 +7,8 @@
 **/.env
 **/*.db
 **/.DS_Store
-Yizhidao.xcodeproj
-YizhidaoTests
+ios/Yizhidao.xcodeproj
+ios/YizhidaoTests
 docs
 *.md
 !backend/README.md
