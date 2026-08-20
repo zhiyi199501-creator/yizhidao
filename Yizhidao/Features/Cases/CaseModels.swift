@@ -48,7 +48,8 @@ struct CaseStudy: Codable, Identifiable, Hashable {
 final class CaseStore: ObservableObject {
     static let shared = CaseStore()
 
-    @Published private(set) var cases: [CaseStudy]
+    @Published private var rawCases: [CaseStudy]
+    var cases: [CaseStudy] { rawCases.map(\.zhDisplayed) }
 
     private let versionKey = "yizhidao.cases.version"
     private let cacheURL: URL
@@ -59,7 +60,7 @@ final class CaseStore: ObservableObject {
         let dir = support.appendingPathComponent("Yizhidao", isDirectory: true)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         cacheURL = dir.appendingPathComponent("cases.json")
-        cases = Self.load(from: cacheURL) ?? Self.loadBundle() ?? []
+        rawCases = Self.load(from: cacheURL) ?? Self.loadBundle() ?? []
     }
 
     func refresh() async {
@@ -70,7 +71,7 @@ final class CaseStore: ObservableObject {
             case .notModified:
                 return
             case .updated(let version, let remote):
-                cases = remote
+                rawCases = remote
                 UserDefaults.standard.set(version, forKey: versionKey)
                 try? JSONEncoder().encode(remote).write(to: cacheURL, options: .atomic)
             }

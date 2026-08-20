@@ -47,7 +47,7 @@ struct AIBadgeIcon: View {
     var compact: Bool = false
 
     var body: some View {
-        Text("AI")
+        Text("AI".zh)
             .font(.system(size: compact ? 13 : 15, weight: .bold, design: .rounded))
             .foregroundStyle(AppTheme.accent)
             .accessibilityLabel("AI")
@@ -59,13 +59,13 @@ struct AIFloatingButton: View {
 
     var body: some View {
         Button(action: action) {
-            Text("AI")
+            Text("AI".zh)
                 .font(.system(size: 20, weight: .bold, design: .rounded))
                 .foregroundStyle(.white)
                 .frame(width: 50, height: 50)
                 .background(Circle().fill(AppTheme.accent))
         }
         .buttonStyle(.plain)
-        .accessibilityLabel("AI 解读")
+        .accessibilityLabel("AI 解读".zh)
     }
 }

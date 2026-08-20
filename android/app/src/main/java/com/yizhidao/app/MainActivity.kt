@@ -1,6 +1,9 @@
 package com.yizhidao.app
 
+import android.content.Context
+import android.content.res.Configuration
 import android.os.Bundle
+import android.view.View
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -15,9 +18,16 @@ import com.yizhidao.app.ui.YizhidaoRoot
 import com.yizhidao.app.ui.theme.YizhidaoTheme
 
 class MainActivity : ComponentActivity() {
+    override fun attachBaseContext(newBase: Context) {
+        val config = Configuration(newBase.resources.configuration)
+        config.fontScale = 1f
+        super.attachBaseContext(newBase.createConfigurationContext(config))
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        window.decorView.importantForAutofill = View.IMPORTANT_FOR_AUTOFILL_NO_EXCLUDE_DESCENDANTS
         val app = application as YizhidaoApplication
         setContent {
             YizhidaoTheme {

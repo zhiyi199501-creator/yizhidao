@@ -22,7 +22,8 @@ HEADER_FILL = PatternFill(start_color="E8E0D4", end_color="E8E0D4", fill_type="s
 WRAP = Alignment(wrap_text=True, vertical="top")
 
 cases = json.loads(CASES.read_text(encoding="utf-8"))
-hexes = json.loads(HEXES.read_text(encoding="utf-8"))
+_raw_hexes = json.loads(HEXES.read_text(encoding="utf-8"))
+hexes = _raw_hexes["hexagrams"] if isinstance(_raw_hexes, dict) else _raw_hexes
 cases.sort(key=lambda c: (c.get("number") or 99, c.get("file") or ""))
 
 headers = ["编号", "卦名", "爻位", "背景", "所问何事", "起卦结果", "讲师解读", "验证结果"]

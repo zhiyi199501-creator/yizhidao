@@ -175,5 +175,9 @@ class HexagramStoreTest {
         assertTrue(qian.daxiang.contains("自强不息"))
         assertTrue(qian.xiaoXiang(1).contains("阳在下"))
         assertTrue(qian.guaci.contains("元"))
+        assertTrue(qian.yong?.ci?.contains("用九") == true)
+        assertTrue(qian.wenyan.isNotEmpty())
+        assertTrue(store.hexagram(2)?.yong?.ci?.contains("用六") == true)
+        assertTrue(store.hexagram(24)?.yaoci?.last()?.contains("十年") == true)
     }
 }

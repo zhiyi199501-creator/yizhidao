@@ -14,7 +14,10 @@ struct YizhidaoApp: App {
     }()
 
     init() {
+        UserDefaults.standard.set(false, forKey: "NSURLSessionHTTP3Enabled")
+        AppLanguage.installBundleHook()
         _ = HexagramStore.shared
+        TapSoundPlayer.shared.prepare()
     }
 
     var body: some Scene {
@@ -27,41 +30,46 @@ struct YizhidaoApp: App {
 
 struct RootTabView: View {
     @State private var appNavigation = AppNavigation()
+    @AppStorage(AppLanguage.storageKey) private var languageRaw = AppLanguage.simplified.rawValue
 
     var body: some View {
         @Bindable var appNavigation = appNavigation
+        let language = AppLanguage(rawValue: languageRaw) ?? .simplified
         TabView(selection: $appNavigation.selectedTab) {
             CastingHomeView()
+                .id(languageRaw)
                 .tabItem {
-                    Label("起卦", systemImage: "sparkles")
+                    Label("起卦".zh, systemImage: "sparkles")
                 }
                 .tag(AppTab.cast)
             HistoryListView()
+                .id(languageRaw)
                 .tabItem {
-                    Label("历史", systemImage: "clock")
+                    Label("历史".zh, systemImage: "clock")
                 }
                 .tag(AppTab.history)
             CaseListView()
+                .id(languageRaw)
                 .tabItem {
-                    Label("案例", systemImage: "books.vertical")
+                    Label("案例".zh, systemImage: "books.vertical")
                 }
                 .tag(AppTab.cases)
             MyMenuView()
+                .id(languageRaw)
                 .tabItem {
-                    Label("我的", systemImage: "person.crop.circle")
+                    Label("我的".zh, systemImage: "person.crop.circle")
                 }
                 .tag(AppTab.me)
         }
         .tint(AppTheme.accent)
         .preferredColorScheme(.light)
-        .environment(\.locale, Locale(identifier: "zh_CN"))
+        .environment(\.locale, language.locale)
         .environment(appNavigation)
         .animation(nil, value: appNavigation.selectedTab)
     }
 }
 
 struct MyMenuView: View {
-    @State private var recycleEntries: [HistoryTrashEntry] = HistoryTrashStore.load()
     @State private var session: LocalUserSession = LocalAuthStore.load()
     @State private var showLoginSheet = false
     @State private var openAIAnalysisPage = false
@@ -80,7 +88,7 @@ struct MyMenuView: View {
                                     .font(.title2)
                                     .foregroundStyle(AppTheme.accent)
                                 VStack(alignment: .leading, spacing: 2) {
-                                    Text(session.displayName)
+                                    Text(session.displayName.zh)
                                         .foregroundStyle(.primary)
                                 }
                                 Spacer()
@@ -91,13 +99,13 @@ struct MyMenuView: View {
                             Image(systemName: "person.crop.circle.badge.exclamationmark")
                                 .foregroundStyle(.secondary)
                             VStack(alignment: .leading, spacing: 2) {
-                                Text("未登录")
-                                Text("支持手机号或微信登录")
+                                Text("未登录".zh)
+                                Text("支持手机号或微信登录".zh)
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
                             }
                             Spacer()
-                            Button("登录") {
+                            Button("登录".zh) {
                                 showLoginSheet = true
                             }
                         }
@@ -114,10 +122,10 @@ struct MyMenuView: View {
                         }
                     } label: {
                         HStack {
-                            Label("AI解读历史", systemImage: "text.book.closed")
+                            Label("保存的AI解读".zh, systemImage: "text.book.closed")
                             Spacer()
                             if !session.isLoggedIn {
-                                Text("需登录")
+                                Text("需登录".zh)
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
                             }
@@ -127,14 +135,19 @@ struct MyMenuView: View {
 
                 Section {
                     NavigationLink {
-                        RecycleBinView()
+                        YijingIntroListView()
                     } label: {
-                        HStack {
-                            Label("回收站", systemImage: "trash")
-                            Spacer()
-                            Text("\(recycleEntries.count)")
-                                .foregroundStyle(.secondary)
-                        }
+                        Label("易经基础入门".zh, systemImage: "text.book.closed")
+                    }
+                    NavigationLink {
+                        ClassicHexagramListView()
+                    } label: {
+                        Label("易经六十四卦".zh, systemImage: "book")
+                    }
+                    NavigationLink {
+                        ClassicWingListView()
+                    } label: {
+                        Label("易经四传".zh, systemImage: "scroll")
                     }
                 }
 
@@ -142,18 +155,17 @@ struct MyMenuView: View {
                     NavigationLink {
                         SettingsView(session: $session)
                     } label: {
-                        Label("设置", systemImage: "gearshape")
+                        Label("设置".zh, systemImage: "gearshape")
                     }
                 }
             }
-            .navigationTitle("我的")
+            .navigationTitle("我的".zh)
             .navigationBarTitleDisplayMode(.inline)
             .parchmentBackground()
             .navigationDestination(isPresented: $openAIAnalysisPage) {
                 AIAnalysisHistoryView()
             }
             .onAppear {
-                recycleEntries = HistoryTrashStore.load()
                 session = LocalAuthStore.load()
                 Task { await refreshSessionIfNeeded() }
             }
@@ -243,20 +255,20 @@ struct LoginSheetView: View {
                     }
                     showWechatTip = true
                 } label: {
-                    Label("微信登录（待接入）", systemImage: "message.fill")
+                    Label("微信登录（待接入）".zh, systemImage: "message.fill")
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.borderedProminent)
                 .tint(AppTheme.accent)
-                .alert("暂未接入", isPresented: $showWechatTip) {
-                    Button("知道了", role: .cancel) {}
+                .alert("暂未接入".zh, isPresented: $showWechatTip) {
+                    Button("知道了".zh, role: .cancel) {}
                 } message: {
-                    Text("当前为本地演示版，后续接入真实微信登录。")
+                    Text("当前为本地演示版，后续接入真实微信登录。".zh)
                 }
 
                 HStack {
                     Rectangle().fill(Color.black.opacity(0.1)).frame(height: 1)
-                    Text("或使用手机号")
+                    Text("或使用手机号".zh)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                     Rectangle().fill(Color.black.opacity(0.1)).frame(height: 1)
@@ -269,13 +281,13 @@ struct LoginSheetView: View {
                     TextField("验证码", text: $code)
                         .keyboardType(.numberPad)
                         .appTextFieldStyle()
-                    Button(cooldownSec > 0 ? "\(cooldownSec)s" : "发送验证码") {
+                    Button(cooldownSec > 0 ? "\(cooldownSec)s" : "发送验证码".zh) {
                         Task { await sendCode() }
                     }
                     .buttonStyle(.bordered)
                     .disabled(isSendingCode || cooldownSec > 0 || phone.trimmingCharacters(in: .whitespacesAndNewlines).count < 6)
                 }
-                Button("手机号登录") {
+                Button("手机号登录".zh) {
                     guard agreed else {
                         errorMessage = "请先勾选并同意用户协议与隐私政策"
                         return
@@ -287,24 +299,30 @@ struct LoginSheetView: View {
                 .disabled(isLoggingIn || phone.count < 6 || code.isEmpty)
 
                 Toggle(isOn: $agreed) {
-                    Text("已阅读并同意《用户协议》《隐私政策》")
+                    Text("已阅读并同意《用户协议》《隐私政策》".zh)
                         .font(.caption)
                 }
 
                 if let errorMessage {
-                    Text(errorMessage)
+                    Text(errorMessage.zh)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
 
+                #if DEBUG
+                Text("当前接口：\(AuthAPI.debugEndpoint)")
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+                #endif
+
                 Spacer()
             }
             .padding()
-            .navigationTitle("登录")
+            .navigationTitle("登录".zh)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button("取消") { dismiss() }
+                    Button("取消".zh) { dismiss() }
                 }
             }
             .parchmentBackground()
@@ -329,7 +347,7 @@ struct LoginSheetView: View {
             errorMessage = "验证码已发送"
             startCooldown()
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = LoginError.describe(error)
         }
     }
 
@@ -354,7 +372,7 @@ struct LoginSheetView: View {
                 )
             )
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = LoginError.describe(error)
         }
     }
 
@@ -376,12 +394,27 @@ enum AuthAPI {
     #if targetEnvironment(simulator)
     private static let baseURL = URL(string: "http://127.0.0.1:8080")!
     #else
-    /// 真机联调：Mac 局域网 IP；变更时在 Mac 终端执行 `ipconfig getifaddr en0`
+    /// 真机 Debug：填 Mac 的局域网 IP（`ipconfig getifaddr en0`），不要填手机 IP。
     private static let baseURL = URL(string: "http://172.20.10.10:8080")!
     #endif
     #else
-    private static let baseURL = URL(string: "https://yizhidao.codedance.work")!
+    /// 全新子域，避开 iPhone 11 上已损坏的 yizhidao.codedance.work。需 DNS A → 43.128.104.104。
+    private static let baseURL = URL(string: "https://yzh.codedance.work")!
     #endif
+
+    static var debugEndpoint: String { baseURL.absoluteString }
+
+    /// 不用 URLSession.shared：系统会缓存 HTTP/3，iPhone 11 在关 h3 后会一直 TLS 失败（-1200）。
+    private static let session: URLSession = {
+        let config = URLSessionConfiguration.ephemeral
+        config.timeoutIntervalForRequest = 20
+        config.timeoutIntervalForResource = 180
+        config.waitsForConnectivity = false
+        config.urlCache = nil
+        config.requestCachePolicy = .reloadIgnoringLocalCacheData
+        return URLSession(configuration: config)
+    }()
+    private static let aiTimeout: TimeInterval = 180
 
     struct SMSCodeResponse: Decodable {
         let ok: Bool
@@ -404,12 +437,21 @@ enum AuthAPI {
         let code: Int?
     }
 
+    private static func jsonRequest(path: String, method: String, timeout: TimeInterval = 15) -> URLRequest {
+        var req = URLRequest(url: baseURL.appendingPathComponent(path))
+        req.httpMethod = method
+        req.timeoutInterval = timeout
+        if #available(iOS 14.0, *) {
+            req.assumesHTTP3Capable = false
+        }
+        return req
+    }
+
     static func sendSMSCode(phone: String) async throws -> SMSCodeResponse {
-        var req = URLRequest(url: baseURL.appendingPathComponent("v1/auth/sms/send"))
-        req.httpMethod = "POST"
+        var req = jsonRequest(path: "v1/auth/sms/send", method: "POST")
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
         req.httpBody = try JSONSerialization.data(withJSONObject: ["phone": phone])
-        let (data, response) = try await URLSession.shared.data(for: req)
+        let (data, response) = try await session.data(for: req)
         guard let http = response as? HTTPURLResponse else { throw LoginError.network("网络异常") }
         guard (200..<300).contains(http.statusCode) else { throw decodeError(data, fallback: "发送验证码失败") }
         let decoded = try JSONDecoder().decode(SMSCodeResponse.self, from: data)
@@ -418,11 +460,10 @@ enum AuthAPI {
     }
 
     static func loginBySMS(phone: String, code: String) async throws -> SMSLoginResponse {
-        var req = URLRequest(url: baseURL.appendingPathComponent("v1/auth/sms/login"))
-        req.httpMethod = "POST"
+        var req = jsonRequest(path: "v1/auth/sms/login", method: "POST")
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
         req.httpBody = try JSONSerialization.data(withJSONObject: ["phone": phone, "code": code])
-        let (data, response) = try await URLSession.shared.data(for: req)
+        let (data, response) = try await session.data(for: req)
         guard let http = response as? HTTPURLResponse else { throw LoginError.network("网络异常") }
         guard (200..<300).contains(http.statusCode) else { throw decodeError(data, fallback: "登录失败") }
         let decoded = try JSONDecoder().decode(SMSLoginResponse.self, from: data)
@@ -441,10 +482,9 @@ enum AuthAPI {
     }
 
     static func fetchMe(accessToken: String) async throws -> MeResponse {
-        var req = URLRequest(url: baseURL.appendingPathComponent("v1/me"))
-        req.httpMethod = "GET"
+        var req = jsonRequest(path: "v1/me", method: "GET")
         req.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
-        let (data, response) = try await URLSession.shared.data(for: req)
+        let (data, response) = try await session.data(for: req)
         guard let http = response as? HTTPURLResponse else { throw LoginError.network("网络异常") }
         if http.statusCode == 401 {
             throw LoginError.unauthorized
@@ -486,14 +526,12 @@ enum AuthAPI {
             payload["resultingNumber"] = resultingNumber
         }
 
-        var req = URLRequest(url: baseURL.appendingPathComponent("v1/ai/analyze"))
-        req.httpMethod = "POST"
+        var req = jsonRequest(path: "v1/ai/analyze", method: "POST", timeout: aiTimeout)
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
         req.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+        req.timeoutInterval = aiTimeout
         req.httpBody = try JSONSerialization.data(withJSONObject: payload)
-        let (data, response) = try await URLSession.shared.data(for: req)
-        guard let http = response as? HTTPURLResponse else { throw LoginError.network("网络异常") }
-        guard (200..<300).contains(http.statusCode) else { throw decodeError(data, fallback: "解读失败") }
+        let data = try await perform(req, fallback: "解读失败")
         let decoded = try JSONDecoder().decode(AIAnalyzeResponse.self, from: data)
         guard decoded.ok else { throw LoginError.network("解读失败") }
         return decoded
@@ -529,14 +567,12 @@ enum AuthAPI {
             payload["resultingNumber"] = resultingNumber
         }
 
-        var req = URLRequest(url: baseURL.appendingPathComponent("v1/ai/followup"))
-        req.httpMethod = "POST"
+        var req = jsonRequest(path: "v1/ai/followup", method: "POST", timeout: aiTimeout)
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
         req.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+        req.timeoutInterval = aiTimeout
         req.httpBody = try JSONSerialization.data(withJSONObject: payload)
-        let (data, response) = try await URLSession.shared.data(for: req)
-        guard let http = response as? HTTPURLResponse else { throw LoginError.network("网络异常") }
-        guard (200..<300).contains(http.statusCode) else { throw decodeError(data, fallback: "追问失败") }
+        let data = try await perform(req, fallback: "追问失败")
         let decoded = try JSONDecoder().decode(AIFollowupResponse.self, from: data)
         guard decoded.ok, !decoded.reply.isEmpty else { throw LoginError.network("追问失败") }
         return decoded
@@ -548,13 +584,12 @@ enum AuthAPI {
     }
 
     static func fetchCases(ifNoneMatch: String?) async throws -> CasesFetchResult {
-        var req = URLRequest(url: baseURL.appendingPathComponent("v1/cases"))
-        req.httpMethod = "GET"
+        var req = jsonRequest(path: "v1/cases", method: "GET", timeout: 20)
         req.cachePolicy = .reloadIgnoringLocalCacheData
         if let ifNoneMatch, !ifNoneMatch.isEmpty {
             req.setValue("\"\(ifNoneMatch)\"", forHTTPHeaderField: "If-None-Match")
         }
-        let (data, response) = try await URLSession.shared.data(for: req)
+        let (data, response) = try await session.data(for: req)
         guard let http = response as? HTTPURLResponse else {
             throw URLError(.badServerResponse)
         }
@@ -572,6 +607,19 @@ enum AuthAPI {
         let decoded = try JSONDecoder().decode(Envelope.self, from: data)
         guard decoded.ok else { throw URLError(.badServerResponse) }
         return .updated(version: decoded.version, cases: decoded.cases)
+    }
+
+    private static func perform(_ request: URLRequest, fallback: String) async throws -> Data {
+        let data: Data
+        let response: URLResponse
+        do {
+            (data, response) = try await session.data(for: request)
+        } catch let error as URLError where error.code == .timedOut || error.code == .networkConnectionLost {
+            throw LoginError.network("请求超时，请稍后重试")
+        }
+        guard let http = response as? HTTPURLResponse else { throw LoginError.network("网络异常") }
+        guard (200..<300).contains(http.statusCode) else { throw decodeError(data, fallback: fallback) }
+        return data
     }
 
     private static func decodeError(_ data: Data, fallback: String) -> LoginError {
@@ -593,6 +641,23 @@ enum LoginError: LocalizedError {
         case .unauthorized: return "登录已过期，请重新登录"
         }
     }
+
+    static func describe(_ error: Error) -> String {
+        if let login = error as? LoginError, let text = login.errorDescription {
+            return text
+        }
+        if let url = error as? URLError {
+            switch url.code {
+            case .timedOut:
+                return "连接超时：\(AuthAPI.debugEndpoint)"
+            case .cannotConnectToHost, .cannotFindHost, .networkConnectionLost, .notConnectedToInternet:
+                return "连不上 \(AuthAPI.debugEndpoint)"
+            default:
+                return "网络异常（\(url.code.rawValue)）：\(AuthAPI.debugEndpoint)"
+            }
+        }
+        return error.localizedDescription
+    }
 }
 
 private struct AIAnalysisHistoryView: View {
@@ -605,7 +670,7 @@ private struct AIAnalysisHistoryView: View {
                 ContentUnavailableView(
                     "还没有保存的解读",
                     systemImage: "sparkles",
-                    description: Text("觉得合适的 AI 解读，可在结果页点「保存」")
+                    description: Text("觉得合适的 AI 解读，可在结果页点「保存」".zh)
                 )
             } else {
                 List {
@@ -623,14 +688,14 @@ private struct AIAnalysisHistoryView: View {
                                 Image(systemName: "trash.fill")
                             }
                             .tint(.red)
-                            .accessibilityLabel("删除")
+                            .accessibilityLabel("删除".zh)
                         }
                     }
                 }
                 .scrollContentBackground(.hidden)
             }
         }
-        .navigationTitle("AI解读历史")
+        .navigationTitle("保存的AI解读".zh)
         .navigationBarTitleDisplayMode(.inline)
         .parchmentBackground()
         .onAppear {
@@ -642,21 +707,21 @@ private struct AIAnalysisHistoryView: View {
     private func savedRow(_ item: SavedAIAnalysis) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             if let hex = store.hexagram(number: item.primaryNumber) {
-                Text("\(hex.symbol) \(hex.name)")
+                Text("\(hex.symbol) \(hex.name)".zh)
                     .font(.headline)
             } else {
-                Text("第\(item.primaryNumber)卦")
+                Text("第\(item.primaryNumber)卦".zh)
                     .font(.headline)
             }
-            Text(ReadingRecordRow.timeString(item.updatedAt))
+            Text(ReadingRecordRow.timeString(item.updatedAt).zh)
                 .font(.caption)
                 .foregroundStyle(.secondary)
             if let question = item.question, !question.isEmpty {
-                Text(question)
+                Text(question.zh)
                     .font(.subheadline)
                     .lineLimit(1)
             } else {
-                Text(item.analysis.summary)
+                Text(item.analysis.summary.zh)
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
@@ -692,7 +757,7 @@ private struct ProfileEditView: View {
 
     var body: some View {
         List {
-            Section("头像") {
+            Section("头像".zh) {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 12) {
                         ForEach(Self.avatarOptions, id: \.self) { symbol in
@@ -718,16 +783,16 @@ private struct ProfileEditView: View {
                 }
             }
 
-            Section("昵称") {
+            Section("昵称".zh) {
                 TextField("输入昵称", text: $nicknameDraft)
                     .appTextFieldStyle()
             }
         }
-        .navigationTitle("编辑资料")
+        .navigationTitle("编辑资料".zh)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                Button("保存") {
+                Button("保存".zh) {
                     let trimmed = nicknameDraft.trimmingCharacters(in: .whitespacesAndNewlines)
                     let limited = String(trimmed.prefix(20))
                     if !(2...20).contains(limited.count) {
@@ -743,10 +808,10 @@ private struct ProfileEditView: View {
             }
         }
         .parchmentBackground()
-        .alert("保存失败", isPresented: $showValidationAlert) {
-            Button("知道了", role: .cancel) {}
+        .alert("保存失败".zh, isPresented: $showValidationAlert) {
+            Button("知道了".zh, role: .cancel) {}
         } message: {
-            Text(validationMessage)
+            Text(validationMessage.zh)
         }
     }
 }
@@ -754,30 +819,138 @@ private struct ProfileEditView: View {
 private struct SettingsView: View {
     @Binding var session: LocalUserSession
     @Environment(\.dismiss) private var dismiss
+    @AppStorage(TapSoundPlayer.defaultsKey) private var tapSound: TapSoundKind = .none
+    @AppStorage(AppLanguage.storageKey) private var appLanguage: AppLanguage = .simplified
     @State private var showLogoutConfirm = false
+    @State private var recycleCount = HistoryTrashStore.load().count
 
     var body: some View {
         List {
+            Section {
+                NavigationLink {
+                    LanguageSettingsView()
+                } label: {
+                    HStack {
+                        Label("语言".zh, systemImage: "globe")
+                        Spacer()
+                        Text(appLanguage.title.zh)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+
+            Section {
+                NavigationLink {
+                    TapSoundSettingsView()
+                } label: {
+                    HStack {
+                        Label("按键音效".zh, systemImage: "speaker.wave.2")
+                        Spacer()
+                        Text(tapSound.title.zh)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+
+            Section {
+                NavigationLink {
+                    RecycleBinView()
+                } label: {
+                    HStack {
+                        Label("回收站".zh, systemImage: "trash")
+                        Spacer()
+                        Text("\(recycleCount)".zh)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+
             if session.isLoggedIn {
                 Section {
-                    Button("退出登录", role: .destructive) {
+                    Button("退出登录".zh) {
                         showLogoutConfirm = true
                     }
                 }
             }
         }
         .scrollContentBackground(.hidden)
-        .navigationTitle("设置")
+        .navigationTitle("设置".zh)
         .navigationBarTitleDisplayMode(.inline)
         .parchmentBackground()
-        .alert("确认退出登录？", isPresented: $showLogoutConfirm) {
-            Button("取消", role: .cancel) {}
-            Button("退出登录", role: .destructive) {
+        .onAppear {
+            recycleCount = HistoryTrashStore.load().count
+        }
+        .alert("确认退出登录？".zh, isPresented: $showLogoutConfirm) {
+            Button("取消".zh, role: .cancel) {}
+            Button("退出登录".zh) {
                 session = .guest
                 LocalAuthStore.save(session)
                 dismiss()
             }
         }
+    }
+}
+
+private struct LanguageSettingsView: View {
+    @AppStorage(AppLanguage.storageKey) private var appLanguage: AppLanguage = .simplified
+
+    var body: some View {
+        List {
+            Section {
+                ForEach(AppLanguage.allCases) { language in
+                    Button {
+                        appLanguage = language
+                    } label: {
+                        HStack {
+                            Text(language.title.zh)
+                            Spacer()
+                            if appLanguage == language {
+                                Image(systemName: "checkmark")
+                                    .foregroundStyle(AppTheme.accent)
+                            }
+                        }
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+        .scrollContentBackground(.hidden)
+        .navigationTitle("语言".zh)
+        .navigationBarTitleDisplayMode(.inline)
+        .parchmentBackground()
+    }
+}
+
+private struct TapSoundSettingsView: View {
+    @AppStorage(TapSoundPlayer.defaultsKey) private var tapSound: TapSoundKind = .none
+
+    var body: some View {
+        List {
+            Section {
+                ForEach(TapSoundKind.allCases) { kind in
+                    Button {
+                        tapSound = kind
+                        TapSoundPlayer.shared.play(kind: kind)
+                    } label: {
+                        HStack {
+                            Text(kind.title.zh)
+                            Spacer()
+                            if tapSound == kind {
+                                Image(systemName: "checkmark")
+                                    .foregroundStyle(AppTheme.accent)
+                            }
+                        }
+                    }
+                    .buttonStyle(.plain)
+                }
+            } footer: {
+                Text("点按「随机」「一键随机」「摇」「一键摇满」时播放。系统静音时不会出声。".zh)
+            }
+        }
+        .scrollContentBackground(.hidden)
+        .navigationTitle("按键音效".zh)
+        .navigationBarTitleDisplayMode(.inline)
+        .parchmentBackground()
     }
 }
 
@@ -793,7 +966,7 @@ private struct RecycleBinView: View {
                 ContentUnavailableView(
                     "回收站为空",
                     systemImage: "trash",
-                    description: Text("删除的记录会先放在这里，可恢复")
+                    description: Text("删除的记录会先放在这里，可恢复".zh)
                 )
             } else {
                 List {
@@ -801,36 +974,36 @@ private struct RecycleBinView: View {
                         VStack(alignment: .leading, spacing: 4) {
                             HStack(spacing: 6) {
                                 if let hex = store.hexagram(number: entry.primaryNumber) {
-                                    Text("\(hex.symbol) \(hex.name)")
+                                    Text("\(hex.symbol) \(hex.name)".zh)
                                         .font(.headline)
                                 } else {
-                                    Text("第\(entry.primaryNumber)卦")
+                                    Text("第\(entry.primaryNumber)卦".zh)
                                         .font(.headline)
                                 }
                                 if let resulting = entry.resultingNumber {
-                                    Text("→")
+                                    Text("→".zh)
                                         .foregroundStyle(.secondary)
                                     if let hex = store.hexagram(number: resulting) {
-                                        Text("\(hex.symbol) \(hex.name)")
+                                        Text("\(hex.symbol) \(hex.name)".zh)
                                             .font(.headline)
                                     } else {
-                                        Text("第\(resulting)卦")
+                                        Text("第\(resulting)卦".zh)
                                             .font(.headline)
                                     }
                                 }
                             }
                             .lineLimit(1)
-                            Text(ReadingRecordRow.timeString(entry.createdAt))
+                            Text(ReadingRecordRow.timeString(entry.createdAt).zh)
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                             if let question = entry.question, !question.isEmpty {
-                                Text(question)
+                                Text(question.zh)
                                     .font(.subheadline)
                                     .lineLimit(1)
                             }
                         }
                         .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                            Button("恢复") {
+                            Button("恢复".zh) {
                                 modelContext.insert(entry.toReadingRecord())
                                 try? modelContext.save()
                                 HistoryTrashStore.remove(entryID: entry.id)
@@ -838,7 +1011,7 @@ private struct RecycleBinView: View {
                             }
                             .tint(.green)
 
-                            Button("彻底删除", role: .destructive) {
+                            Button("彻底删除".zh, role: .destructive) {
                                 HistoryTrashStore.remove(entryID: entry.id)
                                 entries = HistoryTrashStore.load()
                             }
@@ -849,26 +1022,26 @@ private struct RecycleBinView: View {
                 .scrollContentBackground(.hidden)
             }
         }
-        .navigationTitle("回收站")
+        .navigationTitle("回收站".zh)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             if !entries.isEmpty {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("清空") {
+                    Button("清空".zh) {
                         showClearConfirm = true
                     }
                     .tint(.red)
                 }
             }
         }
-        .alert("确认清空？", isPresented: $showClearConfirm) {
-            Button("取消", role: .cancel) {}
-            Button("确定", role: .destructive) {
+        .alert("确认清空？".zh, isPresented: $showClearConfirm) {
+            Button("取消".zh, role: .cancel) {}
+            Button("确定".zh, role: .destructive) {
                 HistoryTrashStore.clearAll()
                 entries = []
             }
         } message: {
-            Text("回收站中的记录将被彻底删除，无法恢复。")
+            Text("回收站中的记录将被彻底删除，无法恢复。".zh)
         }
         .parchmentBackground()
         .onAppear {

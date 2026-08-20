@@ -1,6 +1,6 @@
 # 易知道最小后端接口（登录 + AI + 案例热更新）
 
-本文件是现役接口合同。`GET /v1/cases` 已在 `feature/cases-live-update` 实现，**尚未合入 main / 尚未部署到生产**（生产核过日：2026-08-16，仅 `analyze` / `followup` / `me`）。
+本文件是现役接口合同（路径与字段）。App Release 基址为 `https://yzh.codedance.work`。`GET /v1/cases` 于 2026-08-17 上线；同一 FastAPI 也挂在 `yizhidao.codedance.work`（部分 iPhone 11 不可用该旧名）。
 
 ## 目标
 - 客户端不直连大模型，密钥留在服务端

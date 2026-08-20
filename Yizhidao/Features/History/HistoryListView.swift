@@ -42,13 +42,13 @@ struct HistoryListView: View {
         NavigationStack(path: $path) {
             VStack(alignment: .leading, spacing: 0) {
                 VStack(alignment: .leading, spacing: 20) {
-                    Text("历史")
+                    Text("历史".zh)
                         .font(.largeTitle.weight(.bold))
 
                     if !records.isEmpty {
-                        Picker("浏览", selection: $browseMode) {
+                        Picker("浏览".zh, selection: $browseMode) {
                             ForEach(BrowseMode.allCases) { mode in
-                                Text(mode.rawValue).tag(mode)
+                                Text(mode.rawValue.zh).tag(mode)
                             }
                         }
                         .pickerStyle(.segmented)
@@ -61,7 +61,7 @@ struct HistoryListView: View {
                                         Button {
                                             statusFilter = filter
                                         } label: {
-                                            Text(filter.rawValue)
+                                            Text(filter.rawValue.zh)
                                                 .font(.caption.weight(.semibold))
                                                 .padding(.horizontal, 10)
                                                 .padding(.vertical, 6)
@@ -88,7 +88,7 @@ struct HistoryListView: View {
                     ContentUnavailableView(
                         "暂无占问",
                         systemImage: "book.closed",
-                        description: Text("起卦后会自动保存在这里")
+                        description: Text("起卦后会自动保存在这里".zh)
                     )
                     Spacer(minLength: 0)
                 } else {
@@ -138,7 +138,7 @@ struct HistoryListView: View {
                         Image(systemName: "trash.fill")
                     }
                     .tint(.red)
-                    .accessibilityLabel("删除")
+                    .accessibilityLabel("删除".zh)
                 }
             }
         }

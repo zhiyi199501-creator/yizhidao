@@ -1,10 +1,14 @@
 # 易知道后端部署指南
 
-目标域名（App Release 已写死）：`https://yizhidao.codedance.work`
+目标域名：
 
-**现役（2026-08-16 已验证）**：DNS A → `43.128.104.104`；HTTPS `/health` 正常；`POST /v1/ai/analyze` 与 `/v1/ai/followup`、`GET /v1/me` 未登录返回 401。与 `videograb.codedance.work` 共用系统 Caddy，API 容器 `docker-compose.prod.yml` 监听 `127.0.0.1:8080`。
+- iOS **Release**：`https://yzh.codedance.work`（DNS A → `43.128.104.104`）
+- 电脑 / 未中招设备：`https://yizhidao.codedance.work` 仍可用
+- 对照：`https://videograb.codedance.work/yzh/health`（同机、同后端）
 
-镜像把 `Hexagrams.json` 拷到 `/app/data/`（与 SQLite 同卷，**重建镜像不会自动刷新经文**）。`cases.json` 默认在镜像 `/app/app/data/`；若 data 卷存在 `/app/data/cases.json` 则优先（热更新不必重建）。可用 `CASES_PATH` 覆盖。`GET /v1/cases` 只在已合入该接口的镜像里才有；**当前生产仍是 main（2026-08-16），没有这条路由**。
+**现役（2026-08-17 源站已验证）**：DNS A → `43.128.104.104`；HTTPS `/health` 正常；`GET /v1/cases` 返回 313 条（`If-None-Match` 304）；`POST /v1/ai/analyze` 与 `/v1/ai/followup`、`GET /v1/me` 未登录返回 401。与 `videograb.codedance.work` 共用系统 Caddy，API 容器 `docker-compose.prod.yml` 监听 `127.0.0.1:8080`。
+
+镜像把 `Hexagrams.json` 拷到 `/app/data/`（与 SQLite 同卷，**重建镜像不会自动刷新经文**）。`cases.json` 默认在镜像 `/app/app/data/`；若 data 卷存在 `/app/data/cases.json` 则优先（热更新不必重建）。可用 `CASES_PATH` 覆盖。
 
 ## 你需要准备什么
 
@@ -53,9 +57,33 @@ docker compose up -d --build
 1. 在 `/etc/caddy/Caddyfile` 增加：
 
 ```
-yizhidao.codedance.work {
+{
+    servers {
+        protocols h1 h2 h3
+    }
+}
+
+yizhidao.codedance.work, yzh.codedance.work {
     encode gzip
-    reverse_proxy 127.0.0.1:8080
+    reverse_proxy 127.0.0.1:8080 {
+        transport http {
+            read_timeout 180s
+            response_header_timeout 180s
+        }
+    }
+}
+
+# 公网 IP 的 HTTP 可进 videograb；不要写 :80 通配，否则抢走 ACME
+http://43.128.104.104 {
+    encode gzip
+    handle /health {
+        reverse_proxy 127.0.0.1:8000
+    }
+    handle {
+        reverse_proxy 127.0.0.1:3000 {
+            flush_interval -1
+        }
+    }
 }
 ```
 
@@ -71,7 +99,9 @@ docker compose -f docker-compose.prod.yml up -d --build
 检查：
 
 ```bash
-curl https://yizhidao.codedance.work/health
+curl https://yzh.codedance.work/health
+# 电脑仍可用：
+# curl https://yizhidao.codedance.work/health
 # 或（方式 B 生产）
 docker compose -f docker-compose.prod.yml logs -f api
 ```
@@ -126,9 +156,21 @@ docker compose -f docker-compose.prod.yml cp \
 
 ### App 真机 Release 连不上
 
-- Release 使用 `https://yizhidao.codedance.work`（见 `AuthAPI`）
-- Debug 仍走本机 / 局域网 IP
-- ATS 对 HTTPS 无额外配置需求
+- Release 使用 `https://yzh.codedance.work`（见 `AuthAPI`）
+- Debug 仍走本机 / 局域网 IP；Xcode Scheme 的 Run 配成 Release 才会打到生产
+- ATS 对 HTTPS 无额外配置需求；明文 `http://` 会被 iOS ATS 拦截（电脑浏览器可以）
+
+### iPhone 11 / HTTP/3（2026-08 踩过）
+
+失败是 **按主机名记住的**，不是整台服务器挂了。同 IP 的 `videograb.codedance.work` 一直能开；电脑和 iPhone 17 上 `yizhidao.codedance.work` 也能开。
+
+1. Caddy 默认开 HTTP/3，并下发 `Alt-Svc: h3; ma=2592000`（约 30 天）。iPhone 11 的 QUIC 比 17 脆，会先表现为 AI/登录超时。
+2. **最危险**：已经发过 h3 之后再关掉 UDP 443。手机会继续打 QUIC，Safari「已丢失网络连接」，App `-1200`。客户端收不到一次成功的 HTTP/2，就清不掉缓存。
+3. 在已经失败的主机名上换 Let's Encrypt YE/YR 或 ZeroSSL，救不回来，只会把这个 origin 弄得更僵。清 Safari 网站数据、还原网络设置也不一定够。
+4. 应急：DNSPod 加**全新子域**（如 `yzh`）A → `43.128.104.104`，让 Caddy 新签证书，App 改 `AuthAPI`。不要用国内真机测 `8.8.8.8`（常被墙）。
+5. 验收：改 Caddy/证书后必须用 **iPhone 11 Safari** 打开该域名 `/health`。HTTP/3 要么一直开（与 videograb 相同），要么一开始就永远不开，禁止开关切换。
+
+`videograb` 站点下的 `handle_path /yzh/*` 仍转到本 API，可作对照，不是长期正式域名。
 
 ### SQLite 数据在哪
 

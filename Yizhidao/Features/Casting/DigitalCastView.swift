@@ -21,14 +21,17 @@ struct DigitalCastView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Picker("模式", selection: $mode) {
+            Picker("模式".zh, selection: $mode) {
                 ForEach(Mode.allCases) { m in
-                    Text(m.rawValue).tag(m)
+                    Text(m.rawValue.zh).tag(m)
                 }
             }
             .pickerStyle(.segmented)
-            .onChange(of: mode) { _, _ in
+            .onChange(of: mode) { _, newMode in
                 errorMessage = nil
+                if newMode == .time {
+                    selectedDate = .now
+                }
             }
 
             switch mode {
@@ -39,7 +42,7 @@ struct DigitalCastView: View {
             }
 
             if let errorMessage {
-                Text(errorMessage)
+                Text(errorMessage.zh)
                     .font(.footnote)
                     .foregroundStyle(.red)
             }
@@ -47,7 +50,7 @@ struct DigitalCastView: View {
             Button {
                 cast()
             } label: {
-                Text("起卦")
+                Text("起卦".zh)
                     .font(.headline)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 12)
@@ -75,14 +78,15 @@ struct DigitalCastView: View {
                 n3 = String(Int.random(in: 10...999))
             }
             HStack {
-                Button("一键随机") {
+                Button("一键随机".zh) {
+                    TapSoundPlayer.shared.play()
                     n1 = String(Int.random(in: 10...999))
                     n2 = String(Int.random(in: 10...999))
                     n3 = String(Int.random(in: 10...999))
                     errorMessage = nil
                 }
                 .buttonStyle(.bordered)
-                Button("清空") {
+                Button("清空".zh) {
                     n1 = ""
                     n2 = ""
                     n3 = ""
@@ -97,12 +101,12 @@ struct DigitalCastView: View {
     private var timeForm: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Text("占问时刻")
+                Text("占问时刻".zh)
                 Spacer()
                 Button {
                     showDatePicker = true
                 } label: {
-                    Text(hyphenDateTime(selectedDate))
+                    Text(hyphenDateTime(selectedDate).zh)
                         .font(.body.monospacedDigit())
                         .foregroundStyle(.primary)
                         .padding(.horizontal, 12)
@@ -125,11 +129,11 @@ struct DigitalCastView: View {
                                 displayedComponents: [.date]
                             )
                             .datePickerStyle(.graphical)
-                            .environment(\.locale, Locale(identifier: "zh_CN"))
+                            .environment(\.locale, AppLanguage.current.locale)
                             .environment(\.calendar, Calendar(identifier: .gregorian))
                             .labelsHidden()
 
-                            Text("时间")
+                            Text("时间".zh)
                                 .font(.subheadline)
                                 .foregroundStyle(.secondary)
                                 .padding(.horizontal, 4)
@@ -140,21 +144,21 @@ struct DigitalCastView: View {
                                 displayedComponents: [.hourAndMinute]
                             )
                             .datePickerStyle(.wheel)
-                            .environment(\.locale, Locale(identifier: "zh_CN"))
+                            .environment(\.locale, AppLanguage.current.locale)
                             .environment(\.calendar, Calendar(identifier: .gregorian))
                             .labelsHidden()
                             .frame(maxWidth: .infinity)
                         }
                         .padding()
                     }
-                    .navigationTitle("选择时刻")
+                    .navigationTitle("选择时刻".zh)
                     .navigationBarTitleDisplayMode(.inline)
                     .toolbar {
                         ToolbarItem(placement: .cancellationAction) {
-                            Button("取消") { showDatePicker = false }
+                            Button("取消".zh) { showDatePicker = false }
                         }
                         ToolbarItem(placement: .confirmationAction) {
-                            Button("完成") { showDatePicker = false }
+                            Button("完成".zh) { showDatePicker = false }
                         }
                     }
                 }
@@ -166,19 +170,15 @@ struct DigitalCastView: View {
                 ? LunarCalendarHelper.solarComponents(from: selectedDate)
                 : LunarCalendarHelper.components(from: selectedDate)
             if useSolarNumbers {
-                Text(
-                    "取数：\(LunarCalendarHelper.branchName(comps.yearBranch))年(\(comps.yearBranch)) + 公历\(comps.month)月\(comps.day)日 + \(comps.hourBranch)时(1–24)"
-                )
+                Text("取数：\(LunarCalendarHelper.branchName(comps.yearBranch))年(\(comps.yearBranch)) + 公历\(comps.month)月\(comps.day)日 + \(comps.hourBranch)时(1–24)".zh)
                 .font(.caption)
                 .foregroundStyle(.secondary)
             } else {
-                Text(
-                    "取数：\(LunarCalendarHelper.branchName(comps.yearBranch))年(\(comps.yearBranch)) + 农历\(comps.month)月\(comps.day)日 + \(LunarCalendarHelper.branchName(comps.hourBranch))时(\(comps.hourBranch))"
-                )
+                Text("取数：\(LunarCalendarHelper.branchName(comps.yearBranch))年(\(comps.yearBranch)) + 农历\(comps.month)月\(comps.day)日 + \(LunarCalendarHelper.branchName(comps.hourBranch))时(\(comps.hourBranch))".zh)
                 .font(.caption)
                 .foregroundStyle(.secondary)
             }
-            Text("上卦=(年+月+日)÷8余；下卦与动爻=(年+月+日+时)分别÷8、÷6取余。")
+            Text("上卦=(年+月+日)÷8余；下卦与动爻=(年+月+日+时)分别÷8、÷6取余。".zh)
                 .font(.caption2)
                 .foregroundStyle(.secondary)
         }
@@ -194,13 +194,16 @@ struct DigitalCastView: View {
 
     private func numberRow(title: String, text: Binding<String>, onRandom: @escaping () -> Void) -> some View {
         HStack(spacing: 10) {
-            Text(title)
+            Text(title.zh)
                 .frame(width: 56, alignment: .leading)
                 .font(.subheadline)
             TextField("输入数字", text: text)
                 .keyboardType(.numberPad)
                 .appTextFieldStyle()
-            Button("随机", action: onRandom)
+            Button("随机".zh) {
+                TapSoundPlayer.shared.play()
+                onRandom()
+            }
                 .buttonStyle(.bordered)
                 .tint(AppTheme.accent)
         }

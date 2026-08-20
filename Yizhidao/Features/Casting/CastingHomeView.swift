@@ -19,9 +19,9 @@ struct CastingHomeView: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
-                    Text("易知道")
+                    Text("易知道".zh)
                         .font(.largeTitle.weight(.bold))
-                    Text("君子居则观象玩辞，动则观变玩占")
+                    Text("君子居则观象玩辞，动则观变玩占".zh)
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
 
@@ -40,7 +40,7 @@ struct CastingHomeView: View {
                                     .foregroundStyle(.secondary)
                             }
                             .buttonStyle(.plain)
-                            .accessibilityLabel("清除所问")
+                            .accessibilityLabel("清除所问".zh)
                         }
                     }
                     .padding(.horizontal, 10)
@@ -54,9 +54,9 @@ struct CastingHomeView: View {
                             .stroke(AppTheme.fieldStroke, lineWidth: 1)
                     )
 
-                    Picker("方法", selection: $methodTab) {
+                    Picker("方法".zh, selection: $methodTab) {
                         ForEach(MethodTab.allCases) { tab in
-                            Text(tab.rawValue).tag(tab)
+                            Text(tab.rawValue.zh).tag(tab)
                         }
                     }
                     .pickerStyle(.segmented)
@@ -107,7 +107,7 @@ struct CastingHomeView: View {
         DisclosureGroup(isExpanded: $showRitual) {
             VStack(alignment: .leading, spacing: 10) {
                 ForEach(Array(Self.ritualSteps.enumerated()), id: \.offset) { index, step in
-                    Text("\(index + 1)、\(step)")
+                    Text("\(index + 1)、\(step)".zh)
                         .font(.footnote)
                         .foregroundStyle(.primary.opacity(0.85))
                         .fixedSize(horizontal: false, vertical: true)
@@ -115,7 +115,7 @@ struct CastingHomeView: View {
             }
             .padding(.top, 8)
         } label: {
-            Text("起卦礼仪")
+            Text("起卦礼仪".zh)
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(AppTheme.accent)
         }

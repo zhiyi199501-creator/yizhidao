@@ -27,7 +27,7 @@ class Settings(BaseSettings):
     openai_base_url: str = "https://api.openai.com/v1"
     openai_model: str = "gpt-4o-mini"
     openai_temperature: float = 0.7
-    openai_timeout_sec: float = 60.0
+    openai_timeout_sec: float = 90.0
     # 经文 JSON；默认读仓库内 App 资源，Docker 部署可指向 /app/data/Hexagrams.json
     hexagrams_path: str = ""
     # 案例 JSON。未设时：/app/data/cases.json（data 卷热更新）→ 镜像内 /app/app/data/cases.json → 仓库 App 资源
