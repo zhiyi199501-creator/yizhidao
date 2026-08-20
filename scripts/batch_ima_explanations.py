@@ -95,7 +95,7 @@ def main() -> int:
     }
     store.setdefault("answers", {})
     store["promptTemplate"] = PROMPT
-    store["askStrategy"] = "named hex ask; guaci/tuanci/daxiang alone; yaoci+xiaoxiang paired"
+    store["askStrategy"] = "named hex ask; guaci/tuanci/daxiang/wenyan alone; yaoci+xiaoxiang and yong+xiang paired"
 
     units = catalog["units"]
     if args.only:
@@ -103,7 +103,8 @@ def main() -> int:
         units = [
             u for u in units
             if u["id"] in wanted
-            or f"{u['number']:02d}-yao-{u['index']}" in wanted
+            or (u.get("index") is not None and f"{u['number']:02d}-yao-{u['index']}" in wanted)
+            or (u["field"] in ("yong", "yongxiang") and f"{u['number']:02d}-yong" in wanted)
         ]
 
     jobs = build_ask_jobs(units, store["answers"])
@@ -111,7 +112,7 @@ def main() -> int:
         jobs = jobs[: args.limit]
 
     good = sum(1 for a in store["answers"].values() if a.get("answer") and not is_bad(a))
-    log(f"total_units={len(catalog['units'])} good={good} ask_jobs={len(jobs)} pause_ms={pause_ms} (yao+xiao paired)")
+    log(f"total_units={len(catalog['units'])} good={good} ask_jobs={len(jobs)} pause_ms={pause_ms}")
     if not jobs:
         log("nothing to do")
         return 0

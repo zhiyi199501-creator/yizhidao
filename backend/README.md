@@ -169,4 +169,4 @@ docker compose up -d --build
 ## 下一步
 
 - 开通企业主体后再配腾讯云短信 / 微信登录
-- App Store 与文言讲解层（产品侧）
+- App Store（产品侧）

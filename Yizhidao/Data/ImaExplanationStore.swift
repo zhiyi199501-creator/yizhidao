@@ -21,6 +21,9 @@ enum ImaExplanationId {
     static func yaoPair(number: Int, position: Int) -> String {
         String(format: "%02d-yao-%d", number, position - 1)
     }
+
+    static func yong(number: Int) -> String { String(format: "%02d-yong", number) }
+    static func wenyan(number: Int) -> String { String(format: "%02d-wenyan", number) }
 }
 
 struct ImaExplanationSelection: Identifiable {

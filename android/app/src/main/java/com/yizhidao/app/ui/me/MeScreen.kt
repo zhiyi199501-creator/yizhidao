@@ -1347,9 +1347,23 @@ private fun HexagramReader(hex: Hexagram, imaStore: ImaExplanationStore, onBack:
                     onSelectExplanation = { selectedEntry = it },
                 )
             }
-            hex.yong?.let { ScriptureCard(body = it.ci, footnote = "象曰：${it.xiang}") }
+            hex.yong?.let {
+                ScriptureCard(
+                    body = it.ci,
+                    footnote = "象曰：${it.xiang}",
+                    explanationId = ImaExplanationId.yong(hex.number),
+                    imaStore = imaStore,
+                    onSelectExplanation = { selectedEntry = it },
+                )
+            }
             if (hex.wenyan.isNotEmpty()) {
-                ScriptureCard("文言", hex.wenyan.joinToString("\n\n"))
+                ScriptureCard(
+                    title = "文言",
+                    body = hex.wenyan.joinToString("\n\n"),
+                    explanationId = ImaExplanationId.wenyan(hex.number),
+                    imaStore = imaStore,
+                    onSelectExplanation = { selectedEntry = it },
+                )
             }
         }
     }

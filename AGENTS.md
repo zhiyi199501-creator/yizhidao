@@ -34,7 +34,7 @@ cd android && ./gradlew :engines:test
 - 案例底稿：`Yizhidao/Resources/cases.json`。编辑根目录 `案例编辑表.xlsx`（gitignore）→ `python3 scripts/import_cases.py`；导出 `python3 scripts/export_cases.py`。补占编号按实际文王序，括号标讲座来源（如 `01-3乾卦三爻（从大有卦三爻讲）`）
 - 经文底稿：`Yizhidao/Resources/Hexagrams.json`。编辑根目录 `易经正文编辑表.xlsx`（gitignore）→ `python3 scripts/import_jingwen.py`；导出 `python3 scripts/export_jingwen.py`
 - 《易经证释》阅读稿：`Yizhidao/Resources/Zhengshi.json`。源文件不入库；更新时 `python3 scripts/import_zhengshi.py [全册.doc]`；代码（`ZhengshiStore`/阅读页）还在，但「我的」菜单暂未挂入口
-- **IMA 黄庭书院讲解**（本分支）：点经文可看知识库讲解。覆盖卦辞／彖／大象／爻辞+小象（成对一条）；文言、用九用六不可点。包内 `Yizhidao/Resources/ImaExplanations.json`（约 576 条）；源采集在 gitignore 的 `data/ima-explanations/`。导出：`python3 scripts/export_ima_explanations.py`。Android 经 `copyIosAssets` 拷同文件。ID：`{nn}-guaci|tuanci|daxiang`、`{nn}-yao-{0…5}`（初=0）。iOS：`ImaExplanationStore` + `TappableScripture`／`ImaExplanationSheet`（结果／案例／六十四卦详情）。Android：同入口 + Material 底部弹层（关闭带动画收起；防误滑关掉）
+- **IMA 黄庭书院讲解**（本分支）：点经文可看知识库讲解。覆盖卦辞／彖／大象／爻辞+小象（成对）、**用九／用六（成对）**、**文言**（乾坤）。包内 `Yizhidao/Resources/ImaExplanations.json`；源采集在 gitignore 的 `data/ima-explanations/`。导出：`python3 scripts/export_ima_explanations.py`。Android 经 `copyIosAssets` 拷同文件。ID：`{nn}-guaci|tuanci|daxiang|wenyan|yong`、`{nn}-yao-{0…5}`（初=0）。入口：结果／案例／六十四卦详情（文言与用九用六仅六十四卦详情有）
 - `App/`：`AppNavigation`、`AppTheme`、登录与「我的」（多在 `YizhidaoApp.swift`）。「我的」：资料、**保存的AI解读**（本地保存的解读）、**易经基础入门** `YijingIntro.json`、**易经六十四卦 / 易经四传** 读 `Hexagrams.json`（详情卡片标题**彖辞** / **大象**，正文带「彖曰：」「象曰：」前缀）、设置（回收站，清空需确认；退出登录）
 - **经文勿换他本**；改解卦规则先改 `ReadingGuide` 并补测
 - **主看 UI**：0 动→本卦卦辞；2 动→本卦上动爻；3 动→本卦卦辞；4 动→之卦下静爻；5 动→之卦静爻；6 动→之卦卦辞；1 动不标「主看」
@@ -51,6 +51,6 @@ cd android && ./gradlew :engines:test
 
 **main / 生产（PR #4，2026-08-17 源站核过；2026-08-19 iPhone 11 改走 `yzh`）**：双法起卦、礼仪、主看、历史、案例按卦、登录、`GET /v1/me`、AI 解读＋追问＋本地保存。iOS Release API：`https://yzh.codedance.work`。旧域名 `https://yizhidao.codedance.work` 电脑仍可用，部分 iPhone 11 打不开。`GET /v1/cases` 313 条（谦卦 0）。iOS 打开案例页拉取；失败用包内/缓存。
 
-未做：微信登录、生产短信、App Store、文言讲解层。运维见 `docs/deploy.md`。
+未做：微信登录、生产短信、App Store。运维见 `docs/deploy.md`。
 
 **Android（本分支 `feature/classic-yijing-me`）**：引擎对拍 iOS 单测；Compose 四 Tab、历史回收站、繁简切换、按键音效。短信登录、资料编辑、AI 解读＋追问＋保存的AI解读（已保存后追问自动更新；重新解读→「重新保存」；列表左滑删除）、案例 `GET /v1/cases` 热更新、六十四卦详情（卦象 50% 缩放；卡片标题彖辞/大象）、**IMA 经文讲解**（与 iOS 同三入口／同 JSON）。AI 页打开时隐藏底部 Tab；`windowSoftInputMode=adjustNothing`，追问栏 `imePadding` 贴键盘（edge-to-edge）。Release API：`https://yzh.codedance.work`；Debug 真机 API 在 `android/app/build.gradle.kts` 配 Mac 局域网 IP。未做：微信登录。见 `android/README.md`。

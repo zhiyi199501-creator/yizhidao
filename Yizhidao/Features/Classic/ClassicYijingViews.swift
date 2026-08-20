@@ -141,7 +141,7 @@ struct ClassicHexagramDetailView: View {
                     }
                 }
                 if let yong = hexagram.yong {
-                    card {
+                    scriptureCard(explanationId: ImaExplanationId.yong(number: hexagram.number)) {
                         VStack(alignment: .leading, spacing: 4) {
                             Text(yong.ci.zh)
                             Text("象曰：\(yong.xiang)".zh)
@@ -149,9 +149,11 @@ struct ClassicHexagramDetailView: View {
                     }
                 }
                 if !hexagram.wenyan.isEmpty {
-                    card("文言") {
-                        ForEach(Array(hexagram.wenyan.enumerated()), id: \.offset) { _, paragraph in
-                            Text(paragraph.zh)
+                    scriptureCard("文言", explanationId: ImaExplanationId.wenyan(number: hexagram.number)) {
+                        VStack(alignment: .leading, spacing: 8) {
+                            ForEach(Array(hexagram.wenyan.enumerated()), id: \.offset) { _, paragraph in
+                                Text(paragraph.zh)
+                            }
                         }
                     }
                 }

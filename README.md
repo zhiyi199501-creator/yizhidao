@@ -51,7 +51,7 @@ xcodebuild test -scheme Yizhidao -destination 'platform=iOS Simulator,name=iPhon
 | `Yizhidao/Resources/Hexagrams.json` | 64 卦（卦辞／彖／象／爻／用九用六／文言）+ 系辞／说卦／序卦／杂卦。编辑根目录 `易经正文编辑表.xlsx` → `python3 scripts/import_jingwen.py` |
 | `Yizhidao/Resources/Zhengshi.json` | 《易经证释》全册阅读稿；由 `scripts/import_zhengshi.py` 从全册 `.doc` 生成，暂未挂「我的」入口 |
 | `Yizhidao/Resources/cases.json` | 讲习案例底稿（按卦号；离线与 AI 提示词共用）。App 打开案例页走 `GET /v1/cases`；线上以服务端列表为准 |
-| `Yizhidao/Resources/ImaExplanations.json` | IMA 黄庭书院讲解（卦辞／彖／大象／爻+小象）；`python3 scripts/export_ima_explanations.py` 自 `data/ima-explanations/`（gitignore）导出 |
+| `Yizhidao/Resources/ImaExplanations.json` | IMA 黄庭书院讲解（卦辞／彖／大象／爻+小象／用九用六／文言）；`python3 scripts/export_ima_explanations.py` 自 `data/ima-explanations/`（gitignore）导出 |
 | `YizhidaoTests/` | 起卦、时辰、`ReadingGuide` 单测 |
 | `docs/backend-min-spec.md` | 登录与 AI（含追问）现役接口 |
 | `docs/deploy.md` | 后端 Docker + Caddy 上线指南 |

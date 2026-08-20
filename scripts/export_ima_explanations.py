@@ -48,6 +48,23 @@ def build_entries(answers: dict[str, dict]) -> dict[str, dict]:
                 "scripture": scripture,
                 "answer": ans,
             }
+        elif field in ("yong", "yongxiang"):
+            key = f"{n:02d}-yong"
+            if key in entries:
+                continue
+            y = answers.get(f"{n:02d}-yong", {})
+            x = answers.get(f"{n:02d}-yongxiang", {})
+            ytext = (y.get("text") or "").strip()
+            xtext = (x.get("text") or "").strip()
+            label = (y.get("fieldLabel") or "用九用六").strip()
+            scripture = ytext
+            if xtext:
+                scripture = f"{ytext}  象曰：{xtext}" if ytext else xtext
+            entries[key] = {
+                "title": f"{name}卦 · {label}",
+                "scripture": scripture,
+                "answer": ans,
+            }
         else:
             entries[uid] = {
                 "title": f"{name}卦 · {label}",

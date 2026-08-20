@@ -42,27 +42,52 @@ def format_ask_text(unit: dict, xiao: Optional[dict] = None) -> str:
     """提问带卦名（单行）。"""
     name = unit.get("name") or ""
     label = unit.get("fieldLabel") or unit.get("field") or ""
+    if unit.get("field") == "wenyan":
+        return f"{name}卦文言：请依据知识库讲解《文言》全文。原文：{unit['text']}"
     if xiao is None:
         return f"{name}卦{label}：{unit['text']}"
+    if unit.get("field") == "yong":
+        return f"{name}卦{label}与象：{unit['text']} 象曰：{xiao['text']}"
     title = _yao_title(unit["text"])
     return f"{name}卦{title}爻辞与小象：{unit['text']} 小象：{xiao['text']}"
 
 
 def build_ask_jobs(units: list[dict], answers: dict[str, dict]) -> list[dict[str, Any]]:
-    """卦辞/彖/大象单独问；爻辞+小象合并为一问。"""
+    """卦辞/彖/大象/文言单独问；爻辞+小象、用九/用六+象合并为一问。"""
     by_id = {u["id"]: u for u in units}
     jobs: list[dict[str, Any]] = []
     seen_pair: set[str] = set()
 
     for u in units:
         field = u["field"]
-        if field in ("guaci", "tuanci", "daxiang"):
+        if field in ("guaci", "tuanci", "daxiang", "wenyan"):
             if needs_ask(answers.get(u["id"])):
                 jobs.append({
                     "id": u["id"],
                     "text": format_ask_text(u),
                     "targets": [u["id"]],
                 })
+            continue
+
+        if field == "yong":
+            n = u["number"]
+            pair_key = f"{n:02d}-yong"
+            if pair_key in seen_pair:
+                continue
+            seen_pair.add(pair_key)
+            xid = f"{n:02d}-yongxiang"
+            xu = by_id.get(xid)
+            if xu is None:
+                continue
+            if not needs_ask(answers.get(u["id"])) and not needs_ask(answers.get(xid)):
+                continue
+            jobs.append({
+                "id": pair_key,
+                "text": format_ask_text(u, xu),
+                "targets": [u["id"], xid],
+                "number": n,
+                "name": u["name"],
+            })
             continue
 
         if field not in ("yaoci", "xiaoxiang"):
@@ -114,7 +139,7 @@ def make_entry(
         "answer": answer,
         "error": error,
         "fetchedAt": fetched_at,
-        "pairedAsk": meta.get("field") in ("yaoci", "xiaoxiang"),
+        "pairedAsk": meta.get("field") in ("yaoci", "xiaoxiang", "yong", "yongxiang"),
     }
 
 
@@ -126,6 +151,7 @@ def build_catalog_units(hexagrams: list[dict]) -> list[dict]:
         "daxiang": "大象",
         "yaoci": "爻辞",
         "xiaoxiang": "小象",
+        "wenyan": "文言",
     }
     for h in hexagrams:
         n = int(h["number"])
@@ -159,5 +185,39 @@ def build_catalog_units(hexagrams: list[dict]) -> list[dict]:
                 "fieldLabel": field_labels["xiaoxiang"],
                 "index": i,
                 "text": text,
+            })
+        yong = h.get("yong")
+        if isinstance(yong, dict) and (yong.get("ci") or yong.get("xiang")):
+            ci = (yong.get("ci") or "").strip()
+            xiang = (yong.get("xiang") or "").strip()
+            label = "用九" if "用九" in ci else ("用六" if "用六" in ci else "用九用六")
+            units.append({
+                "id": f"{n:02d}-yong",
+                "number": n,
+                "name": name,
+                "field": "yong",
+                "fieldLabel": label,
+                "index": None,
+                "text": ci,
+            })
+            units.append({
+                "id": f"{n:02d}-yongxiang",
+                "number": n,
+                "name": name,
+                "field": "yongxiang",
+                "fieldLabel": f"{label}象",
+                "index": None,
+                "text": xiang,
+            })
+        wenyan = [p.strip() for p in (h.get("wenyan") or []) if (p or "").strip()]
+        if wenyan:
+            units.append({
+                "id": f"{n:02d}-wenyan",
+                "number": n,
+                "name": name,
+                "field": "wenyan",
+                "fieldLabel": field_labels["wenyan"],
+                "index": None,
+                "text": "\n\n".join(wenyan),
             })
     return units
