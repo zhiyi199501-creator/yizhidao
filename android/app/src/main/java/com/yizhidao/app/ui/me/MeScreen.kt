@@ -76,6 +76,11 @@ import com.yizhidao.Hexagram
 import com.yizhidao.HexagramText
 import com.yizhidao.app.AppContainer
 import com.yizhidao.app.auth.LocalAuthStore
+import com.yizhidao.app.ima.ImaExplanationEntry
+import com.yizhidao.app.ima.ImaExplanationId
+import com.yizhidao.app.ima.ImaExplanationStore
+import com.yizhidao.app.ui.reading.ImaExplanationSheet
+import com.yizhidao.app.ui.reading.TappableScripture
 import com.yizhidao.app.auth.LocalUserSession
 import com.yizhidao.app.auth.AuthApi
 import com.yizhidao.app.auth.LoginError
@@ -91,7 +96,13 @@ import com.yizhidao.app.ui.theme.AppTheme
 import com.yizhidao.app.ui.theme.PaperBackHeader
 import com.yizhidao.app.ui.theme.PaperChevron
 import com.yizhidao.app.ui.theme.SwipeRevealDelete
+import com.yizhidao.app.ui.theme.SwipeRevealActions
+import com.yizhidao.app.ui.theme.SwipeAction
 import com.yizhidao.app.ui.theme.PaperTextField
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+
+private val listTimeFmt = DateTimeFormatter.ofPattern("yyyy/M/d HH:mm").withZone(ZoneId.systemDefault())
 
 private val AvatarOptions = listOf(
     "person.crop.circle.fill",
@@ -246,7 +257,11 @@ fun MeScreen(
             onBack = { route = MeRoute.Home },
             onOpen = { route = MeRoute.HexagramDetail(it) },
         )
-        is MeRoute.HexagramDetail -> HexagramReader(page.item) { route = MeRoute.Hexagrams }
+        is MeRoute.HexagramDetail -> HexagramReader(
+            hex = page.item,
+            imaStore = container.imaExplanationStore,
+            onBack = { route = MeRoute.Hexagrams },
+        )
         MeRoute.Wings -> WingListPage(
             wings = book.wings,
             onBack = { route = MeRoute.Home },
@@ -754,20 +769,64 @@ private fun RecycleBinPage(
                 }
             }
         } else {
+            var revealedId by remember { mutableStateOf<String?>(null) }
             LazyColumn(
                 contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 24.dp, top = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                items(entries, key = { it.id }) { entry ->
-                    RecycleRow(
-                        entry = entry,
-                        hexTitle = { n ->
-                            val hex = store.hexagram(n)
-                            if (hex != null) "${hex.symbol} ${hex.name}" else "第${n}卦"
-                        },
-                        onRestore = { scope.launch { container.readingRepository.restoreTrash(entry.id) } },
-                        onRemove = { scope.launch { container.readingRepository.removeTrash(entry.id) } },
-                    )
+                item {
+                    MeCard {
+                        entries.forEachIndexed { index, entry ->
+                            SwipeRevealActions(
+                                revealed = revealedId == entry.id,
+                                onRevealedChange = { open ->
+                                    revealedId = if (open) {
+                                        entry.id
+                                    } else if (revealedId == entry.id) {
+                                        null
+                                    } else {
+                                        revealedId
+                                    }
+                                },
+                                actions = listOf(
+                                    SwipeAction(
+                                        label = "恢复",
+                                        background = Color(0xFF34C759),
+                                        onClick = {
+                                            revealedId = null
+                                            scope.launch { container.readingRepository.restoreTrash(entry.id) }
+                                        },
+                                    ),
+                                    SwipeAction(
+                                        label = "彻底删除",
+                                        background = Color(0xFFFF3B30),
+                                        onClick = {
+                                            revealedId = null
+                                            scope.launch { container.readingRepository.removeTrash(entry.id) }
+                                        },
+                                    ),
+                                ),
+                                contentBackground = Color.White,
+                            ) {
+                                RecycleRow(
+                                    entry = entry,
+                                    hexTitle = { n ->
+                                        val hex = store.hexagram(n)
+                                        if (hex != null) "${hex.symbol} ${hex.name}" else "第${n}卦"
+                                    },
+                                    onClick = {
+                                        if (revealedId == entry.id) revealedId = null
+                                    },
+                                )
+                            }
+                            if (index < entries.lastIndex) {
+                                HorizontalDivider(
+                                    modifier = Modifier.padding(start = 16.dp),
+                                    color = AppTheme.fieldStroke,
+                                    thickness = 0.5.dp,
+                                )
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -800,46 +859,63 @@ private fun RecycleBinPage(
 private fun RecycleRow(
     entry: HistoryTrashEntry,
     hexTitle: (Int) -> String,
-    onRestore: () -> Unit,
-    onRemove: () -> Unit,
+    onClick: () -> Unit,
 ) {
     val rec = entry.record
     Column(
         Modifier
             .fillMaxWidth()
-            .clip(AppTheme.cardShape)
-            .background(AppTheme.cardFill)
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(6.dp),
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
+        Row(
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                hexTitle(rec.primaryNumber),
+                fontSize = 17.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = AppTheme.ink,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f, fill = false),
+                style = AppTheme.compactText,
+            )
+            rec.resultingNumber?.let { resulting ->
+                Text(
+                    "→",
+                    fontSize = 17.sp,
+                    color = AppTheme.secondaryText,
+                    style = AppTheme.compactText,
+                )
+                Text(
+                    hexTitle(resulting),
+                    fontSize = 17.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = AppTheme.ink,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f, fill = false),
+                    style = AppTheme.compactText,
+                )
+            }
+        }
         Text(
-            buildString {
-                append(hexTitle(rec.primaryNumber))
-                rec.resultingNumber?.let { append(" → "); append(hexTitle(it)) }
-            },
-            fontSize = 17.sp,
-            fontWeight = FontWeight.SemiBold,
-            color = AppTheme.ink,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
+            listTimeFmt.format(rec.createdAt),
+            fontSize = 12.sp,
+            color = AppTheme.secondaryText,
             style = AppTheme.compactText,
         )
         rec.question?.takeIf { it.isNotBlank() }?.let { q ->
-            Text(q, fontSize = 15.sp, color = AppTheme.ink, maxLines = 1, overflow = TextOverflow.Ellipsis)
-        }
-        Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
             Text(
-                "恢复",
-                color = Color(0xFF338C59),
+                q,
                 fontSize = 15.sp,
-                modifier = Modifier.clickable(onClick = onRestore),
-                style = AppTheme.compactText,
-            )
-            Text(
-                "彻底删除",
-                color = Color(0xFFA64040),
-                fontSize = 15.sp,
-                modifier = Modifier.clickable(onClick = onRemove),
+                color = AppTheme.ink,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
                 style = AppTheme.compactText,
             )
         }
@@ -878,7 +954,7 @@ private fun AIHistoryPage(
                 )
             }
         } else {
-            LazyColumn(contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 24.dp)) {
+            LazyColumn(contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 24.dp)) {
                 item {
                     MeCard {
                         items.forEachIndexed { index, item ->
@@ -897,23 +973,12 @@ private fun AIHistoryPage(
                                     revealedId = null
                                     container.savedAIStore.remove(item.id)
                                 },
+                                contentBackground = Color.White,
                             ) {
                                 val hex = container.hexagramStore.hexagram(item.primaryNumber)
-                                MeRow(
-                                    icon = null,
+                                SavedAIHistoryRow(
+                                    item = item,
                                     title = hex?.let { "${it.symbol} ${it.name}" } ?: "第${item.primaryNumber}卦",
-                                    trailing = {
-                                        Text(
-                                            item.question?.takeIf { it.isNotBlank() }
-                                                ?: item.analysis.summary,
-                                            fontSize = 12.sp,
-                                            color = AppTheme.secondaryText,
-                                            maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis,
-                                            modifier = Modifier.width(120.dp),
-                                            style = AppTheme.compactText,
-                                        )
-                                    },
                                     onClick = {
                                         if (revealedId == item.id) {
                                             revealedId = null
@@ -923,12 +988,73 @@ private fun AIHistoryPage(
                                     },
                                 )
                             }
-                            if (index < items.lastIndex) MeDivider()
+                            if (index < items.lastIndex) {
+                                HorizontalDivider(
+                                    modifier = Modifier.padding(start = 16.dp),
+                                    color = AppTheme.fieldStroke,
+                                    thickness = 0.5.dp,
+                                )
+                            }
                         }
                     }
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun SavedAIHistoryRow(
+    item: SavedAIAnalysis,
+    title: String,
+    onClick: () -> Unit,
+) {
+    val question = item.question?.takeIf { it.isNotBlank() }
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(
+                title,
+                fontSize = 17.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = AppTheme.ink,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                style = AppTheme.compactText,
+            )
+            Text(
+                listTimeFmt.format(item.updatedAt),
+                fontSize = 12.sp,
+                color = AppTheme.secondaryText,
+                style = AppTheme.compactText,
+            )
+            if (question != null) {
+                Text(
+                    question,
+                    fontSize = 15.sp,
+                    color = AppTheme.ink,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    style = AppTheme.compactText,
+                )
+            } else {
+                Text(
+                    item.analysis.summary,
+                    fontSize = 15.sp,
+                    color = AppTheme.secondaryText,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    style = AppTheme.compactText,
+                )
+            }
+        }
+        Spacer(Modifier.width(8.dp))
+        PaperChevron()
     }
 }
 
@@ -1270,7 +1396,8 @@ private fun IntroChapterReader(chapter: YijingIntroChapter, onBack: () -> Unit) 
 }
 
 @Composable
-private fun HexagramReader(hex: Hexagram, onBack: () -> Unit) {
+private fun HexagramReader(hex: Hexagram, imaStore: ImaExplanationStore, onBack: () -> Unit) {
+    var selectedEntry by remember { mutableStateOf<ImaExplanationEntry?>(null) }
     Column(Modifier.fillMaxSize()) {
         PaperBackHeader(title = hex.name, onBack = onBack)
         Column(
@@ -1307,17 +1434,62 @@ private fun HexagramReader(hex: Hexagram, onBack: () -> Unit) {
                     )
                 }
             }
-            ScriptureCard("卦辞", hex.guaci)
-            ScriptureCard("彖辞", HexagramText.prefixed("彖曰：", hex.tuanci))
-            ScriptureCard("大象", HexagramText.prefixed("象曰：", hex.daxiang))
-            hex.yaoci.zip(hex.xiaoxiang).forEach { (ci, xiang) ->
-                ScriptureCard(body = ci, footnote = "象曰：$xiang")
+            ScriptureCard(
+                title = "卦辞",
+                body = hex.guaci,
+                explanationId = ImaExplanationId.guaci(hex.number),
+                imaStore = imaStore,
+                onSelectExplanation = { selectedEntry = it },
+            )
+            ScriptureCard(
+                title = "彖辞",
+                body = HexagramText.prefixed("彖曰：", hex.tuanci),
+                explanationId = ImaExplanationId.tuanci(hex.number),
+                imaStore = imaStore,
+                onSelectExplanation = { selectedEntry = it },
+            )
+            ScriptureCard(
+                title = "大象",
+                body = HexagramText.prefixed("象曰：", hex.daxiang),
+                explanationId = ImaExplanationId.daxiang(hex.number),
+                imaStore = imaStore,
+                onSelectExplanation = { selectedEntry = it },
+            )
+            hex.yaoci.zip(hex.xiaoxiang).forEachIndexed { index, (ci, xiang) ->
+                ScriptureCard(
+                    body = ci,
+                    footnote = "象曰：$xiang",
+                    explanationId = ImaExplanationId.yaoPair(hex.number, index + 1),
+                    imaStore = imaStore,
+                    onSelectExplanation = { selectedEntry = it },
+                )
             }
-            hex.yong?.let { ScriptureCard(body = it.ci, footnote = "象曰：${it.xiang}") }
+            hex.yong?.let {
+                ScriptureCard(
+                    body = it.ci,
+                    footnote = "象曰：${it.xiang}",
+                    explanationId = ImaExplanationId.yong(hex.number),
+                    imaStore = imaStore,
+                    onSelectExplanation = { selectedEntry = it },
+                )
+            }
             if (hex.wenyan.isNotEmpty()) {
-                ScriptureCard("文言", hex.wenyan.joinToString("\n\n"))
+                ScriptureCard(
+                    title = "文言",
+                    body = hex.wenyan.joinToString("\n\n"),
+                    explanationId = ImaExplanationId.wenyan(hex.number),
+                    imaStore = imaStore,
+                    onSelectExplanation = { selectedEntry = it },
+                )
             }
         }
+    }
+    selectedEntry?.let { entry ->
+        ImaExplanationSheet(
+            entry = entry,
+            source = imaStore.source,
+            onDismiss = { selectedEntry = null },
+        )
     }
 }
 
@@ -1340,7 +1512,14 @@ private fun ChapterReader(wingTitle: String, chapter: ClassicChapter, onBack: ()
 }
 
 @Composable
-private fun ScriptureCard(title: String? = null, body: String, footnote: String? = null) {
+private fun ScriptureCard(
+    title: String? = null,
+    body: String,
+    footnote: String? = null,
+    explanationId: String? = null,
+    imaStore: ImaExplanationStore? = null,
+    onSelectExplanation: ((ImaExplanationEntry) -> Unit)? = null,
+) {
     Column(
         Modifier
             .fillMaxWidth()
@@ -1351,20 +1530,35 @@ private fun ScriptureCard(title: String? = null, body: String, footnote: String?
         if (title != null) {
             Text(title, fontWeight = FontWeight.SemiBold, color = AppTheme.accent, modifier = Modifier.padding(bottom = 6.dp))
         }
-        Text(
-            body,
-            fontSize = 16.sp,
-            color = AppTheme.ink,
-            lineHeight = 24.sp,
-        )
-        if (footnote != null) {
-            Text(
-                footnote,
-                fontSize = 16.sp,
-                color = AppTheme.ink,
-                lineHeight = 24.sp,
-                modifier = Modifier.padding(top = 6.dp),
-            )
+        val textContent: @Composable () -> Unit = {
+            Column {
+                Text(
+                    body,
+                    fontSize = 16.sp,
+                    color = AppTheme.ink,
+                    lineHeight = 24.sp,
+                )
+                if (footnote != null) {
+                    Text(
+                        footnote,
+                        fontSize = 16.sp,
+                        color = AppTheme.ink,
+                        lineHeight = 24.sp,
+                        modifier = Modifier.padding(top = 6.dp),
+                    )
+                }
+            }
+        }
+        if (explanationId != null && imaStore != null && onSelectExplanation != null) {
+            TappableScripture(
+                explanationId = explanationId,
+                imaStore = imaStore,
+                onSelect = onSelectExplanation,
+            ) {
+                textContent()
+            }
+        } else {
+            textContent()
         }
     }
 }

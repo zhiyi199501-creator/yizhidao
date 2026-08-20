@@ -127,7 +127,7 @@
 - 另附本卦初爻至上爻讲习案例（`cases.json`）作取象参照，不可把案例原事套到用户身上
 - 初次 `POST /v1/ai/analyze`；追问 `POST /v1/ai/followup`
 - `AI_MODE=mock` 规则解读；`openai` 走 OpenAI 兼容 Chat Completions（密钥在服务端 `.env`）
-- 经文取自 `Yizhidao/Resources/Hexagrams.json`（与《易经证释》所引一致）
+- 经文取自 `ios/Yizhidao/Resources/Hexagrams.json`（与《易经证释》所引一致）
 - 提示词细节以 `backend/app/services/ai.py` 为准
 
 ## 运营与安全最小要求

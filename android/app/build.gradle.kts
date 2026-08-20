@@ -5,12 +5,12 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
 }
 
-val iosResources = rootProject.projectDir.resolve("../Yizhidao/Resources")
+val iosResources = rootProject.projectDir.resolve("../ios/Yizhidao/Resources")
 val generatedAssets = layout.buildDirectory.dir("generated/iosAssets")
 
 val copyIosAssets by tasks.registering(Copy::class) {
     from(iosResources) {
-        include("Hexagrams.json", "cases.json", "YijingIntro.json")
+        include("Hexagrams.json", "cases.json", "YijingIntro.json", "ImaExplanations.json")
     }
     into(generatedAssets)
 }
@@ -40,6 +40,7 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
             )
+            signingConfig = signingConfigs.getByName("debug")
         }
     }
 
@@ -82,5 +83,6 @@ dependencies {
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.compose.material.icons)
     implementation(libs.kotlinx.serialization.json)
+    implementation(libs.cronet.embedded)
     debugImplementation(libs.androidx.compose.ui.tooling)
 }

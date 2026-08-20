@@ -19,7 +19,7 @@ dependencies {
     testImplementation(libs.junit)
 }
 
-val iosResources = rootProject.projectDir.resolve("../Yizhidao/Resources")
+val iosResources = rootProject.projectDir.resolve("../ios/Yizhidao/Resources")
 
 val copyIosHexagrams by tasks.registering(Copy::class) {
     from(iosResources.resolve("Hexagrams.json"))

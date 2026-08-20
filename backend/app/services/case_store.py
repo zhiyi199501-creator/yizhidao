@@ -6,7 +6,7 @@ from typing import Any, Dict, List, Optional, Tuple
 from app.config import settings
 
 _REPO_ROOT = Path(__file__).resolve().parents[3]
-_DEFAULT_CASES_PATH = _REPO_ROOT / "Yizhidao/Resources/cases.json"
+_DEFAULT_CASES_PATH = _REPO_ROOT / "ios/Yizhidao/Resources/cases.json"
 _BUNDLED_CASES_PATH = Path(__file__).resolve().parents[1] / "data" / "cases.json"
 _VOLUME_CASES_PATH = Path("/app/data/cases.json")
 

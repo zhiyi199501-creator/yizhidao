@@ -15,8 +15,8 @@ COPY backend/requirements.txt /app/requirements.txt
 RUN pip install -r /app/requirements.txt
 
 COPY backend/app /app/app
-COPY Yizhidao/Resources/Hexagrams.json /app/data/Hexagrams.json
-COPY Yizhidao/Resources/cases.json /app/app/data/cases.json
+COPY ios/Yizhidao/Resources/Hexagrams.json /app/data/Hexagrams.json
+COPY ios/Yizhidao/Resources/cases.json /app/app/data/cases.json
 
 RUN mkdir -p /app/data
 

@@ -250,7 +250,11 @@ fun ResultScreen(
                     }
                 }
 
-                HexagramReadingBody(result = result, store = container.hexagramStore)
+                HexagramReadingBody(
+                    result = result,
+                    store = container.hexagramStore,
+                    imaStore = container.imaExplanationStore,
+                )
             }
         }
 

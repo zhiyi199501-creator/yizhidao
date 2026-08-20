@@ -8,7 +8,7 @@ from openpyxl.styles import Alignment, Font, PatternFill
 from openpyxl.utils import get_column_letter
 
 ROOT = Path(__file__).resolve().parents[1]
-HEXES = ROOT / "Yizhidao/Resources/Hexagrams.json"
+HEXES = ROOT / "ios/Yizhidao/Resources/Hexagrams.json"
 OUT = ROOT / "易经正文编辑表.xlsx"
 
 FONT = Font(name="Arial", size=11)
@@ -56,7 +56,7 @@ ws_info.title = "说明"
 info = [
     ("《易经》正文编辑表", FONT_TITLE),
     ("", FONT),
-    ("对应 App 内 Yizhidao/Resources/Hexagrams.json（六十四卦 + 文言 + 四传）。", FONT),
+    ("对应 App 内 ios/Yizhidao/Resources/Hexagrams.json（六十四卦 + 文言 + 四传）。", FONT),
     ("审查：在各表用筛选（卦名 / 爻位 / 传）。", FONT),
     ("修改：直接改单元格后保存。灰底列（卦号、爻位、段序）请勿改。", FONT),
     ("「六十四卦」：一卦一行。卦辞、彖、大象、用九/用六。无用九用六的格子留空。", FONT),

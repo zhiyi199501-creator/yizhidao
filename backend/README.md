@@ -80,11 +80,11 @@ TENCENT_SMS_TEMPLATE_PARAM_MODE=code_and_minutes
 | POST | `/v1/ai/analyze` | AI 解读（需 Bearer token） |
 | POST | `/v1/ai/followup` | AI 追问 / 补充背景（需 Bearer token） |
 
-## 与 iOS 联调
+## 与 App 联调
 
 1. 启动本后端（端口 `8080`）
-2. iOS **Debug** 模拟器请求 `http://127.0.0.1:8080`
-3. **真机 Release** 走 `https://yzh.codedance.work`（见 iOS `AuthAPI` / Android `BuildConfig.API_BASE_URL`）；Debug 真机仍用局域网 IP。旧名 `yizhidao.codedance.work` 仍指向同一 API，部分 iPhone 11 打不开。
+2. iOS **Debug** 模拟器请求 `http://127.0.0.1:8080`；安卓 Debug 见 `android/app/build.gradle.kts`
+3. **真机 Release** 走 `https://yzh.codedance.work`（iOS `AuthAPI` / Android Cronet `BuildConfig.API_BASE_URL`）。旧名 `yizhidao.codedance.work` 仍指向同一 API，部分 iPhone 11 打不开。安卓不要用 `HttpURLConnection` 打生产，见 `docs/deploy.md`「Android / Cronet」。
 
 ### curl 自测
 
@@ -148,7 +148,7 @@ OPENAI_MODEL=deepseek-chat
 
 解读框架（提示词）：**卦辞→事情背景；大象辞→宜努力方向；动爻爻辞/小象→当下情形**；并附该本卦初爻至上爻讲习案例作取象参照。实现见 `app/services/ai.py`。追问走 `POST /v1/ai/followup`。
 
-经文来源：`Yizhidao/Resources/Hexagrams.json`。案例来源：`Yizhidao/Resources/cases.json`。App 用 `GET /v1/cases` 热更新（2026-08-17 已部署）。镜像内 `/app/app/data/cases.json`；若 data 卷存在 `/app/data/cases.json` 则优先。
+经文来源：`ios/Yizhidao/Resources/Hexagrams.json`。案例来源：`ios/Yizhidao/Resources/cases.json`。App 用 `GET /v1/cases` 热更新（2026-08-17 已部署）。镜像内 `/app/app/data/cases.json`；若 data 卷存在 `/app/data/cases.json` 则优先。
 
 ## 生产部署
 
@@ -169,4 +169,4 @@ docker compose up -d --build
 ## 下一步
 
 - 开通企业主体后再配腾讯云短信 / 微信登录
-- App Store 与文言讲解层（产品侧）
+- App Store（产品侧）

@@ -8,6 +8,7 @@ activityCompose = "1.10.0"
 navigationCompose = "2.8.5"
 serialization = "1.8.0"
 junit = "4.13.2"
+cronet = "141.7340.3"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -23,6 +24,7 @@ androidx-compose-ui-tooling-preview = { group = "androidx.compose.ui", name = "u
 androidx-compose-material3 = { group = "androidx.compose.material3", name = "material3" }
 androidx-compose-material-icons = { group = "androidx.compose.material", name = "material-icons-extended" }
 kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "serialization" }
+cronet-embedded = { group = "org.chromium.net", name = "cronet-embedded", version.ref = "cronet" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 
 [plugins]

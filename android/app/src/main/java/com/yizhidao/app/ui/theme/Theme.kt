@@ -10,6 +10,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -629,6 +630,7 @@ fun SwipeRevealDelete(
     revealed: Boolean,
     onRevealedChange: (Boolean) -> Unit,
     onDelete: () -> Unit,
+    contentBackground: Color = AppTheme.parchmentTop,
     content: @Composable () -> Unit,
 ) {
     val revealWidth = 64.dp
@@ -641,34 +643,124 @@ fun SwipeRevealDelete(
         offset.animateTo(if (revealed) -revealPx else 0f)
     }
 
+    val offsetX = offset.value
+    val deleteAlpha = (-offsetX / revealPx).coerceIn(0f, 1f)
+
     Box {
-        Box(
-            Modifier
-                .matchParentSize()
-                .padding(end = 12.dp),
-            contentAlignment = Alignment.CenterEnd,
-        ) {
+        if (deleteAlpha > 0f) {
             Box(
                 Modifier
-                    .size(36.dp)
-                    .clip(CircleShape)
-                    .background(Color(0xFFFF3B30))
-                    .clickable(onClick = onDelete),
-                contentAlignment = Alignment.Center,
+                    .matchParentSize()
+                    .padding(end = 12.dp)
+                    .graphicsLayer { alpha = deleteAlpha },
+                contentAlignment = Alignment.CenterEnd,
             ) {
-                Icon(
-                    Icons.Filled.Delete,
-                    contentDescription = zh("删除"),
-                    tint = Color.White,
-                    modifier = Modifier.size(18.dp),
-                )
+                Box(
+                    Modifier
+                        .size(36.dp)
+                        .clip(CircleShape)
+                        .background(Color(0xFFFF3B30))
+                        .clickable(onClick = onDelete),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        Icons.Filled.Delete,
+                        contentDescription = zh("删除"),
+                        tint = Color.White,
+                        modifier = Modifier.size(18.dp),
+                    )
+                }
             }
         }
         Box(
             Modifier
                 .fillMaxWidth()
                 .offset { IntOffset(offset.value.roundToInt(), 0) }
-                .background(AppTheme.parchmentTop)
+                .background(contentBackground)
+                .pointerInput(revealPx) {
+                    detectHorizontalDragGestures(
+                        onDragEnd = {
+                            onRevealedChange(offset.value <= -revealPx * 0.45f)
+                        },
+                        onHorizontalDrag = { change, dragAmount ->
+                            change.consume()
+                            val next = (offset.value + dragAmount).coerceIn(-revealPx, 0f)
+                            scope.launch { offset.snapTo(next) }
+                        },
+                    )
+                },
+        ) {
+            content()
+        }
+    }
+}
+
+data class SwipeAction(
+    val label: String,
+    val background: Color,
+    val onClick: () -> Unit,
+)
+
+/**
+ * 左滑露出多个操作，对齐 iOS `swipeActions(edge: .trailing)`：
+ * [actions] 第一个在最右侧。未滑动时不绘制按钮，避免透出阴影。
+ */
+@Composable
+fun SwipeRevealActions(
+    revealed: Boolean,
+    onRevealedChange: (Boolean) -> Unit,
+    actions: List<SwipeAction>,
+    contentBackground: Color = AppTheme.parchmentTop,
+    content: @Composable () -> Unit,
+) {
+    val actionWidth = 74.dp
+    val density = LocalDensity.current
+    val actionPx = with(density) { actionWidth.toPx() }
+    val revealPx = actionPx * actions.size.coerceAtLeast(1)
+    val offset = remember { Animatable(0f) }
+    val scope = rememberCoroutineScope()
+
+    LaunchedEffect(revealed, revealPx) {
+        offset.animateTo(if (revealed) -revealPx else 0f)
+    }
+
+    val offsetX = offset.value
+    val actionAlpha = (-offsetX / revealPx).coerceIn(0f, 1f)
+
+    Box {
+        if (actionAlpha > 0f && actions.isNotEmpty()) {
+            Row(
+                Modifier
+                    .matchParentSize()
+                    .graphicsLayer { alpha = actionAlpha },
+                horizontalArrangement = Arrangement.End,
+            ) {
+                actions.reversed().forEach { action ->
+                    Box(
+                        Modifier
+                            .width(actionWidth)
+                            .fillMaxHeight()
+                            .background(action.background)
+                            .clickable(onClick = action.onClick),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            action.label,
+                            color = Color.White,
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Medium,
+                            textAlign = TextAlign.Center,
+                            style = AppTheme.compactText,
+                        )
+                    }
+                }
+            }
+        }
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .offset { IntOffset(offset.value.roundToInt(), 0) }
+                .background(contentBackground)
                 .pointerInput(revealPx) {
                     detectHorizontalDragGestures(
                         onDragEnd = {

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""从《易经证释(全册).doc》抽出简体阅读稿，写入 Yizhidao/Resources/Zhengshi.json。"""
+"""从《易经证释(全册).doc》抽出简体阅读稿，写入 ios/Yizhidao/Resources/Zhengshi.json。"""
 from __future__ import annotations
 
 import json
@@ -9,8 +9,8 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-OUT = ROOT / "Yizhidao" / "Resources" / "Zhengshi.json"
-HEX_PATH = ROOT / "Yizhidao" / "Resources" / "Hexagrams.json"
+OUT = ROOT / "ios" / "Yizhidao" / "Resources" / "Zhengshi.json"
+HEX_PATH = ROOT / "ios" / "Yizhidao" / "Resources" / "Hexagrams.json"
 
 HEADER_RE = re.compile(
     r"^(?:[上下]经[-~0-9]|易经证释第.+册完|上经-\d|下经-\d)"
