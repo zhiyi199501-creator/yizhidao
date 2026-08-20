@@ -36,6 +36,7 @@ cd android && ./gradlew :engines:test
 - 《易经证释》阅读稿：`Yizhidao/Resources/Zhengshi.json`。源文件不入库；更新时 `python3 scripts/import_zhengshi.py [全册.doc]`；代码（`ZhengshiStore`/阅读页）还在，但「我的」菜单暂未挂入口
 - **IMA 黄庭书院讲解**（本分支）：点经文可看知识库讲解。覆盖卦辞／彖／大象／爻辞+小象（成对）、**用九／用六（成对）**、**文言**（乾坤）。包内 `Yizhidao/Resources/ImaExplanations.json`；源采集在 gitignore 的 `data/ima-explanations/`。导出：`python3 scripts/export_ima_explanations.py`。Android 经 `copyIosAssets` 拷同文件。ID：`{nn}-guaci|tuanci|daxiang|wenyan|yong`、`{nn}-yao-{0…5}`（初=0）。入口：结果／案例／六十四卦详情（文言与用九用六仅六十四卦详情有）
 - `App/`：`AppNavigation`、`AppTheme`、登录与「我的」（多在 `YizhidaoApp.swift`）。「我的」：资料、**保存的AI解读**（本地保存的解读）、**易经基础入门** `YijingIntro.json`、**易经六十四卦 / 易经四传** 读 `Hexagrams.json`（详情卡片标题**彖辞** / **大象**，正文带「彖曰：」「象曰：」前缀）、设置（回收站，清空需确认；退出登录）
+- Android「保存的AI解读」与回收站对齐 iOS 分组列表：白卡片竖排卦名／时间／所问；解读左滑删除，回收站左滑恢复＋彻底删除。勿改回设置项左右排布；删除钮未滑开不得透出
 - **经文勿换他本**；改解卦规则先改 `ReadingGuide` 并补测
 - **主看 UI**：0 动→本卦卦辞；2 动→本卦上动爻；3 动→本卦卦辞；4 动→之卦下静爻；5 动→之卦静爻；6 动→之卦卦辞；1 动不标「主看」
 - 时间起卦默认十二时辰；「公历取数」→公历月日 + 1–24 时
