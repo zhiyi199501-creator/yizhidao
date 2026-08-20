@@ -1,9 +1,7 @@
 package com.yizhidao.app.ui.history
 
-import androidx.compose.animation.core.Animatable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -25,7 +23,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.MenuBook
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import com.yizhidao.app.ui.theme.Text
@@ -45,11 +42,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.yizhidao.CastingMethod
@@ -64,10 +59,10 @@ import com.yizhidao.app.ui.theme.AppTheme
 import com.yizhidao.app.ui.theme.PaperBackHeader
 import com.yizhidao.app.ui.theme.PaperChevron
 import com.yizhidao.app.ui.theme.PaperSegmentedRow
+import com.yizhidao.app.ui.theme.SwipeRevealDelete
 import kotlinx.coroutines.launch
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
-import kotlin.math.roundToInt
 
 private val rowFmt = DateTimeFormatter.ofPattern("yyyy/M/d HH:mm").withZone(ZoneId.systemDefault())
 
@@ -155,6 +150,7 @@ fun HistoryListScreen(
     similarJumpTick: Int,
     onOpenRecord: (String) -> Unit,
     onCloseRecord: () -> Unit,
+    onTabBarVisible: (Boolean) -> Unit = {},
 ) {
     val records by container.readingRepository.records.collectAsState()
     var byHexagram by remember { mutableStateOf(false) }
@@ -185,6 +181,7 @@ fun HistoryListScreen(
             container = container,
             existing = opened,
             onBack = onCloseRecord,
+            onTabBarVisible = onTabBarVisible,
             onOpenSimilar = { result ->
                 appliedJump = SimilarHexagramJump.from(result)
                 filterPrimary = result.primaryNumber
@@ -508,69 +505,6 @@ private fun GroupedRecordList(
                     )
                 }
             }
-        }
-    }
-}
-
-@Composable
-private fun SwipeRevealDelete(
-    revealed: Boolean,
-    onRevealedChange: (Boolean) -> Unit,
-    onDelete: () -> Unit,
-    content: @Composable () -> Unit,
-) {
-    val revealWidth = 64.dp
-    val density = LocalDensity.current
-    val revealPx = with(density) { revealWidth.toPx() }
-    val offset = remember { Animatable(0f) }
-    val scope = rememberCoroutineScope()
-
-    LaunchedEffect(revealed, revealPx) {
-        offset.animateTo(if (revealed) -revealPx else 0f)
-    }
-
-    Box {
-        Box(
-            Modifier
-                .matchParentSize()
-                .padding(end = 12.dp),
-            contentAlignment = Alignment.CenterEnd,
-        ) {
-            Box(
-                Modifier
-                    .size(36.dp)
-                    .clip(CircleShape)
-                    .background(Color(0xFFFF3B30))
-                    .clickable(onClick = onDelete),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    Icons.Filled.Delete,
-                    contentDescription = zh("删除"),
-                    tint = Color.White,
-                    modifier = Modifier.size(18.dp),
-                )
-            }
-        }
-        Box(
-            Modifier
-                .fillMaxWidth()
-                .offset { IntOffset(offset.value.roundToInt(), 0) }
-                .background(AppTheme.parchmentTop)
-                .pointerInput(revealPx) {
-                    detectHorizontalDragGestures(
-                        onDragEnd = {
-                            onRevealedChange(offset.value <= -revealPx * 0.45f)
-                        },
-                        onHorizontalDrag = { change, dragAmount ->
-                            change.consume()
-                            val next = (offset.value + dragAmount).coerceIn(-revealPx, 0f)
-                            scope.launch { offset.snapTo(next) }
-                        },
-                    )
-                },
-        ) {
-            content()
         }
     }
 }

@@ -14,12 +14,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.WorkspacePremium
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.TextButton
-import com.yizhidao.app.ui.theme.Text
-import com.yizhidao.app.ui.theme.zh
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -35,6 +32,8 @@ import com.yizhidao.CastResult
 import com.yizhidao.ReadingRecord
 import com.yizhidao.VerificationStatus
 import com.yizhidao.app.AppContainer
+import androidx.compose.runtime.collectAsState
+import com.yizhidao.app.ui.me.LoginScreen
 import com.yizhidao.app.ui.theme.AIFloatingButton
 import com.yizhidao.app.ui.theme.AppTheme
 import com.yizhidao.app.ui.theme.PaperBackHeader
@@ -42,6 +41,8 @@ import com.yizhidao.app.ui.theme.PaperHeaderButton
 import com.yizhidao.app.ui.theme.PaperStackIcon
 import com.yizhidao.app.ui.theme.PaperSegmentedRow
 import com.yizhidao.app.ui.theme.PaperTextField
+import com.yizhidao.app.ui.theme.Text
+import com.yizhidao.app.ui.theme.zh
 import kotlinx.coroutines.launch
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -54,6 +55,7 @@ fun ResultScreen(
     isNew: Boolean,
     container: AppContainer,
     onBack: () -> Unit,
+    onTabBarVisible: (Boolean) -> Unit = {},
     onOpenSimilar: ((CastResult) -> Unit)? = null,
     existing: ReadingRecord? = null,
 ) {
@@ -62,7 +64,42 @@ fun ResultScreen(
     var question by remember { mutableStateOf(existing?.question ?: result.question ?: "") }
     var status by remember { mutableStateOf(existing?.verificationStatus ?: VerificationStatus.NONE) }
     var note by remember { mutableStateOf(existing?.verificationNote ?: "") }
-    var showAIHint by remember { mutableStateOf(false) }
+    var showAI by remember { mutableStateOf(false) }
+    var showLoginForAI by remember { mutableStateOf(false) }
+    val session by container.authStore.session.collectAsState()
+
+    LaunchedEffect(showAI) {
+        onTabBarVisible(!showAI)
+    }
+    DisposableEffect(Unit) {
+        onDispose { onTabBarVisible(true) }
+    }
+
+    val resultForAnalysis = result.copy(
+        question = question.trim().ifEmpty { null },
+    )
+
+    if (showAI) {
+        AIAnalysisScreen(
+            result = resultForAnalysis,
+            hexagramStore = container.hexagramStore,
+            authStore = container.authStore,
+            analysisStore = container.savedAIStore,
+            onBack = { showAI = false },
+        )
+        return
+    }
+    if (showLoginForAI) {
+        LoginScreen(
+            authStore = container.authStore,
+            onBack = { showLoginForAI = false },
+            onSuccess = {
+                showLoginForAI = false
+                showAI = true
+            },
+        )
+        return
+    }
 
     LaunchedEffect(result.createdAt, existing?.id) {
         if (existing != null) {
@@ -218,24 +255,12 @@ fun ResultScreen(
         }
 
         AIFloatingButton(
-            onClick = { showAIHint = true },
+            onClick = {
+                if (session.isLoggedIn) showAI = true else showLoginForAI = true
+            },
             modifier = Modifier
                 .align(Alignment.BottomEnd)
                 .padding(end = 20.dp, bottom = 24.dp),
-        )
-    }
-
-    if (showAIHint) {
-        AlertDialog(
-            onDismissRequest = { showAIHint = false },
-            title = { Text("AI 解读") },
-            text = { Text("登录后可获取结构化解读。生产登录尚未接入。") },
-            confirmButton = {
-                TextButton(onClick = { showAIHint = false }) {
-                    Text("知道了", color = AppTheme.accent)
-                }
-            },
-            containerColor = AppTheme.parchmentTop,
         )
     }
 }

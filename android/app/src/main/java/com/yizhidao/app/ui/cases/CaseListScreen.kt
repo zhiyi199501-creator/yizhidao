@@ -29,9 +29,12 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import com.yizhidao.app.ui.theme.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -51,6 +54,7 @@ import com.yizhidao.app.ui.reading.HexagramReadingBody
 import com.yizhidao.app.ui.theme.AppTheme
 import com.yizhidao.app.ui.theme.PaperBackHeader
 import com.yizhidao.app.ui.theme.PaperChevron
+import kotlinx.coroutines.launch
 
 private enum class PositionFilter(val label: String, val position: Int?) {
     All("全部", null),
@@ -73,9 +77,14 @@ private enum class PositionFilter(val label: String, val position: Int?) {
 
 @Composable
 fun CaseListScreen(container: AppContainer) {
-    val cases = remember { container.caseRepository.loadBundled() }
+    val cases by container.caseRepository.cases.collectAsState()
     var selectedHex by remember { mutableStateOf<Int?>(null) }
     var selectedCase by remember { mutableStateOf<CaseStudy?>(null) }
+    val scope = rememberCoroutineScope()
+
+    LaunchedEffect(Unit) {
+        container.caseRepository.refresh()
+    }
 
     when {
         selectedCase != null -> CaseDetailScreen(
@@ -94,6 +103,7 @@ fun CaseListScreen(container: AppContainer) {
             container = container,
             cases = cases,
             onOpenGroup = { selectedHex = it },
+            onRefresh = { scope.launch { container.caseRepository.refresh() } },
         )
     }
 }
@@ -103,17 +113,35 @@ private fun CaseGroupListScreen(
     container: AppContainer,
     cases: List<CaseStudy>,
     onOpenGroup: (Int) -> Unit,
+    onRefresh: () -> Unit,
 ) {
     val grouped = cases.groupBy { it.number }.toSortedMap()
     Column(Modifier.fillMaxSize()) {
-        Text(
-            "案例",
-            fontSize = 28.sp,
-            fontWeight = FontWeight.Bold,
-            color = AppTheme.ink,
-            style = AppTheme.compactText,
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
-        )
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                "案例",
+                fontSize = 28.sp,
+                fontWeight = FontWeight.Bold,
+                color = AppTheme.ink,
+                style = AppTheme.compactText,
+                modifier = Modifier.weight(1f),
+            )
+            Text(
+                "刷新",
+                fontSize = 15.sp,
+                color = AppTheme.accent,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .clickable(onClick = onRefresh)
+                    .padding(horizontal = 8.dp, vertical = 4.dp),
+                style = AppTheme.compactText,
+            )
+        }
         if (cases.isEmpty()) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {

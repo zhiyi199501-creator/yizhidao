@@ -31,7 +31,7 @@ xcodebuild test -scheme Yizhidao -destination 'platform=iOS Simulator,name=iPhon
 - **结果**：本卦 / 之卦 tab；卦辞、彖曰、象曰、六爻；动爻红字；「主看」；可改所问与验证；右上角「同类」；右下角悬浮 **AI**（需登录；可追问、保存）
 - **历史**：SwiftData 本地；**时间** / **按卦**（文王序）；状态筛选；左滑删除进回收站；数字起卦单爻动在箭头上方标红字（初/二/三/四/五/上）
 - **案例**：按卦浏览（文王序）；打开页面向服务端拉取最新（可下拉刷新）；离线用 App 内底稿；卦内按爻位筛选、不分数字/金钱起卦；详情为背景、所问何事、验证结果、讲师解读，以及与历史相同的本卦/之卦
-- **我的**：手机号登录（微信未接入）、资料编辑、**AI解读历史**（保存过的解读，需登录）、**易经基础入门**、可读《易经》六十四卦、系辞/说卦/序卦/杂卦、设置（回收站，清空需确认；退出登录）
+- **我的**：手机号登录（微信未接入）、资料编辑、**保存的AI解读**（保存过的解读，需登录；已保存后追问自动更新）、**易经基础入门**、可读《易经》六十四卦（详情卡片彖辞/大象）、系辞/说卦/序卦/杂卦、设置（回收站，清空需确认；退出登录）
 
 ## 协作
 
@@ -64,6 +64,6 @@ xcodebuild test -scheme Yizhidao -destination 'platform=iOS Simulator,name=iPhon
 ```
 
 - iOS **Debug**：模拟器 → `http://127.0.0.1:8080`；真机 → Mac 局域网 IP（代码里 `AuthAPI`，查 IP：`ipconfig getifaddr en0`）
-- iOS **Release**（真机测线上）：`https://yizhidao.codedance.work`；Scheme → Run → Build Configuration 选 Release
+- iOS **Release**（真机测线上）：`https://yzh.codedance.work`；Scheme → Run → Build Configuration 选 Release。旧名 `yizhidao.codedance.work` 部分 iPhone 11 不可用，见 `docs/deploy.md`
 - 开发期验证码默认 `123456`（仅本地 mock；**生产**随机码，见 `docs/deploy.md`）
 - AI：`backend/.env` 中 `AI_MODE=mock`（规则）或 `openai`（OpenAI 兼容，如 DeepSeek）；细节见 `backend/README.md`

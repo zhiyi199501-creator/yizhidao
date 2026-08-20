@@ -1,6 +1,7 @@
 package com.yizhidao.app.ui.theme
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -8,6 +9,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -21,9 +23,13 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material3.Icon
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -40,10 +46,12 @@ import com.yizhidao.app.lang.LocalAppLanguage
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -79,8 +87,11 @@ import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlin.math.roundToInt
+import kotlinx.coroutines.launch
 
 @Composable
 fun zh(text: String): String {
@@ -170,6 +181,7 @@ class TextFieldHitRegistry {
     private val rects = mutableMapOf<Any, Rect>()
 
     fun update(key: Any, rect: Rect) {
+        if (rects[key] == rect) return
         rects[key] = rect
     }
 
@@ -339,6 +351,7 @@ fun PaperTextField(
     minLines: Int = 1,
     maxLines: Int = if (singleLine) 1 else Int.MAX_VALUE,
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
+    keyboardActions: KeyboardActions = KeyboardActions.Default,
     trailing: @Composable (() -> Unit)? = null,
 ) {
     val textStyle = AppTheme.compactText.merge(
@@ -375,6 +388,7 @@ fun PaperTextField(
         minLines = minLines,
         maxLines = maxLines,
         keyboardOptions = keyboardOptions,
+        keyboardActions = keyboardActions,
         cursorBrush = SolidColor(AppTheme.accent),
         decorationBox = { inner ->
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -470,6 +484,7 @@ fun PaperPrimaryButton(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     label: String,
+    leading: @Composable (() -> Unit)? = null,
 ) {
     Button(
         onClick = onClick,
@@ -480,7 +495,14 @@ fun PaperPrimaryButton(
         elevation = paperButtonElevation(),
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
     ) {
-        Text(label, fontSize = 17.sp, fontWeight = FontWeight.SemiBold, style = AppTheme.compactText)
+        if (leading != null) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                leading()
+                Text(label, fontSize = 17.sp, fontWeight = FontWeight.SemiBold, style = AppTheme.compactText)
+            }
+        } else {
+            Text(label, fontSize = 17.sp, fontWeight = FontWeight.SemiBold, style = AppTheme.compactText)
+        }
     }
 }
 
@@ -541,6 +563,7 @@ fun PaperBackHeader(
     title: String,
     onBack: () -> Unit,
     trailing: @Composable (() -> Unit)? = null,
+    leading: @Composable (() -> Unit)? = null,
 ) {
     BackHandler(onBack = onBack)
     Box(
@@ -550,8 +573,12 @@ fun PaperBackHeader(
             .height(44.dp),
     ) {
         Box(Modifier.align(Alignment.CenterStart)) {
-            PaperHeaderButton(onClick = onBack, contentDescription = zh("返回")) {
-                PaperChevron(color = AppTheme.accent, height = 18.dp, rotation = 180f)
+            if (leading != null) {
+                leading()
+            } else {
+                PaperHeaderButton(onClick = onBack, contentDescription = zh("返回")) {
+                    PaperChevron(color = AppTheme.accent, height = 18.dp, rotation = 180f)
+                }
             }
         }
         Text(
@@ -593,5 +620,69 @@ fun AIFloatingButton(
             fontWeight = FontWeight.Bold,
             style = AppTheme.compactText,
         )
+    }
+}
+
+/** 左滑露出删除按钮，与 iOS `swipeActions` 一致。 */
+@Composable
+fun SwipeRevealDelete(
+    revealed: Boolean,
+    onRevealedChange: (Boolean) -> Unit,
+    onDelete: () -> Unit,
+    content: @Composable () -> Unit,
+) {
+    val revealWidth = 64.dp
+    val density = LocalDensity.current
+    val revealPx = with(density) { revealWidth.toPx() }
+    val offset = remember { Animatable(0f) }
+    val scope = rememberCoroutineScope()
+
+    LaunchedEffect(revealed, revealPx) {
+        offset.animateTo(if (revealed) -revealPx else 0f)
+    }
+
+    Box {
+        Box(
+            Modifier
+                .matchParentSize()
+                .padding(end = 12.dp),
+            contentAlignment = Alignment.CenterEnd,
+        ) {
+            Box(
+                Modifier
+                    .size(36.dp)
+                    .clip(CircleShape)
+                    .background(Color(0xFFFF3B30))
+                    .clickable(onClick = onDelete),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    Icons.Filled.Delete,
+                    contentDescription = zh("删除"),
+                    tint = Color.White,
+                    modifier = Modifier.size(18.dp),
+                )
+            }
+        }
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .offset { IntOffset(offset.value.roundToInt(), 0) }
+                .background(AppTheme.parchmentTop)
+                .pointerInput(revealPx) {
+                    detectHorizontalDragGestures(
+                        onDragEnd = {
+                            onRevealedChange(offset.value <= -revealPx * 0.45f)
+                        },
+                        onHorizontalDrag = { change, dragAmount ->
+                            change.consume()
+                            val next = (offset.value + dragAmount).coerceIn(-revealPx, 0f)
+                            scope.launch { offset.snapTo(next) }
+                        },
+                    )
+                },
+        ) {
+            content()
+        }
     }
 }

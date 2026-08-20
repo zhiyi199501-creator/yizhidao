@@ -64,13 +64,16 @@ fun YizhidaoRoot(container: AppContainer) {
     var historyOpenId by remember { mutableStateOf<String?>(null) }
     var similarJumpTick by remember { mutableIntStateOf(0) }
     var similarJump by remember { mutableStateOf<SimilarHexagramJump?>(null) }
+    var hideTabBar by remember { mutableStateOf(false) }
     val language by AppLanguageStore.language.collectAsState()
 
     CompositionLocalProvider(LocalAppLanguage provides language) {
     Scaffold(
         containerColor = Color.Transparent,
         bottomBar = {
-            PaperTabBar(selected = tab, onSelect = { tab = it })
+            if (!hideTabBar) {
+                PaperTabBar(selected = tab, onSelect = { tab = it })
+            }
         },
     ) { inner ->
         Box(
@@ -88,6 +91,7 @@ fun YizhidaoRoot(container: AppContainer) {
                             isNew = true,
                             container = container,
                             onBack = { pendingResult = null },
+                            onTabBarVisible = { hideTabBar = !it },
                             onOpenSimilar = { result ->
                                 similarJump = SimilarHexagramJump.from(result)
                                 similarJumpTick += 1
@@ -109,9 +113,13 @@ fun YizhidaoRoot(container: AppContainer) {
                     similarJumpTick = similarJumpTick,
                     onOpenRecord = { historyOpenId = it },
                     onCloseRecord = { historyOpenId = null },
+                    onTabBarVisible = { hideTabBar = !it },
                 )
                 AppTab.Cases -> CaseListScreen(container = container)
-                AppTab.Me -> MeScreen(container = container)
+                AppTab.Me -> MeScreen(
+                    container = container,
+                    onTabBarVisible = { hideTabBar = !it },
+                )
             }
         }
     }

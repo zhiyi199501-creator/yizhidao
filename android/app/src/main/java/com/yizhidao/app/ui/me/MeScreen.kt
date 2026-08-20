@@ -3,13 +3,15 @@ package com.yizhidao.app.ui.me
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.material.icons.outlined.Check
+import androidx.compose.material.icons.automirrored.outlined.VolumeUp
+import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Language
-import androidx.compose.material.icons.outlined.VolumeUp
 import com.yizhidao.app.lang.AppLanguage
 import com.yizhidao.app.lang.AppLanguageStore
 import com.yizhidao.app.sound.TapSoundKind
 import com.yizhidao.app.sound.TapSoundPlayer
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -27,14 +29,22 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.MenuBook
 import androidx.compose.material.icons.automirrored.outlined.ReceiptLong
 import androidx.compose.material.icons.outlined.AccountCircle
+import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.AutoStories
+import androidx.compose.material.icons.outlined.DarkMode
+import androidx.compose.material.icons.outlined.Eco
+import androidx.compose.material.icons.outlined.LocalFireDepartment
+import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material.icons.outlined.Star
+import androidx.compose.material.icons.outlined.WbSunny
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -44,6 +54,8 @@ import androidx.compose.material3.TextButton
 import com.yizhidao.app.ui.theme.Text
 import com.yizhidao.app.ui.theme.zh
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -61,21 +73,54 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
 import com.yizhidao.Hexagram
+import com.yizhidao.HexagramText
 import com.yizhidao.app.AppContainer
+import com.yizhidao.app.auth.LocalAuthStore
+import com.yizhidao.app.auth.LocalUserSession
+import com.yizhidao.app.auth.AuthApi
+import com.yizhidao.app.auth.LoginError
 import com.yizhidao.app.HistoryTrashEntry
+import com.yizhidao.app.ai.SavedAIAnalysis
 import com.yizhidao.app.classic.ClassicChapter
 import com.yizhidao.app.classic.ClassicWing
 import com.yizhidao.app.classic.YijingIntroBook
 import com.yizhidao.app.classic.YijingIntroChapter
-import com.yizhidao.app.classic.ZhengshiChapter
+import com.yizhidao.app.ui.reading.AIAnalysisScreen
+import com.yizhidao.app.ui.reading.ScaledHexagramFigure
 import com.yizhidao.app.ui.theme.AppTheme
 import com.yizhidao.app.ui.theme.PaperBackHeader
 import com.yizhidao.app.ui.theme.PaperChevron
+import com.yizhidao.app.ui.theme.SwipeRevealDelete
+import com.yizhidao.app.ui.theme.PaperTextField
+
+private val AvatarOptions = listOf(
+    "person.crop.circle.fill",
+    "person.fill",
+    "moon.stars.fill",
+    "sun.max.fill",
+    "sparkles",
+    "leaf.fill",
+    "flame.fill",
+    "star.fill",
+)
+
+private fun avatarIcon(symbol: String): ImageVector = when (symbol) {
+    "person.fill" -> Icons.Outlined.Person
+    "moon.stars.fill" -> Icons.Outlined.DarkMode
+    "sun.max.fill" -> Icons.Outlined.WbSunny
+    "sparkles" -> Icons.Outlined.AutoAwesome
+    "leaf.fill" -> Icons.Outlined.Eco
+    "flame.fill" -> Icons.Outlined.LocalFireDepartment
+    "star.fill" -> Icons.Outlined.Star
+    else -> Icons.Outlined.AccountCircle
+}
 
 private sealed interface MeRoute {
     data object Home : MeRoute
     data object Login : MeRoute
+    data object Profile : MeRoute
     data object AIHistory : MeRoute
+    data class AIHistoryItem(val item: SavedAIAnalysis) : MeRoute
     data object Settings : MeRoute
     data object TapSound : MeRoute
     data object Language : MeRoute
@@ -87,46 +132,98 @@ private sealed interface MeRoute {
     data object Wings : MeRoute
     data class Wing(val item: ClassicWing) : MeRoute
     data class Chapter(val wingTitle: String, val chapter: ClassicChapter) : MeRoute
-    data object Zhengshi : MeRoute
-    data class ZhengshiItem(val item: ZhengshiChapter) : MeRoute
-    data class ZhengshiReader(
-        val title: String,
-        val paragraphs: List<String>,
-        val parent: ZhengshiChapter? = null,
-    ) : MeRoute
 }
 
 @Composable
-fun MeScreen(container: AppContainer) {
+fun MeScreen(
+    container: AppContainer,
+    onTabBarVisible: (Boolean) -> Unit = {},
+) {
     var route by remember { mutableStateOf<MeRoute>(MeRoute.Home) }
+    var pendingAfterLogin by remember { mutableStateOf<MeRoute?>(null) }
+    val session by container.authStore.session.collectAsState()
     val book = container.classicBook
     val intro = container.introBook
 
+    LaunchedEffect(Unit) {
+        val current = container.authStore.load()
+        if (!current.isLoggedIn || current.accessToken.isNullOrBlank()) return@LaunchedEffect
+        try {
+            val me = AuthApi.fetchMe(current.accessToken)
+            container.authStore.save(
+                current.copy(
+                    isLoggedIn = true,
+                    phone = me.user.phone ?: current.phone,
+                ),
+            )
+        } catch (_: LoginError.Unauthorized) {
+            container.authStore.logout()
+        } catch (_: Exception) {
+            // 网络异常时保留本地会话
+        }
+    }
+
+    LaunchedEffect(route) {
+        onTabBarVisible(route !is MeRoute.AIHistoryItem)
+    }
+    DisposableEffect(Unit) {
+        onDispose { onTabBarVisible(true) }
+    }
+
     when (val page = route) {
         MeRoute.Home -> MeHome(
+            session = session,
             onLogin = { route = MeRoute.Login },
-            onAIHistory = { route = MeRoute.Login },
+            onEditProfile = { route = MeRoute.Profile },
+            onAIHistory = {
+                if (session.isLoggedIn) route = MeRoute.AIHistory
+                else {
+                    pendingAfterLogin = MeRoute.AIHistory
+                    route = MeRoute.Login
+                }
+            },
             onIntro = { route = MeRoute.Intro },
             onHexagrams = { route = MeRoute.Hexagrams },
             onWings = { route = MeRoute.Wings },
             onSettings = { route = MeRoute.Settings },
         )
-        MeRoute.Login -> PlaceholderPage(
-            title = "登录",
-            message = "支持手机号或微信登录。生产短信与微信登录尚未接入。",
+        MeRoute.Profile -> ProfileEditPage(
+            session = session,
+            authStore = container.authStore,
             onBack = { route = MeRoute.Home },
         )
-        MeRoute.AIHistory -> PlaceholderPage(
-            title = "AI解读历史",
-            message = "登录后可查看保存在本机的 AI 解读。",
+        MeRoute.Login -> LoginScreen(
+            authStore = container.authStore,
+            onBack = {
+                pendingAfterLogin = null
+                route = MeRoute.Home
+            },
+            onSuccess = {
+                route = pendingAfterLogin ?: MeRoute.Home
+                pendingAfterLogin = null
+            },
+        )
+        MeRoute.AIHistory -> AIHistoryPage(
+            container = container,
             onBack = { route = MeRoute.Home },
+            onOpen = { route = MeRoute.AIHistoryItem(it) },
+        )
+        is MeRoute.AIHistoryItem -> AIAnalysisScreen(
+            result = page.item.toCastResult(),
+            saved = page.item,
+            hexagramStore = container.hexagramStore,
+            authStore = container.authStore,
+            analysisStore = container.savedAIStore,
+            onBack = { route = MeRoute.AIHistory },
         )
         MeRoute.Settings -> SettingsPage(
             container = container,
+            session = session,
             onBack = { route = MeRoute.Home },
             onOpenRecycle = { route = MeRoute.Recycle },
             onOpenTapSound = { route = MeRoute.TapSound },
             onOpenLanguage = { route = MeRoute.Language },
+            onLogout = { container.authStore.logout() },
         )
         MeRoute.TapSound -> TapSoundPage(
             onBack = { route = MeRoute.Settings },
@@ -170,80 +267,14 @@ fun MeScreen(container: AppContainer) {
             val wing = book.wings.first { it.title == page.wingTitle }
             route = if (wing.chapters.size == 1) MeRoute.Wings else MeRoute.Wing(wing)
         }
-        MeRoute.Zhengshi -> {
-            val zhengshi = container.zhengshiBook
-            Column(Modifier.fillMaxSize().padding(16.dp)) {
-                BackLabel("我的") { route = MeRoute.Home }
-                Text("易经证释", style = androidx.compose.material3.MaterialTheme.typography.headlineSmall)
-                Text(
-                    zhengshi.note,
-                    style = androidx.compose.material3.MaterialTheme.typography.bodySmall,
-                    color = AppTheme.secondaryText,
-                    modifier = Modifier.padding(top = 8.dp, bottom = 8.dp),
-                )
-                LazyColumn {
-                    zhengshi.parts.forEach { part ->
-                        item(key = part.id) {
-                            Text(
-                                part.title,
-                                fontWeight = FontWeight.SemiBold,
-                                color = AppTheme.accent,
-                                modifier = Modifier.padding(top = 12.dp, bottom = 4.dp),
-                            )
-                        }
-                        items(part.chapters, key = { it.id }) { chapter ->
-                            ListItem(
-                                headlineContent = {
-                                    Text(
-                                        if (chapter.symbol.isNotEmpty()) {
-                                            "${chapter.symbol} ${chapter.title}"
-                                        } else {
-                                            chapter.title
-                                        },
-                                    )
-                                },
-                                supportingContent = {
-                                    if (chapter.subtitle.isNotEmpty()) Text(chapter.subtitle)
-                                },
-                                modifier = Modifier.clickable {
-                                    route = if (chapter.sections.size == 1) {
-                                        MeRoute.ZhengshiReader(
-                                            chapter.title,
-                                            chapter.sections[0].paragraphs,
-                                        )
-                                    } else {
-                                        MeRoute.ZhengshiItem(chapter)
-                                    }
-                                },
-                                colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-                            )
-                        }
-                    }
-                }
-            }
-        }
-        is MeRoute.ZhengshiItem -> Column(Modifier.fillMaxSize().padding(16.dp)) {
-            BackLabel("易经证释") { route = MeRoute.Zhengshi }
-            Text(page.item.title, style = androidx.compose.material3.MaterialTheme.typography.headlineSmall)
-            page.item.sections.forEach { section ->
-                ListItem(
-                    headlineContent = { Text(section.title) },
-                    modifier = Modifier.clickable {
-                        route = MeRoute.ZhengshiReader(section.title, section.paragraphs, page.item)
-                    },
-                    colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-                )
-            }
-        }
-        is MeRoute.ZhengshiReader -> ZhengshiSectionReader(page.title, page.paragraphs) {
-            route = page.parent?.let { MeRoute.ZhengshiItem(it) } ?: MeRoute.Zhengshi
-        }
     }
 }
 
 @Composable
 private fun MeHome(
+    session: LocalUserSession,
     onLogin: () -> Unit,
+    onEditProfile: () -> Unit,
     onAIHistory: () -> Unit,
     onIntro: () -> Unit,
     onHexagrams: () -> Unit,
@@ -275,43 +306,60 @@ private fun MeHome(
                 Row(
                     Modifier
                         .fillMaxWidth()
+                        .then(
+                            if (session.isLoggedIn) Modifier.clickable(onClick = onEditProfile)
+                            else Modifier,
+                        )
                         .padding(start = 16.dp, end = 8.dp, top = 12.dp, bottom = 12.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Icon(
-                        Icons.Outlined.AccountCircle,
+                        avatarIcon(session.avatarSymbol),
                         contentDescription = null,
-                        tint = AppTheme.secondaryText,
+                        tint = if (session.isLoggedIn) AppTheme.accent else AppTheme.secondaryText,
                         modifier = Modifier.size(32.dp),
                     )
                     Spacer(Modifier.width(10.dp))
                     Column(Modifier.weight(1f)) {
-                        Text("未登录", fontSize = 17.sp, color = AppTheme.ink, style = AppTheme.compactText)
                         Text(
-                            "支持手机号或微信登录",
-                            fontSize = 12.sp,
-                            color = AppTheme.secondaryText,
+                            if (session.isLoggedIn) session.displayName else "未登录",
+                            fontSize = 17.sp,
+                            color = AppTheme.ink,
+                            style = AppTheme.compactText,
+                        )
+                        if (!session.isLoggedIn) {
+                            Text(
+                                "支持手机号或微信登录",
+                                fontSize = 12.sp,
+                                color = AppTheme.secondaryText,
+                                style = AppTheme.compactText,
+                            )
+                        }
+                    }
+                    if (session.isLoggedIn) {
+                        PaperChevron()
+                    } else {
+                        Text(
+                            "登录",
+                            color = AppTheme.accent,
+                            fontSize = 16.sp,
+                            modifier = Modifier
+                                .clip(AppTheme.controlShape)
+                                .clickable(onClick = onLogin)
+                                .padding(horizontal = 10.dp, vertical = 6.dp),
                             style = AppTheme.compactText,
                         )
                     }
-                    Text(
-                        "登录",
-                        color = AppTheme.accent,
-                        fontSize = 16.sp,
-                        modifier = Modifier
-                            .clip(AppTheme.controlShape)
-                            .clickable(onClick = onLogin)
-                            .padding(horizontal = 10.dp, vertical = 6.dp),
-                        style = AppTheme.compactText,
-                    )
                 }
             }
             MeCard {
                 MeRow(
                     icon = Icons.AutoMirrored.Outlined.MenuBook,
-                    title = "AI解读历史",
+                    title = "保存的AI解读",
                     trailing = {
-                        Text("需登录", fontSize = 12.sp, color = AppTheme.secondaryText, style = AppTheme.compactText)
+                        if (!session.isLoggedIn) {
+                            Text("需登录", fontSize = 12.sp, color = AppTheme.secondaryText, style = AppTheme.compactText)
+                        }
                     },
                     showChevron = false,
                     onClick = onAIHistory,
@@ -348,16 +396,140 @@ private fun MeHome(
 }
 
 @Composable
+private fun ProfileEditPage(
+    session: LocalUserSession,
+    authStore: LocalAuthStore,
+    onBack: () -> Unit,
+) {
+    var nicknameDraft by remember { mutableStateOf(session.displayName) }
+    var avatarDraft by remember { mutableStateOf(session.avatarSymbol) }
+    var validationMessage by remember { mutableStateOf<String?>(null) }
+
+    fun save() {
+        val limited = nicknameDraft.trim().take(20)
+        if (limited.length !in 2..20) {
+            validationMessage = "昵称需为 2-20 个字符"
+            return
+        }
+        authStore.save(
+            session.copy(
+                displayName = limited,
+                avatarSymbol = avatarDraft,
+            ),
+        )
+        onBack()
+    }
+
+    Column(Modifier.fillMaxSize()) {
+        PaperBackHeader(
+            title = "编辑资料",
+            onBack = onBack,
+            trailing = {
+                Text(
+                    "保存",
+                    color = AppTheme.accent,
+                    fontSize = 17.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier
+                        .clip(AppTheme.controlShape)
+                        .clickable(onClick = { save() })
+                        .padding(horizontal = 10.dp, vertical = 8.dp),
+                    style = AppTheme.compactText,
+                )
+            },
+        )
+        Column(
+            Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 16.dp)
+                .padding(bottom = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(18.dp),
+        ) {
+            MeCard {
+                Text(
+                    "头像",
+                    fontSize = 13.sp,
+                    color = AppTheme.secondaryText,
+                    modifier = Modifier.padding(start = 16.dp, top = 12.dp, bottom = 4.dp),
+                    style = AppTheme.compactText,
+                )
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState())
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    AvatarOptions.forEach { symbol ->
+                        val selected = avatarDraft == symbol
+                        Box(
+                            Modifier
+                                .size(44.dp)
+                                .clip(CircleShape)
+                                .background(if (selected) AppTheme.accent else Color.Black.copy(alpha = 0.06f))
+                                .clickable { avatarDraft = symbol },
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Icon(
+                                avatarIcon(symbol),
+                                contentDescription = null,
+                                tint = if (selected) Color.White else AppTheme.accent,
+                                modifier = Modifier.size(22.dp),
+                            )
+                        }
+                    }
+                }
+            }
+            MeCard {
+                Text(
+                    "昵称",
+                    fontSize = 13.sp,
+                    color = AppTheme.secondaryText,
+                    modifier = Modifier.padding(start = 16.dp, top = 12.dp, bottom = 4.dp),
+                    style = AppTheme.compactText,
+                )
+                PaperTextField(
+                    value = nicknameDraft,
+                    onValueChange = { nicknameDraft = it.take(20) },
+                    placeholder = "输入昵称",
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp)
+                        .padding(bottom = 14.dp),
+                )
+            }
+        }
+    }
+    validationMessage?.let { message ->
+        AlertDialog(
+            onDismissRequest = { validationMessage = null },
+            title = { Text("保存失败", color = AppTheme.ink, style = AppTheme.compactText) },
+            text = { Text(message, color = AppTheme.ink, style = AppTheme.compactText) },
+            confirmButton = {
+                TextButton(onClick = { validationMessage = null }) {
+                    Text("知道了", color = AppTheme.accent, style = AppTheme.compactText)
+                }
+            },
+            containerColor = AppTheme.cardFill,
+        )
+    }
+}
+
+@Composable
 private fun SettingsPage(
     container: AppContainer,
+    session: LocalUserSession,
     onBack: () -> Unit,
     onOpenRecycle: () -> Unit,
     onOpenTapSound: () -> Unit,
     onOpenLanguage: () -> Unit,
+    onLogout: () -> Unit,
 ) {
     val trash by container.readingRepository.trash.collectAsState()
-    var tapSound by remember { mutableStateOf(TapSoundPlayer.current()) }
+    val tapSound = TapSoundPlayer.current()
     val language by AppLanguageStore.language.collectAsState()
+    var showLogoutConfirm by remember { mutableStateOf(false) }
     Column(Modifier.fillMaxSize()) {
         PaperBackHeader(title = "设置", onBack = onBack)
         Column(
@@ -385,7 +557,7 @@ private fun SettingsPage(
             Spacer(Modifier.height(12.dp))
             MeCard {
                 MeRow(
-                    icon = Icons.Outlined.VolumeUp,
+                    icon = Icons.AutoMirrored.Outlined.VolumeUp,
                     title = "按键音效",
                     trailing = {
                         Text(
@@ -401,7 +573,7 @@ private fun SettingsPage(
             Spacer(Modifier.height(12.dp))
             MeCard {
                 MeRow(
-                    icon = null,
+                    icon = Icons.Outlined.Delete,
                     title = "回收站",
                     trailing = {
                         Text(
@@ -414,7 +586,39 @@ private fun SettingsPage(
                     onClick = onOpenRecycle,
                 )
             }
+            if (session.isLoggedIn) {
+                Spacer(Modifier.height(12.dp))
+                MeCard {
+                    MeRow(
+                        icon = null,
+                        title = "退出登录",
+                        showChevron = false,
+                        onClick = { showLogoutConfirm = true },
+                    )
+                }
+            }
         }
+    }
+
+    if (showLogoutConfirm) {
+        AlertDialog(
+            onDismissRequest = { showLogoutConfirm = false },
+            title = { Text("确认退出登录？") },
+            confirmButton = {
+                TextButton(onClick = {
+                    onLogout()
+                    showLogoutConfirm = false
+                }) {
+                    Text("退出登录", color = AppTheme.ink)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showLogoutConfirm = false }) {
+                    Text("取消", color = AppTheme.accent)
+                }
+            },
+            containerColor = AppTheme.parchmentTop,
+        )
     }
 }
 
@@ -471,13 +675,6 @@ private fun TapSoundPage(onBack: () -> Unit) {
                 .padding(horizontal = 16.dp)
                 .padding(bottom = 24.dp),
         ) {
-            Text(
-                "点按按钮、标签和列表时播放。系统静音时可能不出声。",
-                fontSize = 13.sp,
-                color = AppTheme.secondaryText,
-                style = AppTheme.compactText,
-                modifier = Modifier.padding(start = 4.dp, bottom = 10.dp),
-            )
             MeCard {
                 TapSoundKind.entries.forEachIndexed { index, kind ->
                     MeRow(
@@ -504,6 +701,14 @@ private fun TapSoundPage(onBack: () -> Unit) {
                     }
                 }
             }
+            Text(
+                "点按「随机」「一键随机」「摇」「一键摇满」时播放。系统静音时不会出声。",
+                fontSize = 13.sp,
+                color = AppTheme.secondaryText,
+                lineHeight = 18.sp,
+                style = AppTheme.compactText,
+                modifier = Modifier.padding(start = 4.dp, top = 10.dp),
+            )
         }
     }
 }
@@ -637,6 +842,92 @@ private fun RecycleRow(
                 modifier = Modifier.clickable(onClick = onRemove),
                 style = AppTheme.compactText,
             )
+        }
+    }
+}
+
+@Composable
+private fun AIHistoryPage(
+    container: AppContainer,
+    onBack: () -> Unit,
+    onOpen: (SavedAIAnalysis) -> Unit,
+) {
+    val items by container.savedAIStore.items.collectAsState()
+    var revealedId by remember { mutableStateOf<String?>(null) }
+    Column(Modifier.fillMaxSize()) {
+        PaperBackHeader(title = "保存的AI解读", onBack = onBack)
+        if (items.isEmpty()) {
+            Column(
+                Modifier.fillMaxSize().padding(32.dp),
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Text(
+                    "还没有保存的解读",
+                    fontSize = 17.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = AppTheme.ink,
+                    style = AppTheme.compactText,
+                )
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    "觉得合适的 AI 解读，可在结果页点「保存」",
+                    fontSize = 13.sp,
+                    color = AppTheme.secondaryText,
+                    style = AppTheme.compactText,
+                )
+            }
+        } else {
+            LazyColumn(contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 24.dp)) {
+                item {
+                    MeCard {
+                        items.forEachIndexed { index, item ->
+                            SwipeRevealDelete(
+                                revealed = revealedId == item.id,
+                                onRevealedChange = { open ->
+                                    revealedId = if (open) {
+                                        item.id
+                                    } else if (revealedId == item.id) {
+                                        null
+                                    } else {
+                                        revealedId
+                                    }
+                                },
+                                onDelete = {
+                                    revealedId = null
+                                    container.savedAIStore.remove(item.id)
+                                },
+                            ) {
+                                val hex = container.hexagramStore.hexagram(item.primaryNumber)
+                                MeRow(
+                                    icon = null,
+                                    title = hex?.let { "${it.symbol} ${it.name}" } ?: "第${item.primaryNumber}卦",
+                                    trailing = {
+                                        Text(
+                                            item.question?.takeIf { it.isNotBlank() }
+                                                ?: item.analysis.summary,
+                                            fontSize = 12.sp,
+                                            color = AppTheme.secondaryText,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis,
+                                            modifier = Modifier.width(120.dp),
+                                            style = AppTheme.compactText,
+                                        )
+                                    },
+                                    onClick = {
+                                        if (revealedId == item.id) {
+                                            revealedId = null
+                                        } else {
+                                            onOpen(item)
+                                        }
+                                    },
+                                )
+                            }
+                            if (index < items.lastIndex) MeDivider()
+                        }
+                    }
+                }
+            }
         }
     }
 }
@@ -987,23 +1278,38 @@ private fun HexagramReader(hex: Hexagram, onBack: () -> Unit) {
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
                 .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            Text(
-                hex.title,
-                fontSize = 20.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = AppTheme.ink,
-                style = AppTheme.compactText,
-            )
-            Text(
-                hex.figure,
-                fontSize = 15.sp,
-                color = AppTheme.secondaryText,
-                modifier = Modifier.padding(bottom = 12.dp),
-            )
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .background(AppTheme.cardFill, RoundedCornerShape(12.dp))
+                    .padding(16.dp),
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                ScaledHexagramFigure(
+                    lines = hex.figureLines,
+                    movingPositions = emptyList(),
+                )
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text(
+                        hex.title,
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = AppTheme.ink,
+                        style = AppTheme.compactText,
+                    )
+                    Text(
+                        hex.figure,
+                        fontSize = 15.sp,
+                        color = AppTheme.secondaryText,
+                        style = AppTheme.compactText,
+                    )
+                }
+            }
             ScriptureCard("卦辞", hex.guaci)
-            ScriptureCard("彖曰", hex.tuanci)
-            ScriptureCard("象曰", hex.daxiang)
+            ScriptureCard("彖辞", HexagramText.prefixed("彖曰：", hex.tuanci))
+            ScriptureCard("大象", HexagramText.prefixed("象曰：", hex.daxiang))
             hex.yaoci.zip(hex.xiaoxiang).forEach { (ci, xiang) ->
                 ScriptureCard(body = ci, footnote = "象曰：$xiang")
             }
@@ -1029,26 +1335,6 @@ private fun ChapterReader(wingTitle: String, chapter: ClassicChapter, onBack: ()
             chapter.paragraphs.forEach { paragraph ->
                 ScriptureCard(body = paragraph)
             }
-        }
-    }
-}
-
-@Composable
-private fun ZhengshiSectionReader(title: String, paragraphs: List<String>, onBack: () -> Unit) {
-    Column(
-        Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(16.dp),
-    ) {
-        BackLabel("易经证释", onBack)
-        Text(
-            title,
-            style = androidx.compose.material3.MaterialTheme.typography.headlineSmall,
-            modifier = Modifier.padding(bottom = 12.dp),
-        )
-        paragraphs.forEach { paragraph ->
-            ScriptureCard(body = paragraph)
         }
     }
 }

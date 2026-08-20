@@ -1,0 +1,235 @@
+package com.yizhidao.app.auth
+
+import com.yizhidao.app.BuildConfig
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import kotlinx.serialization.Serializable
+import com.yizhidao.CastResult
+import com.yizhidao.app.ai.SavedAIFollowUp
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.add
+import kotlinx.serialization.json.addJsonObject
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
+import kotlinx.serialization.json.putJsonArray
+import kotlinx.serialization.json.putJsonObject
+import java.io.IOException
+import java.net.HttpURLConnection
+import java.net.SocketTimeoutException
+import java.net.URL
+
+sealed class LoginError(message: String) : Exception(message) {
+    class Network(message: String) : LoginError(message)
+    data object Unauthorized : LoginError("登录已过期，请重新登录")
+}
+
+object AuthApi {
+    val baseUrl: String = BuildConfig.API_BASE_URL.trimEnd('/')
+    private const val HEX_TEXT_VERSION = "yi-zhengshi-2026-08"
+    private const val AI_TIMEOUT_MS = 180_000
+
+    private val json = Json { ignoreUnknownKeys = true }
+
+    @Serializable
+    data class SMSCodeResponse(val ok: Boolean, val cooldownSec: Int)
+
+    @Serializable
+    data class SMSLoginResponse(
+        val ok: Boolean,
+        val accessToken: String,
+        val user: User,
+    ) {
+        @Serializable
+        data class User(
+            val id: String,
+            val nickname: String,
+            val phone: String? = null,
+        )
+    }
+
+    @Serializable
+    data class MeResponse(val ok: Boolean, val user: SMSLoginResponse.User)
+
+    @Serializable
+    data class AIAnalyzeResponse(val ok: Boolean, val analysis: Analysis) {
+        @Serializable
+        data class Analysis(
+            val summary: String,
+            val focus: String,
+            val advice: List<String>,
+        )
+    }
+
+    @Serializable
+    data class AIFollowupResponse(val ok: Boolean, val reply: String)
+
+    @Serializable
+    private data class ErrorEnvelope(val message: String? = null)
+
+    suspend fun sendSMSCode(phone: String): SMSCodeResponse {
+        val decoded = post(
+            path = "/v1/auth/sms/send",
+            body = buildJsonObject { put("phone", phone) }.toString(),
+            fallback = "发送验证码失败",
+        ) { json.decodeFromString<SMSCodeResponse>(it) }
+        if (!decoded.ok) throw LoginError.Network("发送验证码失败")
+        return decoded
+    }
+
+    suspend fun loginBySMS(phone: String, code: String): SMSLoginResponse {
+        val decoded = post(
+            path = "/v1/auth/sms/login",
+            body = buildJsonObject {
+                put("phone", phone)
+                put("code", code)
+            }.toString(),
+            fallback = "登录失败",
+        ) { json.decodeFromString<SMSLoginResponse>(it) }
+        if (!decoded.ok) throw LoginError.Network("登录失败")
+        return decoded
+    }
+
+    suspend fun fetchMe(accessToken: String): MeResponse {
+        val decoded = get(
+            path = "/v1/me",
+            accessToken = accessToken,
+            fallback = "获取用户信息失败",
+        ) { json.decodeFromString<MeResponse>(it) }
+        if (!decoded.ok) throw LoginError.Network("获取用户信息失败")
+        return decoded
+    }
+
+    suspend fun analyzeReading(result: CastResult, accessToken: String): AIAnalyzeResponse {
+        val decoded = post(
+            path = "/v1/ai/analyze",
+            body = readingPayload(result).toString(),
+            fallback = "解读失败",
+            accessToken = accessToken,
+            timeoutMs = AI_TIMEOUT_MS,
+        ) { json.decodeFromString<AIAnalyzeResponse>(it) }
+        if (!decoded.ok) throw LoginError.Network("解读失败")
+        return decoded
+    }
+
+    suspend fun followupReading(
+        result: CastResult,
+        analysis: AIAnalyzeResponse.Analysis,
+        conversation: List<SavedAIFollowUp>,
+        message: String,
+        accessToken: String,
+    ): AIFollowupResponse {
+        val decoded = post(
+            path = "/v1/ai/followup",
+            body = readingPayload(result) {
+                put("message", message)
+                putJsonObject("previousAnalysis") {
+                    put("summary", analysis.summary)
+                    put("focus", analysis.focus)
+                    putJsonArray("advice") { analysis.advice.forEach { add(it) } }
+                }
+                putJsonArray("conversation") {
+                    conversation.forEach { turn ->
+                        addJsonObject {
+                            put("user", turn.user)
+                            put("assistant", turn.assistant)
+                        }
+                    }
+                }
+            }.toString(),
+            fallback = "追问失败",
+            accessToken = accessToken,
+            timeoutMs = AI_TIMEOUT_MS,
+        ) { json.decodeFromString<AIFollowupResponse>(it) }
+        if (!decoded.ok || decoded.reply.isBlank()) throw LoginError.Network("追问失败")
+        return decoded
+    }
+
+    private fun readingPayload(
+        result: CastResult,
+        extra: kotlinx.serialization.json.JsonObjectBuilder.() -> Unit = {},
+    ) = buildJsonObject {
+        put("method", result.method.raw)
+        put("primaryNumber", result.primaryNumber)
+        putJsonArray("movingPositions") { result.movingPositions.forEach { add(it) } }
+        putJsonArray("lines") { result.lines.forEach { add(it.rawValue) } }
+        put("hexTextVersion", HEX_TEXT_VERSION)
+        result.question?.takeIf { it.isNotBlank() }?.let { put("question", it) }
+        result.resultingNumber?.let { put("resultingNumber", it) }
+        extra()
+    }
+
+    fun describe(error: Throwable): String {
+        if (error is LoginError) return error.message ?: "未知错误"
+        if (error is SocketTimeoutException) return "连接超时：$baseUrl"
+        if (error is IOException) return "连不上 $baseUrl"
+        return error.message ?: "未知错误"
+    }
+
+    private suspend inline fun <T> post(
+        path: String,
+        body: String,
+        fallback: String,
+        accessToken: String? = null,
+        timeoutMs: Int = 20_000,
+        crossinline decode: (String) -> T,
+    ): T = withContext(Dispatchers.IO) {
+        val conn = open(path, "POST", timeoutMs)
+        try {
+            conn.doOutput = true
+            conn.setRequestProperty("Content-Type", "application/json; charset=utf-8")
+            if (accessToken != null) {
+                conn.setRequestProperty("Authorization", "Bearer $accessToken")
+            }
+            conn.outputStream.use { it.write(body.toByteArray(Charsets.UTF_8)) }
+            read(conn, fallback, decode)
+        } finally {
+            conn.disconnect()
+        }
+    }
+
+    private suspend inline fun <T> get(
+        path: String,
+        accessToken: String,
+        fallback: String,
+        timeoutMs: Int = 20_000,
+        crossinline decode: (String) -> T,
+    ): T = withContext(Dispatchers.IO) {
+        val conn = open(path, "GET", timeoutMs)
+        try {
+            conn.setRequestProperty("Authorization", "Bearer $accessToken")
+            read(conn, fallback, decode)
+        } finally {
+            conn.disconnect()
+        }
+    }
+
+    private fun open(path: String, method: String, timeoutMs: Int): HttpURLConnection {
+        val conn = URL("$baseUrl$path").openConnection() as HttpURLConnection
+        conn.requestMethod = method
+        conn.connectTimeout = timeoutMs
+        conn.readTimeout = timeoutMs
+        conn.useCaches = false
+        return conn
+    }
+
+    private inline fun <T> read(
+        conn: HttpURLConnection,
+        fallback: String,
+        decode: (String) -> T,
+    ): T {
+        val code = conn.responseCode
+        val stream = if (code in 200..299) conn.inputStream else conn.errorStream
+        val text = stream?.bufferedReader()?.use { it.readText() }.orEmpty()
+        if (code == 401) throw LoginError.Unauthorized
+        if (code !in 200..299) throw decodeError(text, fallback)
+        return decode(text)
+    }
+
+    private fun decodeError(text: String, fallback: String): LoginError.Network {
+        val message = runCatching { json.decodeFromString<ErrorEnvelope>(text).message }
+            .getOrNull()
+            ?.takeIf { it.isNotBlank() }
+            ?: fallback
+        return LoginError.Network(message)
+    }
+}

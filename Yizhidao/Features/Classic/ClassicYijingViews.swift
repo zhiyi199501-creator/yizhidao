@@ -102,7 +102,7 @@ struct ClassicHexagramDetailView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 HStack(alignment: .top, spacing: 16) {
-                    HexagramFigureView(
+                    ScaledHexagramFigureView(
                         lines: hexagram.figureLines,
                         movingPositions: []
                     )
@@ -122,11 +122,11 @@ struct ClassicHexagramDetailView: View {
                 card("卦辞") {
                     Text(hexagram.guaci.zh)
                 }
-                card("彖曰") {
-                    Text(hexagram.tuanci.zh)
+                card("彖辞") {
+                    Text(prefixed("彖曰：", hexagram.tuanci).zh)
                 }
-                card("象曰") {
-                    Text(hexagram.daxiang.zh)
+                card("大象") {
+                    Text(prefixed("象曰：", hexagram.daxiang).zh)
                 }
                 ForEach(Array(zip(hexagram.yaoci, hexagram.xiaoxiang).enumerated()), id: \.offset) { _, pair in
                     card {
@@ -340,4 +340,18 @@ struct ZhengshiSectionView: View {
         .navigationBarTitleDisplayMode(.inline)
         .parchmentBackground()
     }
+}
+
+private func prefixed(_ prefix: String, _ body: String) -> String {
+    let text = body.trimmingCharacters(in: .whitespacesAndNewlines)
+    if text.hasPrefix(prefix) { return text }
+    let bare = String(prefix.dropLast())
+    if text.hasPrefix(bare) {
+        let rest = text.dropFirst(bare.count).trimmingCharacters(in: .whitespaces)
+        if rest.hasPrefix("：") || rest.hasPrefix(":") {
+            return bare + rest
+        }
+        return prefix + rest
+    }
+    return prefix + text
 }

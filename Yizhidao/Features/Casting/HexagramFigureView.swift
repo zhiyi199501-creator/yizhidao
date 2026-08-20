@@ -39,6 +39,24 @@ struct HexagramFigureView: View {
     }
 }
 
+/// 详情页用：在完整卦象上等比例缩小，避免改内部尺寸参数。
+struct ScaledHexagramFigureView: View {
+    let lines: [LineValue]
+    let movingPositions: [Int]
+    var scale: CGFloat = 0.5
+
+    // 与 HexagramFigureView 默认布局一致（180×146 pt）
+    private var scaledWidth: CGFloat { 180 * scale }
+    private var scaledHeight: CGFloat { 146 * scale }
+
+    var body: some View {
+        HexagramFigureView(lines: lines, movingPositions: movingPositions)
+            .fixedSize()
+            .scaleEffect(scale, anchor: .topLeading)
+            .frame(width: scaledWidth, height: scaledHeight, alignment: .topLeading)
+    }
+}
+
 struct YaoBarView: View {
     let line: LineValue
     var highlighted: Bool = false

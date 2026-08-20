@@ -84,7 +84,7 @@ TENCENT_SMS_TEMPLATE_PARAM_MODE=code_and_minutes
 
 1. 启动本后端（端口 `8080`）
 2. iOS **Debug** 模拟器请求 `http://127.0.0.1:8080`
-3. **真机 Release** 走 `https://yizhidao.codedance.work`（见 `AuthAPI` `#else` 分支）；Debug 真机仍用局域网 IP
+3. **真机 Release** 走 `https://yzh.codedance.work`（见 iOS `AuthAPI` / Android `BuildConfig.API_BASE_URL`）；Debug 真机仍用局域网 IP。旧名 `yizhidao.codedance.work` 仍指向同一 API，部分 iPhone 11 打不开。
 
 ### curl 自测
 
@@ -164,7 +164,7 @@ docker compose up -d --build
 
 与已有系统 Caddy 共用 80/443 时用 `docker compose -f docker-compose.prod.yml up -d --build`（详见 `docs/deploy.md`）。
 
-**现役**：`https://yizhidao.codedance.work`（DNS A → `43.128.104.104`）。
+**现役（App Release）**：`https://yzh.codedance.work`（DNS A → `43.128.104.104`）。同机 `yizhidao.codedance.work` 仍反代同一容器。运维与 HTTP/3 避坑见 `docs/deploy.md`。
 
 ## 下一步
 

@@ -10,7 +10,7 @@ val generatedAssets = layout.buildDirectory.dir("generated/iosAssets")
 
 val copyIosAssets by tasks.registering(Copy::class) {
     from(iosResources) {
-        include("Hexagrams.json", "cases.json", "YijingIntro.json", "Zhengshi.json")
+        include("Hexagrams.json", "cases.json", "YijingIntro.json")
     }
     into(generatedAssets)
 }
@@ -30,11 +30,12 @@ android {
 
     buildTypes {
         debug {
-            buildConfigField("String", "API_BASE_URL", "\"https://yizhidao.codedance.work\"")
+            // 模拟器连本机后端用 10.0.2.2；真机 Debug 改成 Mac 局域网 IP（ipconfig getifaddr en0）。
+            buildConfigField("String", "API_BASE_URL", "\"http://172.20.10.10:8080\"")
         }
         release {
             isMinifyEnabled = false
-            buildConfigField("String", "API_BASE_URL", "\"https://yizhidao.codedance.work\"")
+            buildConfigField("String", "API_BASE_URL", "\"https://yzh.codedance.work\"")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",

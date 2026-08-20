@@ -563,7 +563,7 @@ struct AIAnalysisView: View {
 
     private var saveButtonTitle: String {
         if savedID != nil, !isDirty { return "已保存" }
-        if savedID != nil { return "更新" }
+        if savedID != nil { return "重新保存" }
         return "保存"
     }
 
@@ -696,7 +696,11 @@ struct AIAnalysisView: View {
                 accessToken: token
             )
             followUps.append(SavedAIFollowUp(user: message, assistant: response.reply))
-            isDirty = true
+            if savedID != nil {
+                saveCurrent()
+            } else {
+                isDirty = true
+            }
         } catch {
             draft = message
             errorMessage = error.localizedDescription

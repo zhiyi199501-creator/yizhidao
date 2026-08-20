@@ -32,12 +32,12 @@ cd android
 ./gradlew :app:installDebug
 ```
 
-`applicationId`：`com.yizhidao.app`。Release API：`https://yizhidao.codedance.work`。
+`applicationId`：`com.yizhidao.app`。Release API：`https://yzh.codedance.work`（与 iOS `AuthAPI` 相同；勿再用 `yizhidao.codedance.work`）。
 
 经文与案例 JSON 构建时从 `Yizhidao/Resources/` 拷贝，勿在 `android/` 另维护一份。
 
 ## 当前范围
 
-已实现：数字起卦（三数 / 时间）、金钱卦、本卦之卦与主看、本地历史、案例按卦（包内底稿）、我的页可读基础入门、六十四卦与四传。
+已实现：数字起卦（三数 / 时间）、金钱卦、本卦之卦与主看、本地历史与回收站、案例按卦（`GET /v1/cases` 热更新，失败用包内/缓存）、繁简切换、按键音效、我的页可读基础入门 / 六十四卦 / 四传（详情卡片标题彖辞/大象）、短信登录、资料编辑、AI 解读＋追问＋保存的AI解读（已保存后追问自动更新；重新解读→「重新保存」；列表左滑删除）、设置（语言 / 按键音效 / 回收站）。AI 页隐藏底部 Tab；Manifest `adjustNothing` + 追问栏 `imePadding`（配合 `enableEdgeToEdge()` 贴键盘）。Release API：`https://yzh.codedance.work`；Debug 真机 API 默认 `http://172.20.10.10:8080`（在 `app/build.gradle.kts` 改成本机局域网 IP）。
 
-未做：短信/微信登录、AI 解读、回收站、案例服务端热更新。
+未做：微信登录。

@@ -47,4 +47,7 @@ data class CaseStudy(
 object CaseStudyCodec {
     fun decodeList(text: String): List<CaseStudy> =
         HexagramStore.json.decodeFromString(ListSerializer(CaseStudy.serializer()), text)
+
+    fun encodeList(cases: List<CaseStudy>): String =
+        HexagramStore.json.encodeToString(ListSerializer(CaseStudy.serializer()), cases)
 }

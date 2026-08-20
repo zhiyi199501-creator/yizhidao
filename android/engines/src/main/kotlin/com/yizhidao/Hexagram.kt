@@ -35,6 +35,10 @@ data class Hexagram(
         if (position !in 1..6 || xiaoxiang.size < position) return ""
         return xiaoxiang[position - 1]
     }
+
+    /** 初爻→上爻，由 binary 解析（1 阳 0 阴）。 */
+    val figureLines: List<LineValue>
+        get() = binary.map { ch -> LineValue.from(isYang = ch == '1', changing = false) }
 }
 
 data class CastResult(
