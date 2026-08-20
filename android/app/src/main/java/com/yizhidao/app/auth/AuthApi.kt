@@ -1,8 +1,6 @@
 package com.yizhidao.app.auth
 
 import com.yizhidao.app.BuildConfig
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import com.yizhidao.CastResult
 import com.yizhidao.app.ai.SavedAIFollowUp
@@ -14,9 +12,11 @@ import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonArray
 import kotlinx.serialization.json.putJsonObject
 import java.io.IOException
-import java.net.HttpURLConnection
+import java.net.ConnectException
 import java.net.SocketTimeoutException
-import java.net.URL
+import java.net.UnknownHostException
+import java.security.cert.CertificateException
+import javax.net.ssl.SSLException
 
 sealed class LoginError(message: String) : Exception(message) {
     class Network(message: String) : LoginError(message)
@@ -160,9 +160,22 @@ object AuthApi {
 
     fun describe(error: Throwable): String {
         if (error is LoginError) return error.message ?: "未知错误"
-        if (error is SocketTimeoutException) return "连接超时：$baseUrl"
-        if (error is IOException) return "连不上 $baseUrl"
-        return error.message ?: "未知错误"
+        val root = generateSequence(error) { it.cause }.last()
+        val detail = (root.message ?: error.message)?.take(160)
+        return when {
+            error is SocketTimeoutException || root is SocketTimeoutException ->
+                "连接超时：$baseUrl"
+            error is UnknownHostException || root is UnknownHostException ->
+                "解析不到主机：$baseUrl"
+            error is ConnectException || root is ConnectException ->
+                "连不上 $baseUrl${detail?.let { "（$it）" } ?: ""}"
+            error is SSLException || root is SSLException ||
+                error is CertificateException || root is CertificateException ->
+                "证书校验失败：$baseUrl${detail?.let { "（$it）" } ?: ""}"
+            error is IOException ->
+                "连不上 $baseUrl${detail?.let { "（$it）" } ?: ""}"
+            else -> error.message ?: "未知错误"
+        }
     }
 
     private suspend inline fun <T> post(
@@ -172,19 +185,20 @@ object AuthApi {
         accessToken: String? = null,
         timeoutMs: Int = 20_000,
         crossinline decode: (String) -> T,
-    ): T = withContext(Dispatchers.IO) {
-        val conn = open(path, "POST", timeoutMs)
-        try {
-            conn.doOutput = true
-            conn.setRequestProperty("Content-Type", "application/json; charset=utf-8")
-            if (accessToken != null) {
-                conn.setRequestProperty("Authorization", "Bearer $accessToken")
-            }
-            conn.outputStream.use { it.write(body.toByteArray(Charsets.UTF_8)) }
-            read(conn, fallback, decode)
-        } finally {
-            conn.disconnect()
+    ): T {
+        val headers = buildMap {
+            put("Content-Type", "application/json; charset=utf-8")
+            put("Accept", "application/json")
+            if (accessToken != null) put("Authorization", "Bearer $accessToken")
         }
+        val (code, text) = AppHttp.request(
+            url = "$baseUrl$path",
+            method = "POST",
+            body = body,
+            headers = headers,
+            timeoutMs = timeoutMs,
+        )
+        return interpret(code, text, fallback, decode)
     }
 
     private suspend inline fun <T> get(
@@ -193,33 +207,25 @@ object AuthApi {
         fallback: String,
         timeoutMs: Int = 20_000,
         crossinline decode: (String) -> T,
-    ): T = withContext(Dispatchers.IO) {
-        val conn = open(path, "GET", timeoutMs)
-        try {
-            conn.setRequestProperty("Authorization", "Bearer $accessToken")
-            read(conn, fallback, decode)
-        } finally {
-            conn.disconnect()
-        }
+    ): T {
+        val (code, text) = AppHttp.request(
+            url = "$baseUrl$path",
+            method = "GET",
+            headers = mapOf(
+                "Accept" to "application/json",
+                "Authorization" to "Bearer $accessToken",
+            ),
+            timeoutMs = timeoutMs,
+        )
+        return interpret(code, text, fallback, decode)
     }
 
-    private fun open(path: String, method: String, timeoutMs: Int): HttpURLConnection {
-        val conn = URL("$baseUrl$path").openConnection() as HttpURLConnection
-        conn.requestMethod = method
-        conn.connectTimeout = timeoutMs
-        conn.readTimeout = timeoutMs
-        conn.useCaches = false
-        return conn
-    }
-
-    private inline fun <T> read(
-        conn: HttpURLConnection,
+    private inline fun <T> interpret(
+        code: Int,
+        text: String,
         fallback: String,
         decode: (String) -> T,
     ): T {
-        val code = conn.responseCode
-        val stream = if (code in 200..299) conn.inputStream else conn.errorStream
-        val text = stream?.bufferedReader()?.use { it.readText() }.orEmpty()
         if (code == 401) throw LoginError.Unauthorized
         if (code !in 200..299) throw decodeError(text, fallback)
         return decode(text)

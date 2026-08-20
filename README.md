@@ -65,6 +65,7 @@ xcodebuild test -scheme Yizhidao -destination 'platform=iOS Simulator,name=iPhon
 ```
 
 - iOS **Debug**：模拟器 → `http://127.0.0.1:8080`；真机 → Mac 局域网 IP（代码里 `AuthAPI`，查 IP：`ipconfig getifaddr en0`）
-- iOS **Release**（真机测线上）：`https://yzh.codedance.work`；Scheme → Run → Build Configuration 选 Release。旧名 `yizhidao.codedance.work` 部分 iPhone 11 不可用，见 `docs/deploy.md`
-- 开发期验证码默认 `123456`（仅本地 mock；**生产**随机码，见 `docs/deploy.md`）
+- iOS **Release**：`https://yzh.codedance.work`；Scheme → Run → Build Configuration 选 Release。旧名 `yizhidao.codedance.work` 部分 iPhone 11 不可用。
+- Android **Debug**：`android/app/build.gradle.kts` 局域网 IP；**Release**：Build Variant = release，Cronet → 同上生产域名。浏览器能开 `/health` 不算过。
+- 开发期验证码默认 `123456`（仅本地 mock；**生产**随机码）。TLS / HTTP/3 / 安卓 Cronet 见 `docs/deploy.md`
 - AI：`backend/.env` 中 `AI_MODE=mock`（规则）或 `openai`（OpenAI 兼容，如 DeepSeek）；细节见 `backend/README.md`

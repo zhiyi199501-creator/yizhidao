@@ -1,11 +1,11 @@
 ---
-description: 生产 TLS / HTTP/3 避坑（iPhone 11 曾整站连不上）
+description: 生产 TLS / HTTP/3 避坑（iPhone 11 缓存；安卓 HttpURLConnection 会被 yzh RST）
 alwaysApply: true
 ---
 
 # 生产 TLS / HTTP/3
 
-iOS **Release** 现役：`https://yzh.codedance.work`。`yizhidao.codedance.work` 在部分 iPhone 11 上已废，不要再改回、不要在该名上换证或关 HTTP/3。对照：同 IP 的 `https://videograb.codedance.work/yzh/health`。
+iOS / Android **Release** 现役：`https://yzh.codedance.work`。`yizhidao.codedance.work` 在部分 iPhone 11 上已废，不要再改回、不要在该名上换证或关 HTTP/3。对照：同 IP 的 `https://videograb.codedance.work/yzh/health`。
 
 ## 禁止
 
@@ -14,12 +14,14 @@ iOS **Release** 现役：`https://yzh.codedance.work`。`yizhidao.codedance.work
 - 用 `:80` 通配反代抢走 ACME HTTP-01（会签失败）。公网 IP 的 HTTP 请写 `http://43.128.104.104`。
 - 只在 Mac / iPhone 17 上验收生产 HTTPS。
 - 让国内真机把 DNS 改成 `8.8.8.8`（常被墙，整网超时）。
+- 安卓禁止用 `HttpURLConnection` 打 `yzh`（会 Connection reset；浏览器能开 `/health` 不算过）。现役走 Cronet。
 
 ## 要做
 
 - HTTP/3：**一直开**（与 videograb 相同）或**一开始就永远不开**。不要开关切换。
 - 改 Caddy / 证书后：用 **iPhone 11 Safari** 打开新域名的 `/health`，再装 Release。
-- 某主机名救不回来：DNSPod 加**全新子域** A → `43.128.104.104`，签新证，改 `AuthAPI`；不要继续折腾旧名。
-- Debug 真机走局域网 IP；Xcode Run 配 Release 才会打到生产 HTTPS。
+- 某主机名救不回来：DNSPod 加**全新子域** A → `43.128.104.104`，签新证，改 iOS `AuthAPI` 与安卓 `API_BASE_URL`；不要继续折腾旧名。
+- Debug 真机走局域网 IP；Xcode Run / Android Studio Build Variant 配 **Release** 才会打到生产 HTTPS。
+- 安卓本机试 Release：`release` 用 debug 签名即可；联网失败先看登录页具体错误（证书 / reset），不要只信浏览器能开。
 
-细节见 `docs/deploy.md`「iPhone 11 / HTTP/3」。
+细节见 `docs/deploy.md`「iPhone 11 / HTTP/3」和「Android / Cronet」。

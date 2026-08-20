@@ -2,6 +2,7 @@ package com.yizhidao.app
 
 import android.app.Application
 import com.yizhidao.HexagramStore
+import com.yizhidao.app.auth.AppHttp
 import com.yizhidao.app.auth.LocalAuthStore
 import com.yizhidao.app.cases.CaseRepository
 import com.yizhidao.app.classic.ClassicYijingCodec
@@ -19,6 +20,7 @@ class YizhidaoApplication : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        AppHttp.init(this)
         TapSoundPlayer.init(this)
         AppLanguageStore.init(this)
         container = AppContainer(this)

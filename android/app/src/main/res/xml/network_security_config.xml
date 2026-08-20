@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Chrome 自带 Root YE / X2；小米等国内 ROM 的系统证书库往往还没有。
+     生产 yzh 现为 Let's Encrypt YE2 链，不补这些根证书时 App 握手失败、浏览器却能打开。 -->
+<network-security-config>
+    <base-config>
+        <trust-anchors>
+            <certificates src="system" />
+            <certificates src="@raw/isrg_root_x2" />
+            <certificates src="@raw/isrg_root_ye" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>

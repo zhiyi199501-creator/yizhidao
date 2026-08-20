@@ -21,7 +21,7 @@ cd android && ./gradlew :engines:test
 ## 技术栈
 
 - **App（iOS）**：SwiftUI + SwiftData；无第三方依赖。经文 `Hexagrams.json`（卦爻辞取证释；文言／四传并入同文件）；案例 `cases.json`
-- **App（Android）**：Kotlin + Jetpack Compose；引擎在 `android/engines`（纯 JVM，与 iOS 单测对拍）。见 `android/README.md`
+- **App（Android）**：Kotlin + Jetpack Compose；生产 HTTPS 用 **Cronet**（`AppHttp`，勿改回 `HttpURLConnection`）。引擎在 `android/engines`（纯 JVM，与 iOS 单测对拍）。见 `android/README.md`
 - **后端**：`backend/` FastAPI + SQLite；短信登录（开发期固定码）与 AI（`AI_MODE=mock|openai`）
 
 ## 目录与约定
@@ -42,7 +42,7 @@ cd android && ./gradlew :engines:test
 - 金钱卦：可摇 / 「选」手选四象；画面上爻在上、初爻在下；自下而上摇（先初后上）
 - 三数：一键随机；未满三正整数则「起卦」禁用；「清空」始终可点
 - 结果页悬浮 **AI**（需登录）：初次结构化解读，可追问/补背景；合适则 **保存** 到「我的 → 保存的AI解读」。**已保存**后追问成功自动更新；**重新解读**后右上角为「重新保存」。提示词见 `backend/app/services/ai.py`（含本卦初–上案例作参照）
-- Debug API：模拟器 `127.0.0.1:8080`；真机 Debug 改 `AuthAPI` 局域网 IP；**Release** → `https://yzh.codedance.work`（不要用已在部分 iPhone 11 上废掉的 `yizhidao.codedance.work`）
+- Debug API：iOS 模拟器 `127.0.0.1:8080`，真机改 `AuthAPI` 局域网 IP；安卓 Debug 改 `android/app/build.gradle.kts`。**Release** 两端 → `https://yzh.codedance.work`（安卓须 Cronet + Build Variant = release）。不要用已废的 `yizhidao.codedance.work`
 - 生产 TLS/HTTP/3 避坑：`.cursor/rules/prod-tls-http3.mdc`、`docs/deploy.md`
 - **`main` 保护**：禁止直推，经 PR 合并（https://github.com/zhiyi199501-creator/yizhidao）
 - 勿提交 `.derivedData/`、`.firecrawl/`、`.workbuddy/`、`AppIcon-source.png`、`backend/.env`、`backend/*.db`、`案例编辑表.xlsx`、`易经正文编辑表.xlsx`、`张庆祥讲易经案例_txt/`、`Yizhidao.xcscheme` 里把 Run 改成 Release 的本机偏好
@@ -53,4 +53,4 @@ cd android && ./gradlew :engines:test
 
 未做：微信登录、生产短信、App Store。运维见 `docs/deploy.md`。
 
-**Android（本分支 `feature/classic-yijing-me`）**：引擎对拍 iOS 单测；Compose 四 Tab、历史回收站、繁简切换、按键音效。短信登录、资料编辑、AI 解读＋追问＋保存的AI解读（已保存后追问自动更新；重新解读→「重新保存」；列表左滑删除）、案例 `GET /v1/cases` 热更新、六十四卦详情（卦象 50% 缩放；卡片标题彖辞/大象）、**IMA 经文讲解**（与 iOS 同三入口／同 JSON）。AI 页打开时隐藏底部 Tab；`windowSoftInputMode=adjustNothing`，追问栏 `imePadding` 贴键盘（edge-to-edge）。Release API：`https://yzh.codedance.work`；Debug 真机 API 在 `android/app/build.gradle.kts` 配 Mac 局域网 IP。未做：微信登录。见 `android/README.md`。
+**Android（本分支 `feature/classic-yijing-me`）**：Compose 四 Tab 已对齐 iOS 主路径（起卦／历史／案例／我的、IMA、短信登录、AI 解读）。Release 走 Cronet → `https://yzh.codedance.work`（2026-08-20 红米 Note 17 登录已通）。连生产与 TLS 事故见 `android/README.md`、`docs/deploy.md`「Android / Cronet」。未做：微信登录。
