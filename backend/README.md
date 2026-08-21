@@ -37,6 +37,8 @@ FastAPI 最小后端：手机号验证码登录 + AI 解读，接口对齐 `docs
 [sms:mock] phone=138****8000 code=123456
 ```
 
+生产（`APP_ENV=production`）默认对普通号发**随机码**并打日志。白名单 `SMS_TEST_PHONES`（逗号分隔，如 `13800138000`）仍用固定码且不走腾讯云；日志为 `[sms:test]`。不要用 `ALLOW_INSECURE_MOCK_SMS=true` 放开全站固定码。
+
 ## 接入腾讯云短信（真实发送）
 
 1. 打开 [腾讯云短信控制台](https://console.cloud.tencent.com/smsv2)

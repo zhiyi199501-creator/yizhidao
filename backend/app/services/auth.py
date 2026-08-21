@@ -26,6 +26,18 @@ def mask_phone(phone: str) -> str:
     return f"{phone[:3]}****{phone[-4:]}"
 
 
+def sms_test_phone_set() -> set[str]:
+    return {
+        part.strip()
+        for part in (settings.sms_test_phones or "").split(",")
+        if part.strip()
+    }
+
+
+def is_sms_test_phone(phone: str) -> bool:
+    return phone in sms_test_phone_set()
+
+
 def issue_access_token(user_id: str) -> str:
     expire = datetime.now(timezone.utc) + timedelta(days=settings.jwt_expire_days)
     payload = {"sub": user_id, "exp": expire}
@@ -50,12 +62,14 @@ def send_sms_code(db: Session, phone: str) -> int:
         if elapsed < settings.sms_cooldown_sec:
             raise AppError("请求过快，请稍后再试", code=4290, status_code=429)
 
-    use_fixed = (
-        settings.sms_provider.lower() == "mock"
-        and bool(settings.dev_sms_fixed_code)
-        and (
-            settings.app_env.lower() != "production"
-            or settings.allow_insecure_mock_sms
+    use_fixed = bool(settings.dev_sms_fixed_code) and (
+        is_sms_test_phone(phone)
+        or (
+            settings.sms_provider.lower() == "mock"
+            and (
+                settings.app_env.lower() != "production"
+                or settings.allow_insecure_mock_sms
+            )
         )
     )
     if use_fixed:
@@ -85,11 +99,42 @@ def send_sms_code(db: Session, phone: str) -> int:
     return settings.sms_cooldown_sec
 
 
+def _get_or_create_user(db: Session, phone: str) -> User:
+    user = db.scalar(select(User).where(User.phone == phone))
+    if not user:
+        user = User(
+            id=f"u_{uuid.uuid4().hex[:12]}",
+            phone=phone,
+            nickname=f"用户{mask_phone(phone)}",
+        )
+        db.add(user)
+    return user
+
+
 def login_with_sms(db: Session, phone: str, code: str) -> tuple[User, str]:
     phone = validate_phone(phone)
     normalized_code = code.strip()
     if not normalized_code:
         raise AppError("验证码不能为空", code=4001, status_code=400)
+
+    # 测试白名单：固定码可直接登录（仍须先点「获取验证码」写入记录，或直接用固定码）
+    if (
+        is_sms_test_phone(phone)
+        and settings.dev_sms_fixed_code
+        and normalized_code == settings.dev_sms_fixed_code
+    ):
+        user = _get_or_create_user(db, phone)
+        record = db.scalar(
+            select(SMSCode)
+            .where(SMSCode.phone == phone, SMSCode.used.is_(False))
+            .order_by(SMSCode.created_at.desc())
+            .limit(1)
+        )
+        if record:
+            record.used = True
+        db.commit()
+        db.refresh(user)
+        return user, issue_access_token(user.id)
 
     now = datetime.now(timezone.utc)
     record = db.scalar(
@@ -109,14 +154,7 @@ def login_with_sms(db: Session, phone: str, code: str) -> tuple[User, str]:
 
     record.used = True
 
-    user = db.scalar(select(User).where(User.phone == phone))
-    if not user:
-        user = User(
-            id=f"u_{uuid.uuid4().hex[:12]}",
-            phone=phone,
-            nickname=f"用户{mask_phone(phone)}",
-        )
-        db.add(user)
+    user = _get_or_create_user(db, phone)
 
     db.commit()
     db.refresh(user)

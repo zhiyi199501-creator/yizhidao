@@ -37,7 +37,7 @@ cd android && ./gradlew :engines:test
 - 案例底稿：`ios/Yizhidao/Resources/cases.json`。编辑根目录 `案例编辑表.xlsx`（gitignore）→ `python3 scripts/import_cases.py`；导出 `python3 scripts/export_cases.py`。补占编号按实际文王序，括号标讲座来源（如 `01-3乾卦三爻（从大有卦三爻讲）`）
 - 经文底稿：`ios/Yizhidao/Resources/Hexagrams.json`。编辑根目录 `易经正文编辑表.xlsx`（gitignore）→ `python3 scripts/import_jingwen.py`；导出 `python3 scripts/export_jingwen.py`
 - 《易经证释》阅读稿：`ios/Yizhidao/Resources/Zhengshi.json`。源文件不入库；更新时 `python3 scripts/import_zhengshi.py [全册.doc]`；代码（`ZhengshiStore`/阅读页）还在，但「我的」菜单暂未挂入口
-- **IMA 黄庭书院讲解**：点经文可看知识库讲解。覆盖卦辞／彖／大象／爻辞+小象（成对）、用九／用六（成对）、文言（乾坤）。包内 `ios/Yizhidao/Resources/ImaExplanations.json`；源采集 gitignore `data/ima-explanations/`。导出 `python3 scripts/export_ima_explanations.py` **会覆盖**包内 JSON，手改过就别跑。Android 经 `copyIosAssets` 拷同文件。ID：`{nn}-guaci|tuanci|daxiang|wenyan|yong`、`{nn}-yao-{0…5}`（初=0）。入口：结果／案例／六十四卦详情（文言与用九用六仅六十四卦详情有）
+- **IMA 黄庭书院讲解**：点经文可看知识库讲解。覆盖卦辞／彖／大象／爻辞+小象（成对）、用九／用六（成对）、文言（乾坤）。包内 `ios/Yizhidao/Resources/ImaExplanations.json`；源采集 gitignore `data/ima-explanations/`。导出 `python3 scripts/export_ima_explanations.py` **会覆盖**包内 JSON，手改过就别跑。Android `copyIosAssets` 拷同文件（**不含** `Zhengshi.json`）。ID：`{nn}-guaci|tuanci|daxiang|wenyan|yong`、`{nn}-yao-{0…5}`（初=0）。入口：结果／案例／六十四卦详情（文言与用九用六仅六十四卦详情有）
 - **IMA 展示**：清洗在运行时 `ImaAnswerFormatter`（iOS / Android），不是改 JSON。去掉整行「思考过程」、出处脚注数字；「表格」标记与 markdown 表画成表。安卓弹层用全屏 Popup（约 93% 高，盖住页头），下拉超过 **1/4** 收起，点遮罩不关。iOS 宣纸 `AppTheme` 已为 OLED 调淡；弹层 `.presentationBackground` 用同一渐变
 - `ios/Yizhidao/App/`：`AppNavigation`、`AppTheme`、登录与「我的」（多在 `YizhidaoApp.swift`）。「我的」：资料、**保存的AI解读**（本地保存的解读）、**易经基础入门** `YijingIntro.json`、**易经六十四卦 / 易经四传** 读 `Hexagrams.json`（详情卡片标题**彖辞** / **大象**，正文带「彖曰：」「象曰：」前缀）、设置（按键音效、回收站，清空需确认；退出登录）
 - Android「保存的AI解读」与回收站对齐 iOS 分组列表：白卡片竖排卦名／时间／所问；解读左滑删除，回收站左滑恢复＋彻底删除。勿改回设置项左右排布；删除钮未滑开不得透出
@@ -55,10 +55,14 @@ cd android && ./gradlew :engines:test
 
 ## 当前状态 / 下一步
 
-**生产 API（2026-08-21 Mac curl）**：`https://yd.codedance.work/health` HTTP/2 200，仍发 `Alt-Svc: h3`。同机 `yizhidao` / `yzh` 反代同一容器；部分 iPhone 11 打不开旧名。`GET /v1/cases` 313 条。运维见 `docs/deploy.md`。Release 两端 → `yd`；已装旧包的真机仍可能打 `yzh`。
+**生产 API（2026-08-21 服务器本机核）**：`yd.codedance.work/health` 200，仍发 `Alt-Svc: h3`。`GET /v1/cases` 313 条。运维见 `docs/deploy.md`。Release 两端 → `yd`。
 
-**工作区（`main` = origin/main，另有未提交）**：IMA 展示清洗、安卓弹层手势、iOS 宣纸调淡（见上「IMA 展示」）。未进 PR。Scheme 的 Run 须保持 Debug，勿把本机 Release 偏好写进 `Yizhidao.xcscheme`。
+**安卓侧载（现役）**：`https://yd.codedance.work/download/yizhidao-0.1.1.apk`（约 10MB；Release = `arm64-v8a` + R8；Caddy `/download/*` → `/var/www/yizhidao`）。旧 `0.1.0`（约 40MB）仍在同目录，可删。
 
-未做：微信登录、生产短信、App Store。
+**试用登录（白名单）**：`SMS_TEST_PHONES=13800138000`，固定码 `123456`（不走真实短信）。其它号仍随机码看容器日志。勿开 `ALLOW_INSECURE_MOCK_SMS`。
+
+**工作区**：本变更含短信测试白名单与安卓瘦身打包（后端 / 侧载 APK 已上线）。Scheme Run 保持 Debug。
+
+未做：微信登录、生产腾讯云短信、App Store、正式 keystore。
 
 **Android**：Compose 四 Tab 已对齐 iOS 主路径。Release 须 Cronet → `yd`。见 `android/README.md`。

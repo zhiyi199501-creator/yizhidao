@@ -9,6 +9,13 @@ def _mask_phone(phone: str) -> str:
 
 
 def deliver_sms_code(phone: str, code: str) -> None:
+    # 避免循环导入：白名单判断放在调用方附近
+    from app.services.auth import is_sms_test_phone
+
+    if is_sms_test_phone(phone):
+        print(f"[sms:test] phone={_mask_phone(phone)} code={code}")
+        return
+
     provider = (settings.sms_provider or "mock").lower()
     if provider == "tencent":
         _send_tencent(phone, code)

@@ -11,8 +11,10 @@ class Settings(BaseSettings):
     sms_code_expire_min: int = 5
     # mock：控制台打印；tencent：腾讯云短信
     sms_provider: str = "mock"
-    # 仅 mock 生效；留空则随机码并打印
+    # mock 或短信测试白名单生效；留空则随机码并打印
     dev_sms_fixed_code: str = "123456"
+    # 逗号分隔手机号：生产也可用固定验证码，且不走真实短信
+    sms_test_phones: str = "13800138000"
     tencent_secret_id: str = ""
     tencent_secret_key: str = ""
     tencent_sms_sdk_app_id: str = ""

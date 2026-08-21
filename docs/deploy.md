@@ -17,8 +17,26 @@
 3. 服务器已安装 Docker + Docker Compose
 4. 服务器放行 **80 / 443** 端口（Caddy 自动签 HTTPS 证书）
 
-> 没有企业资质时，短信继续用 mock：**生产环境默认不会使用固定** `123456`，验证码会随机生成并打印在容器日志里，仅供你自己测试。公网任何人都能「发码」，请尽快换成真实短信或加额外防护。
+> 没有企业资质时，短信继续用 mock：生产默认**随机码**并打容器日志（不是全民固定 `123456`）。可用 `SMS_TEST_PHONES` 白名单（逗号分隔）对指定号固定 `DEV_SMS_FIXED_CODE`、且不发真实短信；现役试号 `13800138000` / `123456`。勿开 `ALLOW_INSECURE_MOCK_SMS`。公网任何人都能对非白名单号「发码」，请尽快换成真实短信或加防护。
 
+## 安卓侧载 APK（方式 B 现役）
+
+Caddy 在 `yd.codedance.work` 上挂静态目录（与 API 同站，HTTP/3 保持一直开）：
+
+```
+yd.codedance.work {
+    encode gzip
+    handle /download/* {
+        root * /var/www/yizhidao
+        file_server
+    }
+    handle {
+        reverse_proxy 127.0.0.1:8080 { ... }
+    }
+}
+```
+
+文件放 `/var/www/yizhidao/download/`（属主 `caddy`）。现役：`https://yd.codedance.work/download/yizhidao-0.1.1.apk`（Release：`arm64-v8a` + R8，约 10MB）。
 ## 一键部署（推荐）
 
 在本地或服务器上，进入仓库后：
@@ -35,7 +53,8 @@ cp .env.example .env
 APP_ENV=production
 JWT_SECRET=请换成很长的随机字符串
 SMS_PROVIDER=mock
-DEV_SMS_FIXED_CODE=
+DEV_SMS_FIXED_CODE=123456
+SMS_TEST_PHONES=13800138000
 ALLOW_INSECURE_MOCK_SMS=false
 
 # AI（可选）
@@ -181,7 +200,7 @@ docker compose -f docker-compose.prod.yml cp \
 2. 浏览器通 ≠ App 通。小米浏览器走 Chromium（HTTP/2 / HTTP/3）；Java `HttpURLConnection` 打部分主机名会在 TLS 握手被 RST（登录页「连不上 …（Connection reset）」）。同机 `videograb.codedance.work/yzh` 对照入口对 curl 是通的。
 3. 只补 Let's Encrypt Root YE / X2（`network_security_config`）不够：错误会从笼统「连不上」变成明确的 Connection reset，根因仍是握手被掐。
 4. **现役**：App 用 Cronet（`org.chromium.net:cronet-embedded`，开 HTTP/2 + QUIC），与浏览器同栈；2026-08-20 红米 Note 17 在当时的 `yzh` 上 Release 登录已通。代码现改 `yd` 后须重装。不要改回 `HttpURLConnection` 打生产。
-5. 生产短信仍是 mock，**不是**固定 `123456`。验证码：`docker compose -f docker-compose.prod.yml logs -f api | grep -i sms`。
+5. 生产短信仍是 mock。非白名单号**不是**固定 `123456`，看日志：`docker compose -f docker-compose.prod.yml logs -f api | grep -i sms`。白名单见 `SMS_TEST_PHONES`（现役 `13800138000` → `123456`）。
 
 ### SQLite 数据在哪
 
@@ -192,6 +211,6 @@ docker compose -f docker-compose.prod.yml cp \
 
 - [x] `JWT_SECRET` 已换成强随机值（生产已配置）
 - [x] 未把 `.env` 提交进 Git
-- [x] 生产未开启 `ALLOW_INSECURE_MOCK_SMS=true`
+- [x] 生产未开启 `ALLOW_INSECURE_MOCK_SMS=true`（仅 `SMS_TEST_PHONES` 白名单固定码）
 - [ ] 有企业后再切 `SMS_PROVIDER=tencent`
 - [x] AI Key 仅在服务端

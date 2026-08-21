@@ -118,7 +118,8 @@
 - `5000` 服务内部错误
 
 ## 短信通道（现役）
-- `SMS_PROVIDER=mock`：开发可固定码 / 控制台打印；**生产**随机码并写日志（固定 `123456` 默认禁用）
+- `SMS_PROVIDER=mock`：开发可固定码 / 控制台打印；**生产**对普通号随机码并写日志（全站固定 `123456` 默认禁用）
+- `SMS_TEST_PHONES`：逗号分隔白名单；生产也可用 `DEV_SMS_FIXED_CODE`，且不发真实短信（现役试号 `13800138000`）
 - `SMS_PROVIDER=tencent`：腾讯云短信 SendSms（密钥与签名模板在服务端 `.env`）
 - 细节见 `backend/README.md` 与 `backend/app/services/sms.py`
 
