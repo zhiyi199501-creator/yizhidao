@@ -57,10 +57,7 @@ struct ImaExplanationSheet: View {
                         .padding()
                         .background(RoundedRectangle(cornerRadius: 12).fill(AppTheme.cardFill))
 
-                    Text(entry.answer.zh)
-                        .font(.body)
-                        .lineSpacing(6)
-                        .frame(maxWidth: .infinity, alignment: .leading)
+                    ImaAnswerBody(text: entry.answer)
                 }
                 .padding()
             }
@@ -82,5 +79,88 @@ struct ImaExplanationSheet: View {
         }
         .presentationDetents([.large])
         .presentationDragIndicator(.visible)
+        .presentationBackground {
+            AppTheme.parchmentGradient.ignoresSafeArea()
+        }
+    }
+}
+
+private struct ImaAnswerBody: View {
+    let text: String
+
+    private var blocks: [ImaAnswerBlock] {
+        ImaAnswerFormatter.blocks(in: text)
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            ForEach(Array(blocks.enumerated()), id: \.offset) { _, block in
+                switch block {
+                case .text(let paragraph):
+                    Text(paragraph.zh)
+                        .font(.body)
+                        .lineSpacing(6)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                case .table(let rows):
+                    ImaAnswerTable(rows: rows)
+                }
+            }
+        }
+    }
+}
+
+private struct ImaAnswerTable: View {
+    let rows: [[String]]
+
+    private var columnCount: Int { rows.first?.count ?? 0 }
+    private var compactFirst: Bool {
+        if columnCount == 2 { return true }
+        guard columnCount >= 3 else { return false }
+        return rows.dropFirst().allSatisfy { ($0.first ?? "").count <= 4 }
+    }
+    private var firstColumnWidth: CGFloat { columnCount == 2 ? 96 : 52 }
+    private var cellPadding: CGFloat { columnCount >= 4 ? 8 : 10 }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            ForEach(Array(rows.enumerated()), id: \.offset) { rowIndex, row in
+                HStack(alignment: .top, spacing: 0) {
+                    ForEach(Array(row.enumerated()), id: \.offset) { colIndex, cell in
+                        if colIndex > 0 {
+                            Divider()
+                        }
+                        cellView(cell, isHeader: rowIndex == 0, isFirstColumn: colIndex == 0)
+                            .frame(
+                                width: compactFirst && colIndex == 0 ? firstColumnWidth : nil,
+                                alignment: .topLeading
+                            )
+                            .frame(
+                                maxWidth: compactFirst && colIndex == 0 ? nil : .infinity,
+                                alignment: .topLeading
+                            )
+                    }
+                }
+                .background(rowIndex == 0 ? AppTheme.accent.opacity(0.08) : AppTheme.cardFill)
+                if rowIndex < rows.count - 1 {
+                    Divider()
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .stroke(AppTheme.fieldStroke, lineWidth: 0.6)
+        )
+    }
+
+    private func cellView(_ text: String, isHeader: Bool, isFirstColumn: Bool) -> some View {
+        Text(text.zh)
+            .font(.footnote.weight(isHeader || isFirstColumn ? .semibold : .regular))
+            .foregroundStyle(isHeader ? AppTheme.accent : Color.primary)
+            .lineSpacing(3)
+            .fixedSize(horizontal: false, vertical: true)
+            .padding(.horizontal, cellPadding)
+            .padding(.vertical, 8)
     }
 }
