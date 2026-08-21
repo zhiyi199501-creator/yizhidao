@@ -4,8 +4,8 @@ import UIKit
 #endif
 
 enum AppTheme {
-    static let parchmentTop = Color(red: 0.96, green: 0.93, blue: 0.88)
-    static let parchmentBottom = Color(red: 0.92, green: 0.90, blue: 0.86)
+    static let parchmentTop = Color(red: 0.98, green: 0.96, blue: 0.93)
+    static let parchmentBottom = Color(red: 0.96, green: 0.94, blue: 0.90)
     static let accent = Color(red: 0.45, green: 0.22, blue: 0.18)
     static let cardFill = Color.white.opacity(0.72)
     static let fieldFill = Color.white
