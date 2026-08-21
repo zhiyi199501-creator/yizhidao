@@ -11,7 +11,6 @@ import com.yizhidao.app.classic.YijingIntroBook
 import com.yizhidao.app.classic.YijingIntroCodec
 import com.yizhidao.app.ai.SavedAIAnalysisStore
 import com.yizhidao.app.ima.ImaExplanationStore
-import com.yizhidao.app.lang.AppLanguageStore
 import com.yizhidao.app.sound.TapSoundPlayer
 
 class YizhidaoApplication : Application() {
@@ -22,7 +21,6 @@ class YizhidaoApplication : Application() {
         super.onCreate()
         AppHttp.init(this)
         TapSoundPlayer.init(this)
-        AppLanguageStore.init(this)
         container = AppContainer(this)
     }
 }

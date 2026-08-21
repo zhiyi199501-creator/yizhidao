@@ -15,7 +15,6 @@ struct YizhidaoApp: App {
 
     init() {
         UserDefaults.standard.set(false, forKey: "NSURLSessionHTTP3Enabled")
-        AppLanguage.installBundleHook()
         _ = HexagramStore.shared
         _ = ImaExplanationStore.shared
         TapSoundPlayer.shared.prepare()
@@ -30,33 +29,33 @@ struct YizhidaoApp: App {
 }
 
 struct RootTabView: View {
+    @Environment(\.locale) private var systemLocale
     @State private var appNavigation = AppNavigation()
-    @AppStorage(AppLanguage.storageKey) private var languageRaw = AppLanguage.simplified.rawValue
 
     var body: some View {
         @Bindable var appNavigation = appNavigation
-        let language = AppLanguage(rawValue: languageRaw) ?? .simplified
+        let language = AppLanguage.from(systemLocale)
         TabView(selection: $appNavigation.selectedTab) {
             CastingHomeView()
-                .id(languageRaw)
+                .id(language)
                 .tabItem {
                     Label("起卦".zh, systemImage: "sparkles")
                 }
                 .tag(AppTab.cast)
             HistoryListView()
-                .id(languageRaw)
+                .id(language)
                 .tabItem {
                     Label("历史".zh, systemImage: "clock")
                 }
                 .tag(AppTab.history)
             CaseListView()
-                .id(languageRaw)
+                .id(language)
                 .tabItem {
                     Label("案例".zh, systemImage: "books.vertical")
                 }
                 .tag(AppTab.cases)
             MyMenuView()
-                .id(languageRaw)
+                .id(language)
                 .tabItem {
                     Label("我的".zh, systemImage: "person.crop.circle")
                 }
@@ -67,6 +66,7 @@ struct RootTabView: View {
         .environment(\.locale, language.locale)
         .environment(appNavigation)
         .animation(nil, value: appNavigation.selectedTab)
+        .dismissKeyboardOnBlankTap()
     }
 }
 
@@ -247,87 +247,85 @@ struct LoginSheetView: View {
     let onSuccess: (LocalUserSession) -> Void
 
     var body: some View {
-        NavigationStack {
-            VStack(alignment: .leading, spacing: 14) {
-                Button {
-                    guard agreed else {
-                        errorMessage = "请先勾选并同意用户协议与隐私政策"
-                        return
-                    }
-                    showWechatTip = true
-                } label: {
-                    Label("微信登录（待接入）".zh, systemImage: "message.fill")
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.borderedProminent)
-                .tint(AppTheme.accent)
-                .alert("暂未接入".zh, isPresented: $showWechatTip) {
-                    Button("知道了".zh, role: .cancel) {}
-                } message: {
-                    Text("当前为本地演示版，后续接入真实微信登录。".zh)
-                }
-
-                HStack {
-                    Rectangle().fill(Color.black.opacity(0.1)).frame(height: 1)
-                    Text("或使用手机号".zh)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    Rectangle().fill(Color.black.opacity(0.1)).frame(height: 1)
-                }
-
-                TextField("手机号", text: $phone)
-                    .keyboardType(.numberPad)
-                    .appTextFieldStyle()
-                HStack(spacing: 8) {
-                    TextField("验证码", text: $code)
-                        .keyboardType(.numberPad)
-                        .appTextFieldStyle()
-                    Button(cooldownSec > 0 ? "\(cooldownSec)s" : "发送验证码".zh) {
-                        Task { await sendCode() }
-                    }
-                    .buttonStyle(.bordered)
-                    .disabled(isSendingCode || cooldownSec > 0 || phone.trimmingCharacters(in: .whitespacesAndNewlines).count < 6)
-                }
-                Button("手机号登录".zh) {
-                    guard agreed else {
-                        errorMessage = "请先勾选并同意用户协议与隐私政策"
-                        return
-                    }
-                    Task { await loginByPhone() }
-                }
-                .buttonStyle(.borderedProminent)
-                .tint(AppTheme.accent)
-                .disabled(isLoggingIn || phone.count < 6 || code.isEmpty)
-
-                Toggle(isOn: $agreed) {
-                    Text("已阅读并同意《用户协议》《隐私政策》".zh)
-                        .font(.caption)
-                }
-
-                if let errorMessage {
-                    Text(errorMessage.zh)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-
-                #if DEBUG
-                Text("当前接口：\(AuthAPI.debugEndpoint)")
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
-                #endif
-
+        VStack(alignment: .leading, spacing: 14) {
+            HStack {
+                Button("取消".zh) { dismiss() }
                 Spacer()
+                Text("登录".zh)
+                    .font(.headline)
+                Spacer()
+                Color.clear.frame(width: 44, height: 1)
             }
-            .padding()
-            .navigationTitle("登录".zh)
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button("取消".zh) { dismiss() }
+
+            Button {
+                guard agreed else {
+                    errorMessage = "请先勾选并同意用户协议与隐私政策"
+                    return
                 }
+                showWechatTip = true
+            } label: {
+                Label("微信登录（待接入）".zh, systemImage: "message.fill")
+                    .frame(maxWidth: .infinity)
             }
-            .parchmentBackground()
+            .buttonStyle(.borderedProminent)
+            .tint(AppTheme.accent)
+            .alert("暂未接入".zh, isPresented: $showWechatTip) {
+                Button("知道了".zh, role: .cancel) {}
+            } message: {
+                Text("当前为本地演示版，后续接入真实微信登录。".zh)
+            }
+
+            HStack {
+                Rectangle().fill(Color.black.opacity(0.1)).frame(height: 1)
+                Text("或使用手机号".zh)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Rectangle().fill(Color.black.opacity(0.1)).frame(height: 1)
+            }
+
+            LoginNumberField(text: $phone, placeholder: "手机号")
+                .loginFieldChrome()
+            HStack(alignment: .center, spacing: 8) {
+                LoginNumberField(text: $code, placeholder: "验证码")
+                    .loginFieldChrome()
+                Button(cooldownSec > 0 ? "\(cooldownSec)s" : "发送验证码".zh) {
+                    Task { await sendCode() }
+                }
+                .buttonStyle(.bordered)
+                .disabled(isSendingCode || cooldownSec > 0 || phone.trimmingCharacters(in: .whitespacesAndNewlines).count < 6)
+            }
+            Button("手机号登录".zh) {
+                guard agreed else {
+                    errorMessage = "请先勾选并同意用户协议与隐私政策"
+                    return
+                }
+                Task { await loginByPhone() }
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(AppTheme.accent)
+            .disabled(isLoggingIn || phone.count < 6 || code.isEmpty)
+
+            Toggle(isOn: $agreed) {
+                Text("已阅读并同意《用户协议》《隐私政策》".zh)
+                    .font(.caption)
+            }
+
+            if let errorMessage {
+                Text(errorMessage.zh)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            #if DEBUG
+            Text("当前接口：\(AuthAPI.debugEndpoint)")
+                .font(.caption2)
+                .foregroundStyle(.tertiary)
+            #endif
+
+            Spacer()
         }
+        .padding()
+        .background(AppTheme.parchmentGradient.ignoresSafeArea(.container))
     }
 
     private func sendCode() async {
@@ -399,8 +397,8 @@ enum AuthAPI {
     private static let baseURL = URL(string: "http://172.20.10.10:8080")!
     #endif
     #else
-    /// 全新子域，避开 iPhone 11 上已损坏的 yizhidao.codedance.work。需 DNS A → 43.128.104.104。
-    private static let baseURL = URL(string: "https://yzh.codedance.work")!
+    /// 全新子域，避开 iPhone 11 上已损坏的 yizhidao / yzh。需 DNS A → 43.128.104.104。
+    private static let baseURL = URL(string: "https://yd.codedance.work")!
     #endif
 
     static var debugEndpoint: String { baseURL.absoluteString }
@@ -821,25 +819,11 @@ private struct SettingsView: View {
     @Binding var session: LocalUserSession
     @Environment(\.dismiss) private var dismiss
     @AppStorage(TapSoundPlayer.defaultsKey) private var tapSound: TapSoundKind = .none
-    @AppStorage(AppLanguage.storageKey) private var appLanguage: AppLanguage = .simplified
     @State private var showLogoutConfirm = false
     @State private var recycleCount = HistoryTrashStore.load().count
 
     var body: some View {
         List {
-            Section {
-                NavigationLink {
-                    LanguageSettingsView()
-                } label: {
-                    HStack {
-                        Label("语言".zh, systemImage: "globe")
-                        Spacer()
-                        Text(appLanguage.title.zh)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-            }
-
             Section {
                 NavigationLink {
                     TapSoundSettingsView()
@@ -889,36 +873,6 @@ private struct SettingsView: View {
                 dismiss()
             }
         }
-    }
-}
-
-private struct LanguageSettingsView: View {
-    @AppStorage(AppLanguage.storageKey) private var appLanguage: AppLanguage = .simplified
-
-    var body: some View {
-        List {
-            Section {
-                ForEach(AppLanguage.allCases) { language in
-                    Button {
-                        appLanguage = language
-                    } label: {
-                        HStack {
-                            Text(language.title.zh)
-                            Spacer()
-                            if appLanguage == language {
-                                Image(systemName: "checkmark")
-                                    .foregroundStyle(AppTheme.accent)
-                            }
-                        }
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-        }
-        .scrollContentBackground(.hidden)
-        .navigationTitle("语言".zh)
-        .navigationBarTitleDisplayMode(.inline)
-        .parchmentBackground()
     }
 }
 

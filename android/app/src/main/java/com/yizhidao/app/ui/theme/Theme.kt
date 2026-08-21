@@ -177,7 +177,7 @@ object AppTheme {
     )
 }
 
-/** 记录输入框窗口坐标，点空白时避开它们再失焦（对齐 iOS DismissKeyboardBackground）。 */
+/** 记录输入框窗口坐标，点空白时避开它们再失焦（对齐 iOS 点空白收键盘）。 */
 class TextFieldHitRegistry {
     private val rects = mutableMapOf<Any, Rect>()
 

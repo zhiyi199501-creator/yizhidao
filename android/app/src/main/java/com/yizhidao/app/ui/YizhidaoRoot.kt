@@ -25,19 +25,19 @@ import com.yizhidao.app.ui.theme.Text
 import com.yizhidao.app.ui.theme.zh
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import com.yizhidao.app.lang.AppLanguageStore
+import com.yizhidao.app.lang.AppLanguage
 import com.yizhidao.app.lang.LocalAppLanguage
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.yizhidao.CastResult
@@ -65,7 +65,8 @@ fun YizhidaoRoot(container: AppContainer) {
     var similarJumpTick by remember { mutableIntStateOf(0) }
     var similarJump by remember { mutableStateOf<SimilarHexagramJump?>(null) }
     var hideTabBar by remember { mutableStateOf(false) }
-    val language by AppLanguageStore.language.collectAsState()
+    val locales = LocalConfiguration.current.locales
+    val language = remember(locales.toLanguageTags()) { AppLanguage.from(locales) }
 
     CompositionLocalProvider(LocalAppLanguage provides language) {
     Scaffold(

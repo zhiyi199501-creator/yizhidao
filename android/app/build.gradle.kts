@@ -35,7 +35,7 @@ android {
         }
         release {
             isMinifyEnabled = false
-            buildConfigField("String", "API_BASE_URL", "\"https://yzh.codedance.work\"")
+            buildConfigField("String", "API_BASE_URL", "\"https://yd.codedance.work\"")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",

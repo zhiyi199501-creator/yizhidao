@@ -23,7 +23,7 @@ import kotlin.coroutines.resumeWithException
 
 /**
  * 用 Chromium 网络栈发 HTTPS。小米等机上 Java [java.net.HttpURLConnection]
- * 访问 yzh.codedance.work 会被 RST，同一台机器的浏览器（Cronet/QUIC）却能通。
+ * 访问部分主机名（如已废的 yzh.codedance.work）会被 RST，同一台机器的浏览器（Cronet/QUIC）却能通。
  */
 object AppHttp {
     private val executor: Executor = Executors.newCachedThreadPool()
@@ -35,7 +35,7 @@ object AppHttp {
         engine = CronetEngine.Builder(context.applicationContext)
             .enableHttp2(true)
             .enableQuic(true)
-            .addQuicHint("yzh.codedance.work", 443, 443)
+            .addQuicHint("yd.codedance.work", 443, 443)
             .enableBrotli(true)
             .setUserAgent("Yizhidao/${BuildConfig.VERSION_NAME} (Android)")
             .build()
