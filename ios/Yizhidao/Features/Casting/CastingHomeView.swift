@@ -1,5 +1,4 @@
 import SwiftUI
-import UIKit
 
 struct CastingHomeView: View {
     enum MethodTab: String, CaseIterable, Identifiable {
@@ -84,9 +83,6 @@ struct CastingHomeView: View {
                 .padding()
             }
             .scrollDismissesKeyboard(.interactively)
-            .background {
-                DismissKeyboardBackground()
-            }
             .parchmentBackground()
             .navigationDestination(isPresented: $showResult) {
                 if let latestResult {
@@ -129,71 +125,4 @@ struct CastingHomeView: View {
         "得卦后，行礼：感谢爻变化之神的指示，弟子退。",
         "然后把起卦工具收好，开始解卦。",
     ]
-}
-
-/// 点空白收起键盘，且不拦截按钮 / 输入框点击。
-private struct DismissKeyboardBackground: UIViewRepresentable {
-    func makeUIView(context: Context) -> UIView {
-        let view = UIView()
-        view.backgroundColor = .clear
-        let tap = UITapGestureRecognizer(
-            target: context.coordinator,
-            action: #selector(Coordinator.handleTap(_:))
-        )
-        tap.cancelsTouchesInView = false
-        view.addGestureRecognizer(tap)
-        context.coordinator.tapRecognizer = tap
-        return view
-    }
-
-    func updateUIView(_ uiView: UIView, context: Context) {
-        DispatchQueue.main.async {
-            guard let window = uiView.window else { return }
-            guard let tap = context.coordinator.tapRecognizer else { return }
-            if tap.view !== window {
-                tap.view?.removeGestureRecognizer(tap)
-                window.addGestureRecognizer(tap)
-            }
-        }
-    }
-
-    static func dismantleUIView(_ uiView: UIView, coordinator: Coordinator) {
-        if let tap = coordinator.tapRecognizer {
-            tap.view?.removeGestureRecognizer(tap)
-        }
-    }
-
-    func makeCoordinator() -> Coordinator {
-        Coordinator()
-    }
-
-    final class Coordinator: NSObject {
-        var tapRecognizer: UITapGestureRecognizer?
-
-        @objc func handleTap(_ gesture: UITapGestureRecognizer) {
-            if let root = gesture.view {
-                let point = gesture.location(in: root)
-                if let hit = root.hitTest(point, with: nil), isTextInput(hit) {
-                    return
-                }
-            }
-            UIApplication.shared.sendAction(
-                #selector(UIResponder.resignFirstResponder),
-                to: nil,
-                from: nil,
-                for: nil
-            )
-        }
-
-        private func isTextInput(_ view: UIView) -> Bool {
-            var current: UIView? = view
-            while let node = current {
-                if node is UITextField || node is UITextView {
-                    return true
-                }
-                current = node.superview
-            }
-            return false
-        }
-    }
 }

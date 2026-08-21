@@ -1,5 +1,5 @@
-# 方式 A（Docker 内 Caddy）用。App 现役域名是 yzh.codedance.work；可用环境变量覆盖。
-{$API_DOMAIN:yzh.codedance.work} {
+# 方式 A（Docker 内 Caddy）用。App 现役域名是 yd.codedance.work；可用环境变量覆盖。
+{$API_DOMAIN:yd.codedance.work} {
 	encode gzip
 	reverse_proxy api:8080 {
 		transport http {

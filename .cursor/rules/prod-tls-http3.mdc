@@ -1,11 +1,11 @@
 ---
-description: 生产 TLS / HTTP/3 避坑（iPhone 11 缓存；安卓 HttpURLConnection 会被 yzh RST）
+description: 生产 TLS / HTTP/3 避坑（iPhone 11 缓存；安卓 HttpURLConnection 会被部分主机名 RST）
 alwaysApply: true
 ---
 
 # 生产 TLS / HTTP/3
 
-iOS / Android **Release** 现役：`https://yzh.codedance.work`。`yizhidao.codedance.work` 在部分 iPhone 11 上已废，不要再改回、不要在该名上换证或关 HTTP/3。对照：同 IP 的 `https://videograb.codedance.work/yzh/health`。
+iOS / Android **Release** 现役：`https://yd.codedance.work`。`yizhidao.codedance.work` 与 `yzh.codedance.work` 在部分 iPhone 11 上已废，不要再改回、不要在该名上换证或关 HTTP/3。对照：同 IP 的 `https://videograb.codedance.work/yzh/health`。
 
 ## 禁止
 
@@ -14,7 +14,7 @@ iOS / Android **Release** 现役：`https://yzh.codedance.work`。`yizhidao.code
 - 用 `:80` 通配反代抢走 ACME HTTP-01（会签失败）。公网 IP 的 HTTP 请写 `http://43.128.104.104`。
 - 只在 Mac / iPhone 17 上验收生产 HTTPS。
 - 让国内真机把 DNS 改成 `8.8.8.8`（常被墙，整网超时）。
-- 安卓禁止用 `HttpURLConnection` 打 `yzh`（会 Connection reset；浏览器能开 `/health` 不算过）。现役走 Cronet。
+- 安卓禁止用 `HttpURLConnection` 打生产域名（`yzh` 会 Connection reset；浏览器能开 `/health` 不算过）。现役走 Cronet。
 
 ## 要做
 

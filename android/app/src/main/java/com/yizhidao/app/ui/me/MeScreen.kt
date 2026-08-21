@@ -5,9 +5,6 @@ import androidx.compose.foundation.background
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.automirrored.outlined.VolumeUp
 import androidx.compose.material.icons.outlined.Delete
-import androidx.compose.material.icons.outlined.Language
-import com.yizhidao.app.lang.AppLanguage
-import com.yizhidao.app.lang.AppLanguageStore
 import com.yizhidao.app.sound.TapSoundKind
 import com.yizhidao.app.sound.TapSoundPlayer
 import androidx.compose.foundation.clickable
@@ -134,7 +131,6 @@ private sealed interface MeRoute {
     data class AIHistoryItem(val item: SavedAIAnalysis) : MeRoute
     data object Settings : MeRoute
     data object TapSound : MeRoute
-    data object Language : MeRoute
     data object Recycle : MeRoute
     data object Intro : MeRoute
     data class IntroChapter(val item: YijingIntroChapter) : MeRoute
@@ -233,13 +229,9 @@ fun MeScreen(
             onBack = { route = MeRoute.Home },
             onOpenRecycle = { route = MeRoute.Recycle },
             onOpenTapSound = { route = MeRoute.TapSound },
-            onOpenLanguage = { route = MeRoute.Language },
             onLogout = { container.authStore.logout() },
         )
         MeRoute.TapSound -> TapSoundPage(
-            onBack = { route = MeRoute.Settings },
-        )
-        MeRoute.Language -> LanguagePage(
             onBack = { route = MeRoute.Settings },
         )
         MeRoute.Recycle -> RecycleBinPage(
@@ -538,12 +530,10 @@ private fun SettingsPage(
     onBack: () -> Unit,
     onOpenRecycle: () -> Unit,
     onOpenTapSound: () -> Unit,
-    onOpenLanguage: () -> Unit,
     onLogout: () -> Unit,
 ) {
     val trash by container.readingRepository.trash.collectAsState()
     val tapSound = TapSoundPlayer.current()
-    val language by AppLanguageStore.language.collectAsState()
     var showLogoutConfirm by remember { mutableStateOf(false) }
     Column(Modifier.fillMaxSize()) {
         PaperBackHeader(title = "设置", onBack = onBack)
@@ -554,22 +544,6 @@ private fun SettingsPage(
                 .padding(horizontal = 16.dp)
                 .padding(bottom = 24.dp),
         ) {
-            MeCard {
-                MeRow(
-                    icon = Icons.Outlined.Language,
-                    title = "语言",
-                    trailing = {
-                        Text(
-                            language.title,
-                            fontSize = 15.sp,
-                            color = AppTheme.secondaryText,
-                            style = AppTheme.compactText,
-                        )
-                    },
-                    onClick = onOpenLanguage,
-                )
-            }
-            Spacer(Modifier.height(12.dp))
             MeCard {
                 MeRow(
                     icon = Icons.AutoMirrored.Outlined.VolumeUp,
@@ -634,46 +608,6 @@ private fun SettingsPage(
             },
             containerColor = AppTheme.parchmentTop,
         )
-    }
-}
-
-@Composable
-private fun LanguagePage(onBack: () -> Unit) {
-    val language by AppLanguageStore.language.collectAsState()
-    val context = androidx.compose.ui.platform.LocalContext.current
-    Column(Modifier.fillMaxSize()) {
-        PaperBackHeader(title = "语言", onBack = onBack)
-        Column(
-            Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp)
-                .padding(bottom = 24.dp),
-        ) {
-            MeCard {
-                AppLanguage.entries.forEachIndexed { index, item ->
-                    MeRow(
-                        icon = null,
-                        title = item.title,
-                        showChevron = false,
-                        trailing = {
-                            if (language == item) {
-                                Icon(
-                                    Icons.Outlined.Check,
-                                    contentDescription = zh("已选"),
-                                    tint = AppTheme.accent,
-                                    modifier = Modifier.size(20.dp),
-                                )
-                            }
-                        },
-                        onClick = { AppLanguageStore.set(context, item) },
-                    )
-                    if (index < AppLanguage.entries.lastIndex) {
-                        MeDivider()
-                    }
-                }
-            }
-        }
     }
 }
 

@@ -32,7 +32,7 @@ cd android
 ./gradlew :app:installDebug
 ```
 
-`applicationId`：`com.yizhidao.app`。Release API：`https://yzh.codedance.work`（与 iOS 相同；勿用 `yizhidao.codedance.work`）。生产 HTTPS 必须走 **Cronet**，不要改回 `HttpURLConnection`。
+`applicationId`：`com.yizhidao.app`。Release API：`https://yd.codedance.work`（与 iOS 相同；勿用 `yizhidao.codedance.work` / `yzh.codedance.work`）。生产 HTTPS 必须走 **Cronet**，不要改回 `HttpURLConnection`。
 
 经文／案例／入门／IMA 讲解 JSON 构建时从 `ios/Yizhidao/Resources/` 拷贝（`copyIosAssets`），勿在 `android/` 另维护一份。重新导出讲解：`python3 scripts/export_ima_explanations.py`。
 
@@ -44,6 +44,6 @@ cd android
 
 ## 当前范围
 
-已实现：数字起卦（三数 / 时间）、金钱卦、本卦之卦与主看、本地历史与回收站、案例按卦（`GET /v1/cases` 热更新，失败用包内/缓存）、繁简切换、按键音效、我的页可读基础入门 / 六十四卦 / 四传（详情卡片标题彖辞/大象）、短信登录、资料编辑、AI 解读＋追问＋保存的AI解读（已保存后追问自动更新；重新解读→「重新保存」；分组列表竖排卦名／时间／所问，左滑删除）、设置（语言 / 按键音效 / 回收站同结构，左滑恢复或彻底删除）、**IMA 黄庭书院讲解**（结果／案例／六十四卦详情点经文）。AI 页隐藏底部 Tab；Manifest `adjustNothing` + 追问栏 `imePadding`（配合 `enableEdgeToEdge()` 贴键盘）。连生产见上文。
+已实现：数字起卦（三数 / 时间）、金钱卦、本卦之卦与主看、本地历史与回收站、案例按卦（`GET /v1/cases` 热更新，失败用包内/缓存）、繁简跟系统语言、按键音效、我的页可读基础入门 / 六十四卦 / 四传（详情卡片标题彖辞/大象）、短信登录、资料编辑、AI 解读＋追问＋保存的AI解读（已保存后追问自动更新；重新解读→「重新保存」；分组列表竖排卦名／时间／所问，左滑删除）、设置（按键音效 / 回收站同结构，左滑恢复或彻底删除）、**IMA 黄庭书院讲解**（结果／案例／六十四卦详情点经文）。AI 页隐藏底部 Tab；Manifest `adjustNothing` + 追问栏 `imePadding`（配合 `enableEdgeToEdge()` 贴键盘）。连生产见上文。
 
 未做：微信登录。

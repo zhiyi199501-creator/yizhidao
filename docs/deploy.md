@@ -2,11 +2,11 @@
 
 目标域名：
 
-- iOS **Release**：`https://yzh.codedance.work`（DNS A → `43.128.104.104`）
-- 电脑 / 未中招设备：`https://yizhidao.codedance.work` 仍可用
+- iOS **Release**：`https://yd.codedance.work`（DNS A → `43.128.104.104`）
+- 电脑 / 未中招设备：`https://yizhidao.codedance.work` 仍可用；`yzh.codedance.work` 部分 iPhone 11 已废
 - 对照：`https://videograb.codedance.work/yzh/health`（同机、同后端）
 
-**现役（2026-08-17 源站核过；2026-08-20 安卓 Cronet 真机登录已通）**：DNS A → `43.128.104.104`。`GET /v1/cases` 313 条（`If-None-Match` 304）；`POST /v1/ai/analyze` 与 `/v1/ai/followup`、`GET /v1/me` 未登录返回 401。与 `videograb.codedance.work` 共用系统 Caddy，API 容器 `docker-compose.prod.yml` 监听 `127.0.0.1:8080`。`yzh` 的 HTTPS **因 TLS 客户端而异**（浏览器 / Cronet 通，Mac curl 与 Java `HttpURLConnection` 常见 RST），不要用「电脑 curl `/health`」代替真机 App 验收。
+**现役（2026-08-20 iPhone 11 Safari 核过 `yd`）**：DNS A → `43.128.104.104`。`GET /v1/cases` 313 条（`If-None-Match` 304）；`POST /v1/ai/analyze` 与 `/v1/ai/followup`、`GET /v1/me` 未登录返回 401。与 `videograb.codedance.work` 共用系统 Caddy，API 容器 `docker-compose.prod.yml` 监听 `127.0.0.1:8080`。旧名 `yzh` 的 HTTPS **因 TLS 客户端而异**（浏览器 / Cronet 通，Mac curl 与 Java `HttpURLConnection` 常见 RST），不要用「电脑 curl `/health`」代替真机 App 验收。
 
 镜像把 `Hexagrams.json` 拷到 `/app/data/`（与 SQLite 同卷，**重建镜像不会自动刷新经文**）。`cases.json` 默认在镜像 `/app/app/data/`；若 data 卷存在 `/app/data/cases.json` 则优先（热更新不必重建）。可用 `CASES_PATH` 覆盖。
 
@@ -63,7 +63,7 @@ docker compose up -d --build
     }
 }
 
-yizhidao.codedance.work, yzh.codedance.work {
+yizhidao.codedance.work, yzh.codedance.work, yd.codedance.work {
     encode gzip
     reverse_proxy 127.0.0.1:8080 {
         transport http {
@@ -99,7 +99,7 @@ docker compose -f docker-compose.prod.yml up -d --build
 检查：
 
 ```bash
-curl https://yzh.codedance.work/health
+curl https://yd.codedance.work/health
 # 电脑仍可用：
 # curl https://yizhidao.codedance.work/health
 # 或（方式 B 生产）
@@ -156,31 +156,31 @@ docker compose -f docker-compose.prod.yml cp \
 
 ### App 真机 Release 连不上
 
-- Release 使用 `https://yzh.codedance.work`（iOS `AuthAPI`；安卓 `BuildConfig.API_BASE_URL`）
+- Release 使用 `https://yd.codedance.work`（iOS `AuthAPI`；安卓 `BuildConfig.API_BASE_URL`）
 - Debug 仍走本机 / 局域网 IP；Xcode Scheme 的 Run / Android Studio Build Variant 配成 Release 才会打到生产
 - ATS 对 HTTPS 无额外配置需求；明文 `http://` 会被 iOS ATS 拦截（电脑浏览器可以）
 - 安卓：浏览器能开 `/health` 仍可能 App Connection reset，见下节 Cronet
 
 ### iPhone 11 / HTTP/3（2026-08 踩过）
 
-失败是 **按主机名记住的**，不是整台服务器挂了。同 IP 的 `videograb.codedance.work` 一直能开；电脑和 iPhone 17 上 `yizhidao.codedance.work` 也能开。
+失败是 **按主机名记住的**，不是整台服务器挂了。同 IP 的 `videograb.codedance.work` 一直能开；电脑和 iPhone 17 上 `yizhidao.codedance.work` 也能开。`yizhidao` 与 `yzh` 在部分 iPhone 11 上已废。
 
 1. Caddy 默认开 HTTP/3，并下发 `Alt-Svc: h3; ma=2592000`（约 30 天）。iPhone 11 的 QUIC 比 17 脆，会先表现为 AI/登录超时。
 2. **最危险**：已经发过 h3 之后再关掉 UDP 443。手机会继续打 QUIC，Safari「已丢失网络连接」，App `-1200`。客户端收不到一次成功的 HTTP/2，就清不掉缓存。
 3. 在已经失败的主机名上换 Let's Encrypt YE/YR 或 ZeroSSL，救不回来，只会把这个 origin 弄得更僵。清 Safari 网站数据、还原网络设置也不一定够。
-4. 应急：DNSPod 加**全新子域**（如 `yzh`）A → `43.128.104.104`，让 Caddy 新签证书，App 改 `AuthAPI`。不要用国内真机测 `8.8.8.8`（常被墙）。
+4. 应急：DNSPod 加**全新子域** A → `43.128.104.104`，让 Caddy 新签证书，App 改 `AuthAPI`。不要继续用已废的 `yizhidao` / `yzh`。不要用国内真机测 `8.8.8.8`（常被墙）。
 5. 验收：改 Caddy/证书后必须用 **iPhone 11 Safari** 打开该域名 `/health`。HTTP/3 要么一直开（与 videograb 相同），要么一开始就永远不开，禁止开关切换。
 
 `videograb` 站点下的 `handle_path /yzh/*` 仍转到本 API，可作对照，不是长期正式域名。
 
 ### Android / Cronet（2026-08-20 踩过）
 
-和 iPhone 11 **不是同一类问题**。红米 Note 17 从未连过生产、系统联网权限已开、小米浏览器打开 `https://yzh.codedance.work/health` 能看到 JSON，App 仍可能失败。
+和 iPhone 11 **不是同一类问题**。红米 Note 17 从未连过生产、系统联网权限已开、小米浏览器打开生产 `/health` 能看到 JSON，App 仍可能失败。
 
-1. 默认 Run 是 **Debug**，打 `http://<Mac局域网>:8080`。连生产必须 Build Variant = **release**（`API_BASE_URL` = `https://yzh.codedance.work`）。工程无正式 keystore 时，本机试生产用 debug 签名。
-2. 浏览器通 ≠ App 通。小米浏览器走 Chromium（HTTP/2 / HTTP/3）；Java `HttpURLConnection` 打 `yzh` 会在 TLS 握手被 RST（登录页「连不上 …（Connection reset）」）。同机 `videograb.codedance.work/yzh` 对照入口对 curl 是通的。
+1. 默认 Run 是 **Debug**，打 `http://<Mac局域网>:8080`。连生产必须 Build Variant = **release**（`API_BASE_URL` = `https://yd.codedance.work`）。工程无正式 keystore 时，本机试生产用 debug 签名。
+2. 浏览器通 ≠ App 通。小米浏览器走 Chromium（HTTP/2 / HTTP/3）；Java `HttpURLConnection` 打部分主机名会在 TLS 握手被 RST（登录页「连不上 …（Connection reset）」）。同机 `videograb.codedance.work/yzh` 对照入口对 curl 是通的。
 3. 只补 Let's Encrypt Root YE / X2（`network_security_config`）不够：错误会从笼统「连不上」变成明确的 Connection reset，根因仍是握手被掐。
-4. **现役**：App 用 Cronet（`org.chromium.net:cronet-embedded`，开 HTTP/2 + QUIC），与浏览器同栈；红米 Note 17 Release 登录已通。不要改回 `HttpURLConnection` 打生产。
+4. **现役**：App 用 Cronet（`org.chromium.net:cronet-embedded`，开 HTTP/2 + QUIC），与浏览器同栈；2026-08-20 红米 Note 17 在当时的 `yzh` 上 Release 登录已通。代码现改 `yd` 后须重装。不要改回 `HttpURLConnection` 打生产。
 5. 生产短信仍是 mock，**不是**固定 `123456`。验证码：`docker compose -f docker-compose.prod.yml logs -f api | grep -i sms`。
 
 ### SQLite 数据在哪
