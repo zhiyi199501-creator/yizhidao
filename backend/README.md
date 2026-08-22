@@ -86,7 +86,7 @@ TENCENT_SMS_TEMPLATE_PARAM_MODE=code_and_minutes
 
 1. 启动本后端（端口 `8080`）
 2. iOS **Debug** 模拟器请求 `http://127.0.0.1:8080`；安卓 Debug 见 `android/app/build.gradle.kts`
-3. **真机 Release** 走 `https://yd.codedance.work`（iOS `AuthAPI` / Android Cronet `BuildConfig.API_BASE_URL`）。旧名 `yizhidao` / `yzh` 仍指向同一 API，部分 iPhone 11 打不开。安卓不要用 `HttpURLConnection` 打生产，见 `docs/deploy.md`「Android / Cronet」。
+3. **真机 Release** 走 `https://yzd.codedance.work`（备案后 `yizhidao.work`；iOS `AuthAPI` / Android Cronet `BuildConfig.API_BASE_URL`）。安卓不要用 `HttpURLConnection` 或 `addQuicHint`，见 `docs/deploy.md`。
 
 ### curl 自测
 
@@ -166,7 +166,7 @@ docker compose up -d --build
 
 与已有系统 Caddy 共用 80/443 时用 `docker compose -f docker-compose.prod.yml up -d --build`（详见 `docs/deploy.md`）。
 
-**现役（App Release）**：`https://yd.codedance.work`（DNS A → `43.128.104.104`）。同机 `yizhidao` / `yzh` 仍反代同一容器。运维与 HTTP/3 避坑见 `docs/deploy.md`。
+**现役（App Release）**：`https://yzd.codedance.work`（国内 `119.91.239.58`，Docker 方式 A，H2-only）。备案后 `yizhidao.work`。运维见 `docs/deploy.md`。
 
 ## 下一步
 

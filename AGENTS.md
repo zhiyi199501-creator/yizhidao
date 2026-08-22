@@ -48,21 +48,23 @@ cd android && ./gradlew :engines:test
 - 金钱卦：可摇 / 「选」手选四象；画面上爻在上、初爻在下；自下而上摇（先初后上）
 - 三数：一键随机；未满三正整数则「起卦」禁用；「清空」始终可点
 - 结果页悬浮 **AI**（需登录）：初次结构化解读，可追问/补背景；合适则 **保存** 到「我的 → 保存的AI解读」。**已保存**后追问成功自动更新；**重新解读**后右上角为「重新保存」。提示词见 `backend/app/services/ai.py`（含本卦初–上案例作参照）
-- Debug API：iOS 模拟器 `127.0.0.1:8080`，真机改 `AuthAPI` 局域网 IP；安卓 Debug 改 `android/app/build.gradle.kts`。**Release** 两端 → `https://yd.codedance.work`（安卓须 Cronet + Build Variant = release）。不要用已废的 `yizhidao.codedance.work` / `yzh.codedance.work`
+- Debug API：iOS 模拟器 `127.0.0.1:8080`，真机改 `AuthAPI` 局域网 IP；安卓 Debug 改 `android/app/build.gradle.kts`。**Release** 两端 → `https://yzd.codedance.work`（国内新服务器 H2-only；备案后改 `yizhidao.work`）。安卓须 Cronet + Build Variant = release。勿用已废的 `yizhidao.codedance.work` / `yzh.codedance.work` / 旧海外 `yd`
 - 生产 TLS/HTTP/3 避坑：`.cursor/rules/prod-tls-http3.mdc`、`docs/deploy.md`
 - **`main` 保护**：禁止直推，经 PR 合并（https://github.com/zhiyi199501-creator/yizhidao）
 - 勿提交 `.derivedData/`、`.firecrawl/`、`.workbuddy/`、`AppIcon-source.png`、`backend/.env`、`backend/*.db`、`案例编辑表.xlsx`、`易经正文编辑表.xlsx`、`张庆祥讲易经案例_txt/`、`Yizhidao.xcscheme` 里把 Run 改成 Release 的本机偏好
 
 ## 当前状态 / 下一步
 
-**生产 API（2026-08-21 服务器本机核）**：`yd.codedance.work/health` 200，仍发 `Alt-Svc: h3`。`GET /v1/cases` 313 条。运维见 `docs/deploy.md`。Release 两端 → `yd`。
+**生产 API（2026-08-22）**：国内 `119.91.239.58`，`https://yzd.codedance.work/health` 200，HTTP/2、无 `Alt-Svc`；`GET /v1/cases` 313 条。Release 代码 → `yzd`。运维见 `docs/deploy.md`。
 
-**安卓侧载（现役）**：`https://yd.codedance.work/download/yizhidao-0.1.1.apk`（约 10MB；Release = `arm64-v8a` + R8；Caddy `/download/*` → `/var/www/yizhidao`）。旧 `0.1.0`（约 40MB）仍在同目录，可删。
+**备案中**：`yizhidao.work` 首次 ICP 备案（腾讯云审核已通过，待管局）；通过后 DNS A → 新服务器，Caddy 加站点，App 改 `yizhidao.work`。
 
-**试用登录（白名单）**：`SMS_TEST_PHONES=13800138000`，固定码 `123456`（不走真实短信）。其它号仍随机码看容器日志。勿开 `ALLOW_INSECURE_MOCK_SMS`。
+**旧海外机（遗留）**：`43.128.104.104` / `yd.codedance.work` 仍开 h3，易知道 API 已迁出。
 
-**工作区**：本变更含短信测试白名单与安卓瘦身打包（后端 / 侧载 APK 已上线）。Scheme Run 保持 Debug。
+**安卓侧载**：`/download/yizhidao-0.1.1.apk` 随 Release 域名挂（现役 `yzd`，备案后 `yizhidao.work`）。
 
-未做：微信登录、生产腾讯云短信、App Store、正式 keystore。
+**试用登录（白名单）**：`SMS_TEST_PHONES=13800138000`，固定码 `123456`。勿开 `ALLOW_INSECURE_MOCK_SMS`。
 
-**Android**：Compose 四 Tab 已对齐 iOS 主路径。Release 须 Cronet → `yd`。见 `android/README.md`。
+未做：微信登录、生产腾讯云短信、App Store、正式 keystore、`yizhidao.work` 备案落地。
+
+**Android**：Compose 四 Tab 已对齐 iOS。Release 须 Cronet → `yzd`（勿 `addQuicHint`）。见 `android/README.md`。

@@ -397,8 +397,8 @@ enum AuthAPI {
     private static let baseURL = URL(string: "http://172.20.10.10:8080")!
     #endif
     #else
-    /// 全新子域，避开 iPhone 11 上已损坏的 yizhidao / yzh。需 DNS A → 43.128.104.104。
-    private static let baseURL = URL(string: "https://yd.codedance.work")!
+    /// 国内新服务器 H2-only；备案通过后改 yizhidao.work。
+    private static let baseURL = URL(string: "https://yzd.codedance.work")!
     #endif
 
     static var debugEndpoint: String { baseURL.absoluteString }
