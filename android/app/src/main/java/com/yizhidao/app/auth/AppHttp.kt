@@ -35,7 +35,6 @@ object AppHttp {
         engine = CronetEngine.Builder(context.applicationContext)
             .enableHttp2(true)
             .enableQuic(true)
-            .addQuicHint("yd.codedance.work", 443, 443)
             .enableBrotli(true)
             .setUserAgent("Yizhidao/${BuildConfig.VERSION_NAME} (Android)")
             .build()

@@ -1,10 +1,22 @@
-# 方式 A（Docker 内 Caddy）用。App 现役域名是 yd.codedance.work；可用环境变量覆盖。
-{$API_DOMAIN:yd.codedance.work} {
+# 方式 A（Docker 内 Caddy）。H2-only。现役 yzd；备案通过后加 yizhidao.work 站点块。
+{
+	servers {
+		protocols h1 h2
+	}
+}
+
+yzd.codedance.work {
 	encode gzip
-	reverse_proxy api:8080 {
-		transport http {
-			read_timeout 180s
-			response_header_timeout 180s
+	handle /download/* {
+		root * /var/www/yizhidao
+		file_server
+	}
+	handle {
+		reverse_proxy api:8080 {
+			transport http {
+				read_timeout 180s
+				response_header_timeout 180s
+			}
 		}
 	}
 }

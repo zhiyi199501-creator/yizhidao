@@ -10,9 +10,14 @@ val generatedAssets = layout.buildDirectory.dir("generated/iosAssets")
 
 val copyIosAssets by tasks.registering(Copy::class) {
     from(iosResources) {
+        // 不含 Zhengshi.json：安卓暂无《易经证释》入口，避免白白增大 APK。
         include("Hexagrams.json", "cases.json", "YijingIntro.json", "ImaExplanations.json")
     }
     into(generatedAssets)
+    // 清掉历史残留（曾整目录拷过 Zhengshi）。
+    doFirst {
+        generatedAssets.get().asFile.resolve("Zhengshi.json").delete()
+    }
 }
 
 android {
@@ -23,8 +28,8 @@ android {
         applicationId = "com.yizhidao.app"
         minSdk = 26
         targetSdk = 37
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = 2
+        versionName = "0.1.1"
         vectorDrawables.useSupportLibrary = true
     }
 
@@ -34,13 +39,18 @@ android {
             buildConfigField("String", "API_BASE_URL", "\"http://172.20.10.10:8080\"")
         }
         release {
-            isMinifyEnabled = false
-            buildConfigField("String", "API_BASE_URL", "\"https://yd.codedance.work\"")
+            isMinifyEnabled = true
+            isShrinkResources = true
+            buildConfigField("String", "API_BASE_URL", "\"https://yzd.codedance.work\"")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
             )
             signingConfig = signingConfigs.getByName("debug")
+            // 侧载真机包：只带 arm64，去掉模拟器 x86 / 旧 32 位 ARM。
+            ndk {
+                abiFilters += listOf("arm64-v8a")
+            }
         }
     }
 

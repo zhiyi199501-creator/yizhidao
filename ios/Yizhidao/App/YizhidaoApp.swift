@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import WebKit
 
 @main
 struct YizhidaoApp: App {
@@ -240,6 +241,7 @@ struct LoginSheetView: View {
     @State private var code = ""
     @State private var showWechatTip = false
     @State private var agreed = false
+    @State private var showLegal: LegalDocKind?
     @State private var errorMessage: String?
     @State private var isSendingCode = false
     @State private var isLoggingIn = false
@@ -305,9 +307,29 @@ struct LoginSheetView: View {
             .tint(AppTheme.accent)
             .disabled(isLoggingIn || phone.count < 6 || code.isEmpty)
 
-            Toggle(isOn: $agreed) {
-                Text("已阅读并同意《用户协议》《隐私政策》".zh)
+            HStack(alignment: .center, spacing: 0) {
+                Toggle("", isOn: $agreed)
+                    .labelsHidden()
+                    .scaleEffect(0.8)
+                Text("已阅读并同意".zh)
                     .font(.caption)
+                Button {
+                    showLegal = .terms
+                } label: {
+                    Text("《用户协议》".zh)
+                        .font(.caption)
+                        .foregroundStyle(AppTheme.accent)
+                }
+                .buttonStyle(.plain)
+                Button {
+                    showLegal = .privacy
+                } label: {
+                    Text("《隐私政策》".zh)
+                        .font(.caption)
+                        .foregroundStyle(AppTheme.accent)
+                }
+                .buttonStyle(.plain)
+                Spacer(minLength: 0)
             }
 
             if let errorMessage {
@@ -326,6 +348,16 @@ struct LoginSheetView: View {
         }
         .padding()
         .background(AppTheme.parchmentGradient.ignoresSafeArea(.container))
+        .sheet(item: $showLegal) { kind in
+            NavigationStack {
+                LegalDocumentView(title: kind.title.zh, file: kind.file)
+                    .toolbar {
+                        ToolbarItem(placement: .cancellationAction) {
+                            Button("关闭".zh) { showLegal = nil }
+                        }
+                    }
+            }
+        }
     }
 
     private func sendCode() async {
@@ -397,8 +429,8 @@ enum AuthAPI {
     private static let baseURL = URL(string: "http://172.20.10.10:8080")!
     #endif
     #else
-    /// 全新子域，避开 iPhone 11 上已损坏的 yizhidao / yzh。需 DNS A → 43.128.104.104。
-    private static let baseURL = URL(string: "https://yd.codedance.work")!
+    /// 国内新服务器 H2-only；备案通过后改 yizhidao.work。
+    private static let baseURL = URL(string: "https://yzd.codedance.work")!
     #endif
 
     static var debugEndpoint: String { baseURL.absoluteString }
@@ -492,6 +524,23 @@ enum AuthAPI {
         let decoded = try JSONDecoder().decode(MeResponse.self, from: data)
         guard decoded.ok else { throw LoginError.network("获取用户信息失败") }
         return decoded
+    }
+
+    private struct OkResponse: Decodable {
+        let ok: Bool
+    }
+
+    static func deleteAccount(accessToken: String) async throws {
+        var req = jsonRequest(path: "v1/me", method: "DELETE")
+        req.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+        let (data, response) = try await session.data(for: req)
+        guard let http = response as? HTTPURLResponse else { throw LoginError.network("网络异常") }
+        if http.statusCode == 401 {
+            throw LoginError.unauthorized
+        }
+        guard (200..<300).contains(http.statusCode) else { throw decodeError(data, fallback: "注销账号失败") }
+        let decoded = try JSONDecoder().decode(OkResponse.self, from: data)
+        guard decoded.ok else { throw LoginError.network("注销账号失败") }
     }
 
     struct AIAnalyzeResponse: Decodable {
@@ -820,6 +869,9 @@ private struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
     @AppStorage(TapSoundPlayer.defaultsKey) private var tapSound: TapSoundKind = .none
     @State private var showLogoutConfirm = false
+    @State private var showDeleteConfirm = false
+    @State private var isDeletingAccount = false
+    @State private var deleteErrorMessage: String?
     @State private var recycleCount = HistoryTrashStore.load().count
 
     var body: some View {
@@ -850,11 +902,28 @@ private struct SettingsView: View {
                 }
             }
 
+            Section {
+                NavigationLink {
+                    LegalDocumentView(title: "隐私政策".zh, file: "privacy_policy")
+                } label: {
+                    Label("隐私政策".zh, systemImage: "lock.shield")
+                }
+                NavigationLink {
+                    LegalDocumentView(title: "用户协议".zh, file: "terms_of_service")
+                } label: {
+                    Label("用户协议".zh, systemImage: "doc.text")
+                }
+            }
+
             if session.isLoggedIn {
                 Section {
                     Button("退出登录".zh) {
                         showLogoutConfirm = true
                     }
+                    Button("注销账号".zh, role: .destructive) {
+                        showDeleteConfirm = true
+                    }
+                    .disabled(isDeletingAccount)
                 }
             }
         }
@@ -872,6 +941,39 @@ private struct SettingsView: View {
                 LocalAuthStore.save(session)
                 dismiss()
             }
+        }
+        .alert("确认注销账号？".zh, isPresented: $showDeleteConfirm) {
+            Button("取消".zh, role: .cancel) {}
+            Button("注销账号".zh, role: .destructive) {
+                Task { await deleteAccount() }
+            }
+        } message: {
+            Text("注销后，服务器上的账号信息将被永久删除且不可恢复。设备本地的起卦记录与保存的 AI 解读不会自动清除。".zh)
+        }
+        .alert("注销失败".zh, isPresented: Binding(
+            get: { deleteErrorMessage != nil },
+            set: { if !$0 { deleteErrorMessage = nil } }
+        )) {
+            Button("知道了".zh, role: .cancel) {}
+        } message: {
+            Text((deleteErrorMessage ?? "").zh)
+        }
+    }
+
+    private func deleteAccount() async {
+        guard let token = session.accessToken, !token.isEmpty else {
+            deleteErrorMessage = "登录态已失效，请重新登录"
+            return
+        }
+        isDeletingAccount = true
+        defer { isDeletingAccount = false }
+        do {
+            try await AuthAPI.deleteAccount(accessToken: token)
+            session = .guest
+            LocalAuthStore.save(session)
+            dismiss()
+        } catch {
+            deleteErrorMessage = LoginError.describe(error)
         }
     }
 }
@@ -1002,5 +1104,54 @@ private struct RecycleBinView: View {
         .onAppear {
             entries = HistoryTrashStore.load()
         }
+    }
+}
+
+// MARK: - 应用内协议页面（WebView 渲染本地 HTML，不跳浏览器）
+
+enum LegalDocKind: String, Identifiable {
+    case terms, privacy
+    var id: String { rawValue }
+    var title: String {
+        switch self {
+        case .terms: return "用户协议"
+        case .privacy: return "隐私政策"
+        }
+    }
+    var file: String {
+        switch self {
+        case .terms: return "terms_of_service"
+        case .privacy: return "privacy_policy"
+        }
+    }
+}
+
+struct LegalWebView: UIViewRepresentable {
+    let fileName: String
+
+    func makeUIView(context: Context) -> WKWebView {
+        let webView = WKWebView()
+        webView.isOpaque = false
+        webView.backgroundColor = UIColor(red: 0.969, green: 0.953, blue: 0.914, alpha: 1)
+        webView.scrollView.bounces = true
+        return webView
+    }
+
+    func updateUIView(_ webView: WKWebView, context: Context) {
+        if let url = Bundle.main.url(forResource: fileName, withExtension: "html") {
+            webView.loadFileURL(url, allowingReadAccessTo: url.deletingLastPathComponent())
+        }
+    }
+}
+
+struct LegalDocumentView: View {
+    let title: String
+    let file: String
+
+    var body: some View {
+        LegalWebView(fileName: file)
+            .ignoresSafeArea(edges: .bottom)
+            .navigationTitle(title)
+            .navigationBarTitleDisplayMode(.inline)
     }
 }

@@ -32,13 +32,13 @@ cd android
 ./gradlew :app:installDebug
 ```
 
-`applicationId`：`com.yizhidao.app`。Release API：`https://yd.codedance.work`（与 iOS 相同；勿用 `yizhidao.codedance.work` / `yzh.codedance.work`）。生产 HTTPS 必须走 **Cronet**，不要改回 `HttpURLConnection`。
+`applicationId`：`com.yizhidao.app`。Release API：`https://yzd.codedance.work`（备案后 `yizhidao.work`；与 iOS 相同）。生产 HTTPS 必须走 **Cronet**，不要 `addQuicHint`，不要改回 `HttpURLConnection`。
 
-经文／案例／入门／IMA 讲解 JSON 构建时从 `ios/Yizhidao/Resources/` 拷贝（`copyIosAssets`），勿在 `android/` 另维护一份。重新导出讲解：`python3 scripts/export_ima_explanations.py`（会覆盖包内 JSON；脚注／「思考过程」／表格在 `ImaAnswerFormatter` 运行时清洗，不要为此重跑导出）。App 单测：`./gradlew :app:testDebugUnitTest`。
+经文／案例／入门／IMA 讲解 JSON 构建时从 `ios/Yizhidao/Resources/` 拷贝（`copyIosAssets`），勿在 `android/` 另维护一份。**不含** `Zhengshi.json`（安卓暂无证释入口）。重新导出讲解：`python3 scripts/export_ima_explanations.py`（会覆盖包内 JSON；脚注／「思考过程」／表格在 `ImaAnswerFormatter` 运行时清洗，不要为此重跑导出）。App 单测：`./gradlew :app:testDebugUnitTest`。Release 侧载包：`arm64-v8a` + R8 minify（约 10MB）。
 
 ## 连生产
 
-默认 Run 是 Debug，打 `app/build.gradle.kts` 的局域网地址（现 `http://172.20.10.10:8080`）。要打生产：Build Variants → `app` → **release**（无正式 keystore 时用 debug 签名），然后重装。登录页只有 Debug 显示「当前接口」。生产验证码在服务器日志，不是 `123456`。
+默认 Run 是 Debug，打 `app/build.gradle.kts` 的局域网地址（现 `http://172.20.10.10:8080`）。要打生产：Build Variants → **release**，Cronet → `https://yzd.codedance.work`。侧载 APK 见 `docs/deploy.md`。
 
 浏览器能开 `/health` 不算过。事故与现役栈见 `docs/deploy.md`「Android / Cronet」。
 

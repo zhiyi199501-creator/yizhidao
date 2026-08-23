@@ -7,13 +7,14 @@ from app.models import User
 from app.schemas import (
     HealthResponse,
     MeResponse,
+    OkResponse,
     SMSLoginRequest,
     SMSLoginResponse,
     SMSSendRequest,
     SMSSendResponse,
     UserOut,
 )
-from app.services.auth import login_with_sms, send_sms_code
+from app.services.auth import delete_user_account, login_with_sms, send_sms_code
 
 router = APIRouter()
 
@@ -43,3 +44,12 @@ def me(user: User = Depends(get_current_user)) -> MeResponse:
     return MeResponse(
         user=UserOut(id=user.id, nickname=user.nickname, phone=user.phone),
     )
+
+
+@router.delete("/v1/me", response_model=OkResponse)
+def delete_me(
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> OkResponse:
+    delete_user_account(db, user)
+    return OkResponse()

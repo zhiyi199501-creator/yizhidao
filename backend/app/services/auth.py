@@ -4,13 +4,13 @@ import uuid
 from datetime import datetime, timedelta, timezone
 
 from jose import jwt
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.errors import AppError
 from app.models import SMSCode, User
-from app.services.sms import deliver_sms_code
+from app.services.sms import deliver_sms_code, verify_aliyun_code
 
 PHONE_PATTERN = re.compile(r"^1\d{10}$")
 
@@ -24,6 +24,18 @@ def validate_phone(phone: str) -> str:
 
 def mask_phone(phone: str) -> str:
     return f"{phone[:3]}****{phone[-4:]}"
+
+
+def sms_test_phone_set() -> set[str]:
+    return {
+        part.strip()
+        for part in (settings.sms_test_phones or "").split(",")
+        if part.strip()
+    }
+
+
+def is_sms_test_phone(phone: str) -> bool:
+    return phone in sms_test_phone_set()
 
 
 def issue_access_token(user_id: str) -> str:
@@ -50,18 +62,26 @@ def send_sms_code(db: Session, phone: str) -> int:
         if elapsed < settings.sms_cooldown_sec:
             raise AppError("请求过快，请稍后再试", code=4290, status_code=429)
 
-    use_fixed = (
-        settings.sms_provider.lower() == "mock"
-        and bool(settings.dev_sms_fixed_code)
-        and (
-            settings.app_env.lower() != "production"
-            or settings.allow_insecure_mock_sms
-        )
+    is_aliyun_managed = (
+        (settings.sms_provider or "mock").lower() == "aliyun"
+        and not is_sms_test_phone(phone)
     )
-    if use_fixed:
-        code = settings.dev_sms_fixed_code
+
+    if is_aliyun_managed:
+        # 阿里云全托管：验证码由阿里云生成，本地仅记一条占位记录用于冷却窗口
+        code = ""
     else:
-        code = f"{random.randint(0, 999999):06d}"
+        use_fixed = bool(settings.dev_sms_fixed_code) and (
+            is_sms_test_phone(phone)
+            or (
+                (settings.sms_provider or "mock").lower() == "mock"
+                and (
+                    settings.app_env.lower() != "production"
+                    or settings.allow_insecure_mock_sms
+                )
+            )
+        )
+        code = settings.dev_sms_fixed_code if use_fixed else f"{random.randint(0, 999999):06d}"
 
     expires_at = now + timedelta(minutes=settings.sms_code_expire_min)
     db.add(SMSCode(phone=phone, code=code, expires_at=expires_at, used=False))
@@ -85,11 +105,53 @@ def send_sms_code(db: Session, phone: str) -> int:
     return settings.sms_cooldown_sec
 
 
+def _get_or_create_user(db: Session, phone: str) -> User:
+    user = db.scalar(select(User).where(User.phone == phone))
+    if not user:
+        user = User(
+            id=f"u_{uuid.uuid4().hex[:12]}",
+            phone=phone,
+            nickname=f"用户{mask_phone(phone)}",
+        )
+        db.add(user)
+    return user
+
+
 def login_with_sms(db: Session, phone: str, code: str) -> tuple[User, str]:
     phone = validate_phone(phone)
     normalized_code = code.strip()
     if not normalized_code:
         raise AppError("验证码不能为空", code=4001, status_code=400)
+
+    # 测试白名单：固定码可直接登录（仍须先点「获取验证码」写入记录，或直接用固定码）
+    if (
+        is_sms_test_phone(phone)
+        and settings.dev_sms_fixed_code
+        and normalized_code == settings.dev_sms_fixed_code
+    ):
+        user = _get_or_create_user(db, phone)
+        record = db.scalar(
+            select(SMSCode)
+            .where(SMSCode.phone == phone, SMSCode.used.is_(False))
+            .order_by(SMSCode.created_at.desc())
+            .limit(1)
+        )
+        if record:
+            record.used = True
+        db.commit()
+        db.refresh(user)
+        return user, issue_access_token(user.id)
+
+    if (
+        (settings.sms_provider or "mock").lower() == "aliyun"
+        and not is_sms_test_phone(phone)
+    ):
+        if not verify_aliyun_code(phone, normalized_code):
+            raise AppError("验证码错误或已过期", code=4002, status_code=400)
+        user = _get_or_create_user(db, phone)
+        db.commit()
+        db.refresh(user)
+        return user, issue_access_token(user.id)
 
     now = datetime.now(timezone.utc)
     record = db.scalar(
@@ -109,15 +171,14 @@ def login_with_sms(db: Session, phone: str, code: str) -> tuple[User, str]:
 
     record.used = True
 
-    user = db.scalar(select(User).where(User.phone == phone))
-    if not user:
-        user = User(
-            id=f"u_{uuid.uuid4().hex[:12]}",
-            phone=phone,
-            nickname=f"用户{mask_phone(phone)}",
-        )
-        db.add(user)
+    user = _get_or_create_user(db, phone)
 
     db.commit()
     db.refresh(user)
     return user, issue_access_token(user.id)
+
+
+def delete_user_account(db: Session, user: User) -> None:
+    db.execute(delete(SMSCode).where(SMSCode.phone == user.phone))
+    db.delete(user)
+    db.commit()

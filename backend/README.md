@@ -37,6 +37,8 @@ FastAPI 最小后端：手机号验证码登录 + AI 解读，接口对齐 `docs
 [sms:mock] phone=138****8000 code=123456
 ```
 
+生产（`APP_ENV=production`）默认对普通号发**随机码**并打日志。白名单 `SMS_TEST_PHONES`（逗号分隔，如 `13800138000`）仍用固定码且不走腾讯云；日志为 `[sms:test]`。不要用 `ALLOW_INSECURE_MOCK_SMS=true` 放开全站固定码。
+
 ## 接入腾讯云短信（真实发送）
 
 1. 打开 [腾讯云短信控制台](https://console.cloud.tencent.com/smsv2)
@@ -68,6 +70,32 @@ TENCENT_SMS_TEMPLATE_PARAM_MODE=code_and_minutes
 
 发送失败时接口会返回错误信息，且该次验证码作废。
 
+## 接入阿里云号码认证短信（个人开发者推荐）
+
+验证码由阿里云生成与核验；比腾讯云自定义签名更容易通过个人审核。
+
+1. 打开 [号码认证控制台](https://dypns.console.aliyun.com/)，开通「短信认证」
+2. 使用控制台**赠送的签名与模板**（或自建并审核通过）
+3. 在 RAM 创建 AccessKey，拿到 **AccessKey ID / Secret**
+4. 编辑 `backend/.env`：
+
+```bash
+SMS_PROVIDER=aliyun
+DEV_SMS_FIXED_CODE=
+SMS_TEST_PHONES=13800138000
+ALIYUN_ACCESS_KEY_ID=LTAIxxxx
+ALIYUN_ACCESS_KEY_SECRET=xxxx
+ALIYUN_SMS_SIGN_NAME=速通互联验证码
+ALIYUN_SMS_TEMPLATE_CODE=100001
+ALIYUN_SMS_TEMPLATE_PARAM={"code":"##code##","min":"5"}
+ALIYUN_SMS_CODE_LENGTH=6
+ALIYUN_SMS_VALID_SEC=300
+```
+
+5. 重启后端（Docker 需确保镜像含 `alibabacloud_dypnsapi20170525`，见 `requirements.txt`）
+
+白名单 `SMS_TEST_PHONES` 仍走固定码，不发真实短信。
+
 ## 接口
 
 | 方法 | 路径 | 说明 |
@@ -76,6 +104,8 @@ TENCENT_SMS_TEMPLATE_PARAM_MODE=code_and_minutes
 | POST | `/v1/auth/sms/send` | 发送验证码 |
 | POST | `/v1/auth/sms/login` | 验证码登录 |
 | GET | `/v1/me` | 当前用户（需 Bearer token） |
+| DELETE | `/v1/me` | 注销账号（需 Bearer token） |
+| GET | `/privacy` `/terms` `/support` | 法律与支持页（HTML） |
 | GET | `/v1/cases` | 案例列表（公开；支持 `If-None-Match`） |
 | POST | `/v1/ai/analyze` | AI 解读（需 Bearer token） |
 | POST | `/v1/ai/followup` | AI 追问 / 补充背景（需 Bearer token） |
@@ -84,7 +114,7 @@ TENCENT_SMS_TEMPLATE_PARAM_MODE=code_and_minutes
 
 1. 启动本后端（端口 `8080`）
 2. iOS **Debug** 模拟器请求 `http://127.0.0.1:8080`；安卓 Debug 见 `android/app/build.gradle.kts`
-3. **真机 Release** 走 `https://yd.codedance.work`（iOS `AuthAPI` / Android Cronet `BuildConfig.API_BASE_URL`）。旧名 `yizhidao` / `yzh` 仍指向同一 API，部分 iPhone 11 打不开。安卓不要用 `HttpURLConnection` 打生产，见 `docs/deploy.md`「Android / Cronet」。
+3. **真机 Release** 走 `https://yzd.codedance.work`（备案后 `yizhidao.work`；iOS `AuthAPI` / Android Cronet `BuildConfig.API_BASE_URL`）。安卓不要用 `HttpURLConnection` 或 `addQuicHint`，见 `docs/deploy.md`。
 
 ### curl 自测
 
@@ -112,11 +142,16 @@ backend/
 │   ├── routes/cases.py      # 案例列表热更新
 │   └── services/
 │       ├── auth.py          # 验证码与 JWT
-│       ├── sms.py           # mock / 腾讯云发送
+│       ├── sms.py           # mock / 腾讯云 / 阿里云号码认证
 │       ├── token.py         # token 校验
 │       ├── hexagram_store.py# 读 App 侧 Hexagrams.json
 │       ├── case_store.py    # 读 App 侧 cases.json
 │       └── ai.py            # mock / openai 解读、追问与提示词
+│   ├── routes/
+│   │   ├── auth.py          # 登录、/v1/me、注销
+│   │   ├── legal.py         # /privacy /terms /support
+│   │   ├── ai.py / cases.py
+│   └── templates/           # 隐私政策、用户协议、支持页 HTML
 ├── requirements.txt
 ├── .env.example
 ├── Dockerfile / docker-compose.yml / docker-compose.prod.yml
@@ -164,9 +199,11 @@ docker compose up -d --build
 
 与已有系统 Caddy 共用 80/443 时用 `docker compose -f docker-compose.prod.yml up -d --build`（详见 `docs/deploy.md`）。
 
-**现役（App Release）**：`https://yd.codedance.work`（DNS A → `43.128.104.104`）。同机 `yizhidao` / `yzh` 仍反代同一容器。运维与 HTTP/3 避坑见 `docs/deploy.md`。
+**现役（App Release）**：`https://yzd.codedance.work`（国内 `119.91.239.58`，Docker 方式 A，H2-only）。备案后 `yizhidao.work`。运维见 `docs/deploy.md`。
 
 ## 下一步
 
-- 开通企业主体后再配腾讯云短信 / 微信登录
-- App Store（产品侧）
+- App Store：TestFlight 内测 → 截屏与元数据 → 提审；商店名避让「易知道」占用
+- 有企业主体后再视需要切腾讯云短信 / 微信登录
+- 正式 `docker compose up -d --build` 固化生产镜像（法律页与 aliyun SDK）
+- `yizhidao.work` 备案落地后改 App 基址与 Connect URL
