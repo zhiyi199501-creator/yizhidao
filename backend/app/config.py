@@ -23,6 +23,16 @@ class Settings(BaseSettings):
     tencent_sms_region: str = "ap-guangzhou"
     # code_and_minutes | code_only
     tencent_sms_template_param_mode: str = "code_and_minutes"
+    # 阿里云号码认证（短信认证）：个人开发者可用，免签名/模板/资质申请
+    aliyun_access_key_id: str = ""
+    aliyun_access_key_secret: str = ""
+    aliyun_sms_sign_name: str = ""          # 号码认证控制台赠送的签名
+    aliyun_sms_template_code: str = ""      # 赠送模板 CODE
+    aliyun_sms_region: str = "cn-beijing"
+    # 模板参数 JSON：验证码用 "##code##" 占位，变量名按实际赠送模板调整
+    aliyun_sms_template_param: str = '{"code":"##code##","min":"5"}'
+    aliyun_sms_code_length: int = 6
+    aliyun_sms_valid_sec: int = 300
     database_url: str = "sqlite:///./yizhidao.db"
     ai_mode: str = "mock"
     openai_api_key: str = ""

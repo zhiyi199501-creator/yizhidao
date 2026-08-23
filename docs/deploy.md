@@ -20,7 +20,7 @@
 3. Docker + Docker Compose
 4. 国内拉镜像慢：配置 Docker registry mirror（如 `https://mirror.ccs.tencentyun.com`）；build 失败时可从旧机 `docker save` 导入 `backend-api` 镜像
 
-> 没有企业资质时，短信继续用 mock：生产默认**随机码**并打容器日志。可用 `SMS_TEST_PHONES` 白名单（现役 `13800138000` / `123456`）。勿开 `ALLOW_INSECURE_MOCK_SMS`。
+> **现役短信**：`SMS_PROVIDER=aliyun`（阿里云号码认证）。白名单 `SMS_TEST_PHONES`（现役 `13800138000` / `123456`）仍固定码、不发真短信。勿开 `ALLOW_INSECURE_MOCK_SMS`。企业资质后再考虑 `tencent`。
 
 ## 国内新服务器（方式 A，现役）
 
@@ -37,10 +37,15 @@ docker compose up -d --build   # 国内 build 超时可 docker save/load 镜像
 ```bash
 APP_ENV=production
 JWT_SECRET=请换成很长的随机字符串
-SMS_PROVIDER=mock
+SMS_PROVIDER=aliyun
 DEV_SMS_FIXED_CODE=123456
 SMS_TEST_PHONES=13800138000
 ALLOW_INSECURE_MOCK_SMS=false
+ALIYUN_ACCESS_KEY_ID=...
+ALIYUN_ACCESS_KEY_SECRET=...
+ALIYUN_SMS_SIGN_NAME=恒创联众
+ALIYUN_SMS_TEMPLATE_CODE=100001
+ALIYUN_SMS_TEMPLATE_PARAM={"code":"##code##","min":"5"}
 AI_MODE=openai
 OPENAI_API_KEY=sk-...
 OPENAI_BASE_URL=https://api.deepseek.com/v1
@@ -52,8 +57,12 @@ OPENAI_MODEL=deepseek-chat
 ```bash
 curl https://yzd.codedance.work/health
 curl -sI https://yzd.codedance.work/health | grep -iE 'HTTP/|alt-svc'
+curl -sI https://yzd.codedance.work/privacy | head -1   # App Store 隐私政策 URL
+curl -sI https://yzd.codedance.work/support | head -1   # Support URL
 docker compose logs -f api
 ```
+
+> 改 `.env` 后须 `docker compose up -d` **重建容器**才会加载新环境变量；仅 `restart` 不够。法律页与 aliyun SDK 已热更新过；正式固化请 `docker compose up -d --build`（国内 pip 可能慢）。
 
 从本机同步（**不要 `--delete`**，会清服务器 `.env`）：
 
@@ -125,5 +134,8 @@ docker compose cp ../ios/Yizhidao/Resources/cases.json api:/app/data/cases.json
 - [x] `JWT_SECRET` 已换成强随机值（生产已配置）
 - [x] 未把 `.env` 提交进 Git
 - [x] 生产未开启 `ALLOW_INSECURE_MOCK_SMS=true`
-- [ ] `yizhidao.work` ICP 备案完成并接入腾讯云
-- [ ] 有企业后再切 `SMS_PROVIDER=tencent`
+- [x] 生产短信 `SMS_PROVIDER=aliyun`（号码认证）
+- [x] `/privacy` `/terms` `/support` 可访问（App Store 用）
+- [ ] `yizhidao.work` ICP 备案完成并改 App 基址
+- [ ] 有企业后再视需要切 `SMS_PROVIDER=tencent`
+- [ ] 正式 `docker compose up -d --build` 固化热更新进镜像

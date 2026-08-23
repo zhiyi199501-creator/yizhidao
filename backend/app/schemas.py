@@ -34,6 +34,10 @@ class MeResponse(BaseModel):
     user: UserOut
 
 
+class OkResponse(BaseModel):
+    ok: bool = True
+
+
 class HealthResponse(BaseModel):
     ok: bool = True
     service: str = "yizhidao-backend"

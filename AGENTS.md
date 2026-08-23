@@ -39,7 +39,7 @@ cd android && ./gradlew :engines:test
 - 《易经证释》阅读稿：`ios/Yizhidao/Resources/Zhengshi.json`。源文件不入库；更新时 `python3 scripts/import_zhengshi.py [全册.doc]`；代码（`ZhengshiStore`/阅读页）还在，但「我的」菜单暂未挂入口
 - **IMA 黄庭书院讲解**：点经文可看知识库讲解。覆盖卦辞／彖／大象／爻辞+小象（成对）、用九／用六（成对）、文言（乾坤）。包内 `ios/Yizhidao/Resources/ImaExplanations.json`；源采集 gitignore `data/ima-explanations/`。导出 `python3 scripts/export_ima_explanations.py` **会覆盖**包内 JSON，手改过就别跑。Android `copyIosAssets` 拷同文件（**不含** `Zhengshi.json`）。ID：`{nn}-guaci|tuanci|daxiang|wenyan|yong`、`{nn}-yao-{0…5}`（初=0）。入口：结果／案例／六十四卦详情（文言与用九用六仅六十四卦详情有）
 - **IMA 展示**：清洗在运行时 `ImaAnswerFormatter`（iOS / Android），不是改 JSON。去掉整行「思考过程」、出处脚注数字；「表格」标记与 markdown 表画成表。安卓弹层用全屏 Popup（约 93% 高，盖住页头），下拉超过 **1/4** 收起，点遮罩不关。iOS 宣纸 `AppTheme` 已为 OLED 调淡；弹层 `.presentationBackground` 用同一渐变
-- `ios/Yizhidao/App/`：`AppNavigation`、`AppTheme`、登录与「我的」（多在 `YizhidaoApp.swift`）。「我的」：资料、**保存的AI解读**（本地保存的解读）、**易经基础入门** `YijingIntro.json`、**易经六十四卦 / 易经四传** 读 `Hexagrams.json`（详情卡片标题**彖辞** / **大象**，正文带「彖曰：」「象曰：」前缀）、设置（按键音效、回收站，清空需确认；退出登录）
+- `ios/Yizhidao/App/`：`AppNavigation`、`AppTheme`、登录与「我的」（多在 `YizhidaoApp.swift`）。「我的」：资料、**保存的AI解读**（本地保存的解读）、**易经基础入门** `YijingIntro.json`、**易经六十四卦 / 易经四传** 读 `Hexagrams.json`（详情卡片标题**彖辞** / **大象**，正文带「彖曰：」「象曰：」前缀）、设置（按键音效、回收站，清空需确认；退出登录；**注销账号**调 `DELETE /v1/me`）。包内与生产页：隐私政策 / 用户协议；公网 `https://yzd.codedance.work/{privacy,terms,support}`
 - Android「保存的AI解读」与回收站对齐 iOS 分组列表：白卡片竖排卦名／时间／所问；解读左滑删除，回收站左滑恢复＋彻底删除。勿改回设置项左右排布；删除钮未滑开不得透出
 - **经文勿换他本**；改解卦规则先改 `ReadingGuide` 并补测
 - 繁简只跟系统语言 + `.zh`。禁止 hook `UILabel` / `UIButton` / `Bundle.main`（iPhone 11 弹键盘会卡）。点空白收键盘须在手势 `shouldReceive` 跳过输入框；登录数字框用 `UITextField`，勿加 `textContentType` 自动填充
@@ -65,6 +65,10 @@ cd android && ./gradlew :engines:test
 
 **试用登录（白名单）**：`SMS_TEST_PHONES=13800138000`，固定码 `123456`。勿开 `ALLOW_INSECURE_MOCK_SMS`。
 
-未做：微信登录、生产腾讯云短信、App Store、正式 keystore、`yizhidao.work` 备案落地。
+**生产短信（2026-08-22）**：`SMS_PROVIDER=aliyun`（号码认证，签名「恒创联众」、模板 `100001`，`template_param` 须含 `min`）。白名单仍不发真短信。腾讯云通道代码保留，企业资质后再切。
+
+**App Store（进行中）**：Connect 已有 App `com.yizhidao.app`（id `6804203617`）；商店名「易知道」被占用需改用可保存名（如「易知道·易经」）；桌面显示名仍可「易知道」。法律 URL / 支持 URL 见上。账号注销已实现。待：TestFlight 内测闭环、截屏与元数据、提审；中国区 ICP 备案号。
+
+未做：微信登录、正式 Android keystore、`yizhidao.work` 备案落地、生产镜像正式 `docker compose build` 固化（法律页/aliyun SDK 曾热更新进容器）。
 
 **Android**：Compose 四 Tab 已对齐 iOS。Release 须 Cronet → `yzd`（勿 `addQuicHint`）。见 `android/README.md`。
