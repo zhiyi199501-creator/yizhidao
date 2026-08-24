@@ -241,14 +241,179 @@ enum LocalAuthStore {
 struct LoginSheetView: View {
     private enum PendingAction {
         case apple
+    }
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var agreed = false
+    @State private var showLegal: LegalDocKind?
+    @State private var showConsentAlert = false
+    @State private var pendingAction: PendingAction?
+    @State private var errorMessage: String?
+    @State private var isLoggingIn = false
+    let onSuccess: (LocalUserSession) -> Void
+
+    var body: some View {
+        NavigationStack {
+            VStack(alignment: .leading, spacing: 18) {
+                HStack {
+                    Button("取消".zh) { dismiss() }
+                    Spacer()
+                    Text("登录".zh)
+                        .font(.headline)
+                    Spacer()
+                    Color.clear.frame(width: 44, height: 1)
+                }
+
+                Button {
+                    requireConsent(then: .apple)
+                } label: {
+                    Label("通过 Apple 登录".zh, systemImage: "apple.logo")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(.black)
+                .disabled(isLoggingIn)
+
+                HStack(alignment: .center, spacing: 0) {
+                    Toggle("", isOn: $agreed)
+                        .labelsHidden()
+                        .scaleEffect(0.8)
+                    Text("已阅读并同意".zh)
+                        .font(.caption)
+                    Button {
+                        showLegal = .terms
+                    } label: {
+                        Text("《用户协议》".zh)
+                            .font(.caption)
+                            .foregroundStyle(AppTheme.accent)
+                    }
+                    .buttonStyle(.plain)
+                    Button {
+                        showLegal = .privacy
+                    } label: {
+                        Text("《隐私政策》".zh)
+                            .font(.caption)
+                            .foregroundStyle(AppTheme.accent)
+                    }
+                    .buttonStyle(.plain)
+                    Spacer(minLength: 0)
+                }
+
+                if let errorMessage {
+                    Text(errorMessage.zh)
+                        .font(.caption)
+                        .foregroundStyle(Color.red.opacity(0.85))
+                }
+
+                if isLoggingIn {
+                    HStack(spacing: 8) {
+                        ProgressView()
+                        Text("登录中…".zh)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+
+                Spacer(minLength: 24)
+
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("其他登录方式".zh)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    NavigationLink {
+                        EmailLoginView(agreed: $agreed, onSuccess: onSuccess)
+                    } label: {
+                        Label("邮箱登录".zh, systemImage: "envelope")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.bordered)
+                }
+
+                #if DEBUG
+                Text("当前接口：\(AuthAPI.debugEndpoint)")
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+                #endif
+            }
+            .padding()
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            .background(AppTheme.parchmentGradient.ignoresSafeArea(.container))
+            .toolbar(.hidden, for: .navigationBar)
+        }
+        .sheet(item: $showLegal) { kind in
+            NavigationStack {
+                LegalDocumentView(title: kind.title.zh, file: kind.file)
+                    .toolbar {
+                        ToolbarItem(placement: .cancellationAction) {
+                            Button("关闭".zh) { showLegal = nil }
+                        }
+                    }
+            }
+        }
+        .alert("请先同意协议".zh, isPresented: $showConsentAlert) {
+            Button("取消".zh, role: .cancel) {
+                pendingAction = nil
+            }
+            Button("同意并继续".zh) {
+                agreed = true
+                let action = pendingAction
+                pendingAction = nil
+                if let action {
+                    Task { await perform(action) }
+                }
+            }
+        } message: {
+            Text("登录前需同意《用户协议》和《隐私政策》。点击「同意并继续」即表示你已阅读并同意。".zh)
+        }
+    }
+
+    private func requireConsent(then action: PendingAction) {
+        if agreed {
+            Task { await perform(action) }
+            return
+        }
+        pendingAction = action
+        showConsentAlert = true
+    }
+
+    @MainActor
+    private func perform(_ action: PendingAction) async {
+        switch action {
+        case .apple:
+            await startAppleLogin()
+        }
+    }
+
+    private func startAppleLogin() async {
+        isLoggingIn = true
+        defer { isLoggingIn = false }
+        do {
+            let result = try await AppleSignIn.signIn()
+            let resp = try await AuthAPI.loginWithApple(
+                identityToken: result.identityToken,
+                fullName: result.fullName
+            )
+            onSuccess(makeSession(from: resp))
+        } catch is CancellationError {
+            // 用户取消，不提示
+        } catch {
+            errorMessage = LoginError.describe(error)
+        }
+    }
+}
+
+private struct EmailLoginView: View {
+    private enum PendingAction {
         case sendEmailCode
         case emailLogin
     }
 
+    @Binding var agreed: Bool
+    let onSuccess: (LocalUserSession) -> Void
+
     @Environment(\.dismiss) private var dismiss
     @State private var email = ""
     @State private var code = ""
-    @State private var agreed = false
     @State private var showLegal: LegalDocKind?
     @State private var showConsentAlert = false
     @State private var pendingAction: PendingAction?
@@ -256,38 +421,9 @@ struct LoginSheetView: View {
     @State private var isSendingCode = false
     @State private var isLoggingIn = false
     @State private var cooldownSec = 0
-    let onSuccess: (LocalUserSession) -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            HStack {
-                Button("取消".zh) { dismiss() }
-                Spacer()
-                Text("登录".zh)
-                    .font(.headline)
-                Spacer()
-                Color.clear.frame(width: 44, height: 1)
-            }
-
-            Button {
-                requireConsent(then: .apple)
-            } label: {
-                Label("通过 Apple 登录".zh, systemImage: "apple.logo")
-                    .frame(maxWidth: .infinity)
-            }
-            .buttonStyle(.borderedProminent)
-            .tint(.black)
-            .disabled(isLoggingIn)
-
-
-            HStack {
-                Rectangle().fill(Color.black.opacity(0.1)).frame(height: 1)
-                Text("或使用邮箱".zh)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                Rectangle().fill(Color.black.opacity(0.1)).frame(height: 1)
-            }
-
             TextField("邮箱".zh, text: $email)
                 .textInputAutocapitalization(.never)
                 .keyboardType(.emailAddress)
@@ -302,7 +438,7 @@ struct LoginSheetView: View {
                 .buttonStyle(.bordered)
                 .disabled(isSendingCode || cooldownSec > 0 || !isValidEmail(email))
             }
-            Button("邮箱登录".zh) {
+            Button("登录".zh) {
                 requireConsent(then: .emailLogin)
             }
             .buttonStyle(.borderedProminent)
@@ -349,16 +485,13 @@ struct LoginSheetView: View {
                 }
             }
 
-            #if DEBUG
-            Text("当前接口：\(AuthAPI.debugEndpoint)")
-                .font(.caption2)
-                .foregroundStyle(.tertiary)
-            #endif
-
             Spacer()
         }
         .padding()
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .background(AppTheme.parchmentGradient.ignoresSafeArea(.container))
+        .navigationTitle("邮箱登录".zh)
+        .navigationBarTitleDisplayMode(.inline)
         .sheet(item: $showLegal) { kind in
             NavigationStack {
                 LegalDocumentView(title: kind.title.zh, file: kind.file)
@@ -398,8 +531,6 @@ struct LoginSheetView: View {
     @MainActor
     private func perform(_ action: PendingAction) async {
         switch action {
-        case .apple:
-            await startAppleLogin()
         case .sendEmailCode:
             await sendEmailCode()
         case .emailLogin:
@@ -411,23 +542,6 @@ struct LoginSheetView: View {
         let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
         guard trimmed.contains("@"), trimmed.contains(".") else { return false }
         return trimmed.count >= 5
-    }
-
-    private func startAppleLogin() async {
-        isLoggingIn = true
-        defer { isLoggingIn = false }
-        do {
-            let result = try await AppleSignIn.signIn()
-            let resp = try await AuthAPI.loginWithApple(
-                identityToken: result.identityToken,
-                fullName: result.fullName
-            )
-            onSuccess(session(from: resp))
-        } catch is CancellationError {
-            // 用户取消，不提示
-        } catch {
-            errorMessage = LoginError.describe(error)
-        }
     }
 
     private func sendEmailCode() async {
@@ -459,21 +573,10 @@ struct LoginSheetView: View {
         defer { isLoggingIn = false }
         do {
             let resp = try await AuthAPI.loginByEmail(email: trimmedEmail, code: trimmedCode)
-            onSuccess(session(from: resp, email: trimmedEmail))
+            onSuccess(makeSession(from: resp, email: trimmedEmail))
         } catch {
             errorMessage = LoginError.describe(error)
         }
-    }
-
-    private func session(from resp: AuthAPI.LoginResponse, email: String? = nil) -> LocalUserSession {
-        LocalUserSession(
-            isLoggedIn: true,
-            displayName: resp.user.nickname,
-            phone: resp.user.phone,
-            email: resp.user.email ?? email,
-            avatarSymbol: "person.crop.circle.fill",
-            accessToken: resp.accessToken
-        )
     }
 
     private func startCooldown() {
@@ -488,6 +591,18 @@ struct LoginSheetView: View {
         }
     }
 }
+
+private func makeSession(from resp: AuthAPI.LoginResponse, email: String? = nil) -> LocalUserSession {
+    LocalUserSession(
+        isLoggedIn: true,
+        displayName: resp.user.nickname,
+        phone: resp.user.phone,
+        email: resp.user.email ?? email,
+        avatarSymbol: "person.crop.circle.fill",
+        accessToken: resp.accessToken
+    )
+}
+
 
 enum AuthAPI {
     #if DEBUG
