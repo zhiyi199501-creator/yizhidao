@@ -12,6 +12,7 @@ data class LocalUserSession(
     val isLoggedIn: Boolean = false,
     val displayName: String = "游客",
     val phone: String? = null,
+    val email: String? = null,
     val avatarSymbol: String = "person.crop.circle.fill",
     val accessToken: String? = null,
 ) {

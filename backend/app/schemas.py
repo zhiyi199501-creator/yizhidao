@@ -20,13 +20,41 @@ class SMSLoginRequest(BaseModel):
 class UserOut(BaseModel):
     id: str
     nickname: str
-    phone: Optional[str]
+    phone: Optional[str] = None
+    email: Optional[str] = None
 
 
-class SMSLoginResponse(BaseModel):
+class AuthLoginResponse(BaseModel):
     ok: bool = True
     accessToken: str
     user: UserOut
+
+
+class SMSLoginResponse(AuthLoginResponse):
+    pass
+
+
+class EmailSendRequest(BaseModel):
+    email: str = Field(min_length=3, max_length=255)
+
+
+class EmailSendResponse(BaseModel):
+    ok: bool = True
+    cooldownSec: int
+
+
+class EmailLoginRequest(BaseModel):
+    email: str = Field(min_length=3, max_length=255)
+    code: str = Field(min_length=4, max_length=8)
+
+
+class AppleLoginRequest(BaseModel):
+    identityToken: str = Field(min_length=10)
+    fullName: Optional[str] = None
+
+
+class GoogleLoginRequest(BaseModel):
+    idToken: str = Field(min_length=10)
 
 
 class MeResponse(BaseModel):

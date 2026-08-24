@@ -1,6 +1,7 @@
 import SwiftUI
 import SwiftData
 import WebKit
+import GoogleSignIn
 
 @main
 struct YizhidaoApp: App {
@@ -19,11 +20,15 @@ struct YizhidaoApp: App {
         _ = HexagramStore.shared
         _ = ImaExplanationStore.shared
         TapSoundPlayer.shared.prepare()
+        OAuthSignIn.configureGoogleIfNeeded()
     }
 
     var body: some Scene {
         WindowGroup {
             RootTabView()
+                .onOpenURL { url in
+                    _ = GIDSignIn.sharedInstance.handle(url)
+                }
         }
         .modelContainer(sharedModelContainer)
     }
@@ -102,7 +107,7 @@ struct MyMenuView: View {
                                 .foregroundStyle(.secondary)
                             VStack(alignment: .leading, spacing: 2) {
                                 Text("未登录".zh)
-                                Text("支持手机号或微信登录".zh)
+                                Text("支持 Apple / Google / 邮箱登录".zh)
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
                             }
@@ -192,6 +197,7 @@ struct MyMenuView: View {
             let me = try await AuthAPI.fetchMe(accessToken: token)
             session.displayName = me.user.nickname
             session.phone = me.user.phone
+            session.email = me.user.email
             session.isLoggedIn = true
             LocalAuthStore.save(session)
         } catch LoginError.unauthorized {
@@ -207,6 +213,7 @@ struct LocalUserSession: Codable {
     var isLoggedIn: Bool
     var displayName: String
     var phone: String?
+    var email: String?
     var avatarSymbol: String
     var accessToken: String?
 
@@ -214,6 +221,7 @@ struct LocalUserSession: Codable {
         isLoggedIn: false,
         displayName: "游客",
         phone: nil,
+        email: nil,
         avatarSymbol: "person.crop.circle.fill",
         accessToken: nil
     )
@@ -237,9 +245,11 @@ enum LocalAuthStore {
 
 struct LoginSheetView: View {
     @Environment(\.dismiss) private var dismiss
-    @State private var phone = ""
+    @State private var email = ""
     @State private var code = ""
-    @State private var showWechatTip = false
+    #if DEBUG
+    @State private var phone = ""
+    #endif
     @State private var agreed = false
     @State private var showLegal: LegalDocKind?
     @State private var errorMessage: String?
@@ -259,27 +269,76 @@ struct LoginSheetView: View {
                 Color.clear.frame(width: 44, height: 1)
             }
 
+            AppleSignInButton(
+                onSuccess: { token, fullName in
+                    guard agreed else {
+                        errorMessage = "请先勾选并同意用户协议与隐私政策"
+                        return
+                    }
+                    Task { await loginWithApple(identityToken: token, fullName: fullName) }
+                },
+                onError: { error in
+                    errorMessage = LoginError.describe(error)
+                }
+            )
+
             Button {
                 guard agreed else {
                     errorMessage = "请先勾选并同意用户协议与隐私政策"
                     return
                 }
-                showWechatTip = true
+                Task { await loginWithGoogle() }
             } label: {
-                Label("微信登录（待接入）".zh, systemImage: "message.fill")
+                Label("Google 登录".zh, systemImage: "globe")
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.borderedProminent)
             .tint(AppTheme.accent)
-            .alert("暂未接入".zh, isPresented: $showWechatTip) {
-                Button("知道了".zh, role: .cancel) {}
-            } message: {
-                Text("当前为本地演示版，后续接入真实微信登录。".zh)
+            .disabled(isLoggingIn || !AuthConfig.isGoogleConfigured)
+
+            if !AuthConfig.isGoogleConfigured {
+                Text("Google 登录需在 AuthConfig.swift 配置 Client ID".zh)
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
             }
 
             HStack {
                 Rectangle().fill(Color.black.opacity(0.1)).frame(height: 1)
-                Text("或使用手机号".zh)
+                Text("或使用邮箱".zh)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Rectangle().fill(Color.black.opacity(0.1)).frame(height: 1)
+            }
+
+            TextField("邮箱".zh, text: $email)
+                .textInputAutocapitalization(.never)
+                .keyboardType(.emailAddress)
+                .autocorrectionDisabled()
+                .loginFieldChrome()
+            HStack(alignment: .center, spacing: 8) {
+                LoginNumberField(text: $code, placeholder: "验证码")
+                    .loginFieldChrome()
+                Button(cooldownSec > 0 ? "\(cooldownSec)s" : "发送验证码".zh) {
+                    Task { await sendEmailCode() }
+                }
+                .buttonStyle(.bordered)
+                .disabled(isSendingCode || cooldownSec > 0 || !isValidEmail(email))
+            }
+            Button("邮箱登录".zh) {
+                guard agreed else {
+                    errorMessage = "请先勾选并同意用户协议与隐私政策"
+                    return
+                }
+                Task { await loginByEmail() }
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(AppTheme.accent)
+            .disabled(isLoggingIn || !isValidEmail(email) || code.isEmpty)
+
+            #if DEBUG
+            HStack {
+                Rectangle().fill(Color.black.opacity(0.1)).frame(height: 1)
+                Text("Debug：手机号".zh)
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 Rectangle().fill(Color.black.opacity(0.1)).frame(height: 1)
@@ -287,25 +346,16 @@ struct LoginSheetView: View {
 
             LoginNumberField(text: $phone, placeholder: "手机号")
                 .loginFieldChrome()
-            HStack(alignment: .center, spacing: 8) {
-                LoginNumberField(text: $code, placeholder: "验证码")
-                    .loginFieldChrome()
-                Button(cooldownSec > 0 ? "\(cooldownSec)s" : "发送验证码".zh) {
-                    Task { await sendCode() }
-                }
-                .buttonStyle(.bordered)
-                .disabled(isSendingCode || cooldownSec > 0 || phone.trimmingCharacters(in: .whitespacesAndNewlines).count < 6)
-            }
-            Button("手机号登录".zh) {
+            Button("手机号登录（Debug）".zh) {
                 guard agreed else {
                     errorMessage = "请先勾选并同意用户协议与隐私政策"
                     return
                 }
                 Task { await loginByPhone() }
             }
-            .buttonStyle(.borderedProminent)
-            .tint(AppTheme.accent)
+            .buttonStyle(.bordered)
             .disabled(isLoggingIn || phone.count < 6 || code.isEmpty)
+            #endif
 
             HStack(alignment: .center, spacing: 0) {
                 Toggle("", isOn: $agreed)
@@ -360,20 +410,26 @@ struct LoginSheetView: View {
         }
     }
 
-    private func sendCode() async {
+    private func isValidEmail(_ raw: String) -> Bool {
+        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard trimmed.contains("@"), trimmed.contains(".") else { return false }
+        return trimmed.count >= 5
+    }
+
+    private func sendEmailCode() async {
         guard agreed else {
             errorMessage = "请先勾选并同意用户协议与隐私政策"
             return
         }
-        let trimmedPhone = phone.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard trimmedPhone.count >= 6 else {
-            errorMessage = "请输入正确手机号"
+        let trimmedEmail = email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        guard isValidEmail(trimmedEmail) else {
+            errorMessage = "请输入正确邮箱"
             return
         }
         isSendingCode = true
         defer { isSendingCode = false }
         do {
-            let resp = try await AuthAPI.sendSMSCode(phone: trimmedPhone)
+            let resp = try await AuthAPI.sendEmailCode(email: trimmedEmail)
             cooldownSec = max(resp.cooldownSec, 0)
             errorMessage = "验证码已发送"
             startCooldown()
@@ -382,6 +438,47 @@ struct LoginSheetView: View {
         }
     }
 
+    private func loginByEmail() async {
+        let trimmedEmail = email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        let trimmedCode = code.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedEmail.isEmpty, !trimmedCode.isEmpty else {
+            errorMessage = "请输入邮箱和验证码"
+            return
+        }
+        isLoggingIn = true
+        defer { isLoggingIn = false }
+        do {
+            let resp = try await AuthAPI.loginByEmail(email: trimmedEmail, code: trimmedCode)
+            onSuccess(session(from: resp, email: trimmedEmail))
+        } catch {
+            errorMessage = LoginError.describe(error)
+        }
+    }
+
+    private func loginWithApple(identityToken: String, fullName: String?) async {
+        isLoggingIn = true
+        defer { isLoggingIn = false }
+        do {
+            let resp = try await AuthAPI.loginWithApple(identityToken: identityToken, fullName: fullName)
+            onSuccess(session(from: resp))
+        } catch {
+            errorMessage = LoginError.describe(error)
+        }
+    }
+
+    private func loginWithGoogle() async {
+        isLoggingIn = true
+        defer { isLoggingIn = false }
+        do {
+            let idToken = try await OAuthSignIn.signInWithGoogle()
+            let resp = try await AuthAPI.loginWithGoogle(idToken: idToken)
+            onSuccess(session(from: resp))
+        } catch {
+            errorMessage = LoginError.describe(error)
+        }
+    }
+
+    #if DEBUG
     private func loginByPhone() async {
         let trimmedPhone = phone.trimmingCharacters(in: .whitespacesAndNewlines)
         let trimmedCode = code.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -398,6 +495,7 @@ struct LoginSheetView: View {
                     isLoggedIn: true,
                     displayName: resp.user.nickname,
                     phone: resp.user.phone ?? trimmedPhone,
+                    email: resp.user.email,
                     avatarSymbol: "person.crop.circle.fill",
                     accessToken: resp.accessToken
                 )
@@ -405,6 +503,18 @@ struct LoginSheetView: View {
         } catch {
             errorMessage = LoginError.describe(error)
         }
+    }
+    #endif
+
+    private func session(from resp: AuthAPI.LoginResponse, email: String? = nil) -> LocalUserSession {
+        LocalUserSession(
+            isLoggedIn: true,
+            displayName: resp.user.nickname,
+            phone: resp.user.phone,
+            email: resp.user.email ?? email,
+            avatarSymbol: "person.crop.circle.fill",
+            accessToken: resp.accessToken
+        )
     }
 
     private func startCooldown() {
@@ -452,16 +562,19 @@ enum AuthAPI {
         let cooldownSec: Int
     }
 
-    struct SMSLoginResponse: Decodable {
+    struct LoginResponse: Decodable {
         struct User: Decodable {
             let id: String
             let nickname: String
             let phone: String?
+            let email: String?
         }
         let ok: Bool
         let accessToken: String
         let user: User
     }
+
+    typealias SMSLoginResponse = LoginResponse
 
     private struct ErrorEnvelope: Decodable {
         let message: String?
@@ -490,15 +603,67 @@ enum AuthAPI {
         return decoded
     }
 
-    static func loginBySMS(phone: String, code: String) async throws -> SMSLoginResponse {
+    static func loginBySMS(phone: String, code: String) async throws -> LoginResponse {
         var req = jsonRequest(path: "v1/auth/sms/login", method: "POST")
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
         req.httpBody = try JSONSerialization.data(withJSONObject: ["phone": phone, "code": code])
         let (data, response) = try await session.data(for: req)
         guard let http = response as? HTTPURLResponse else { throw LoginError.network("网络异常") }
         guard (200..<300).contains(http.statusCode) else { throw decodeError(data, fallback: "登录失败") }
-        let decoded = try JSONDecoder().decode(SMSLoginResponse.self, from: data)
+        let decoded = try JSONDecoder().decode(LoginResponse.self, from: data)
         guard decoded.ok else { throw LoginError.network("登录失败") }
+        return decoded
+    }
+
+    static func sendEmailCode(email: String) async throws -> SMSCodeResponse {
+        var req = jsonRequest(path: "v1/auth/email/send", method: "POST")
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        req.httpBody = try JSONSerialization.data(withJSONObject: ["email": email])
+        let (data, response) = try await session.data(for: req)
+        guard let http = response as? HTTPURLResponse else { throw LoginError.network("网络异常") }
+        guard (200..<300).contains(http.statusCode) else { throw decodeError(data, fallback: "发送验证码失败") }
+        let decoded = try JSONDecoder().decode(SMSCodeResponse.self, from: data)
+        guard decoded.ok else { throw LoginError.network("发送验证码失败") }
+        return decoded
+    }
+
+    static func loginByEmail(email: String, code: String) async throws -> LoginResponse {
+        var req = jsonRequest(path: "v1/auth/email/login", method: "POST")
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        req.httpBody = try JSONSerialization.data(withJSONObject: ["email": email, "code": code])
+        let (data, response) = try await session.data(for: req)
+        guard let http = response as? HTTPURLResponse else { throw LoginError.network("网络异常") }
+        guard (200..<300).contains(http.statusCode) else { throw decodeError(data, fallback: "登录失败") }
+        let decoded = try JSONDecoder().decode(LoginResponse.self, from: data)
+        guard decoded.ok else { throw LoginError.network("登录失败") }
+        return decoded
+    }
+
+    static func loginWithApple(identityToken: String, fullName: String?) async throws -> LoginResponse {
+        var body: [String: Any] = ["identityToken": identityToken]
+        if let fullName, !fullName.isEmpty {
+            body["fullName"] = fullName
+        }
+        var req = jsonRequest(path: "v1/auth/apple", method: "POST")
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        req.httpBody = try JSONSerialization.data(withJSONObject: body)
+        let (data, response) = try await session.data(for: req)
+        guard let http = response as? HTTPURLResponse else { throw LoginError.network("网络异常") }
+        guard (200..<300).contains(http.statusCode) else { throw decodeError(data, fallback: "Apple 登录失败") }
+        let decoded = try JSONDecoder().decode(LoginResponse.self, from: data)
+        guard decoded.ok else { throw LoginError.network("Apple 登录失败") }
+        return decoded
+    }
+
+    static func loginWithGoogle(idToken: String) async throws -> LoginResponse {
+        var req = jsonRequest(path: "v1/auth/google", method: "POST")
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        req.httpBody = try JSONSerialization.data(withJSONObject: ["idToken": idToken])
+        let (data, response) = try await session.data(for: req)
+        guard let http = response as? HTTPURLResponse else { throw LoginError.network("网络异常") }
+        guard (200..<300).contains(http.statusCode) else { throw decodeError(data, fallback: "Google 登录失败") }
+        let decoded = try JSONDecoder().decode(LoginResponse.self, from: data)
+        guard decoded.ok else { throw LoginError.network("Google 登录失败") }
         return decoded
     }
 
@@ -507,6 +672,7 @@ enum AuthAPI {
             let id: String
             let nickname: String
             let phone: String?
+            let email: String?
         }
         let ok: Bool
         let user: User

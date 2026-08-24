@@ -101,8 +101,12 @@ ALIYUN_SMS_VALID_SEC=300
 | 方法 | 路径 | 说明 |
 |------|------|------|
 | GET | `/health` | 健康检查 |
-| POST | `/v1/auth/sms/send` | 发送验证码 |
-| POST | `/v1/auth/sms/login` | 验证码登录 |
+| POST | `/v1/auth/sms/send` | 发送短信验证码（Debug 白名单） |
+| POST | `/v1/auth/sms/login` | 短信验证码登录 |
+| POST | `/v1/auth/email/send` | 发送邮箱验证码 |
+| POST | `/v1/auth/email/login` | 邮箱验证码登录 |
+| POST | `/v1/auth/apple` | Sign in with Apple |
+| POST | `/v1/auth/google` | Google 登录 |
 | GET | `/v1/me` | 当前用户（需 Bearer token） |
 | DELETE | `/v1/me` | 注销账号（需 Bearer token） |
 | GET | `/privacy` `/terms` `/support` | 法律与支持页（HTML） |
@@ -119,6 +123,16 @@ ALIYUN_SMS_VALID_SEC=300
 ### curl 自测
 
 ```bash
+# 邮箱（白名单 test@example.com / 123456）
+curl -X POST http://127.0.0.1:8080/v1/auth/email/send \
+  -H 'Content-Type: application/json' \
+  -d '{"email":"test@example.com"}'
+
+curl -X POST http://127.0.0.1:8080/v1/auth/email/login \
+  -H 'Content-Type: application/json' \
+  -d '{"email":"test@example.com","code":"123456"}'
+
+# 短信（Debug 白名单 13800138000 / 123456）
 curl -X POST http://127.0.0.1:8080/v1/auth/sms/send \
   -H 'Content-Type: application/json' \
   -d '{"phone":"13800138000"}'
@@ -127,6 +141,25 @@ curl -X POST http://127.0.0.1:8080/v1/auth/sms/login \
   -H 'Content-Type: application/json' \
   -d '{"phone":"13800138000","code":"123456"}'
 ```
+
+## 海外 OAuth / 邮箱
+
+`.env` 关键项（见 `.env.example`）：
+
+| 变量 | 说明 |
+|------|------|
+| `APPLE_CLIENT_IDS` | 逗号分隔；默认 `com.yizhidao.app` |
+| `GOOGLE_CLIENT_IDS` | Google Cloud OAuth Client ID（iOS / Android / Web，逗号分隔） |
+| `EMAIL_PROVIDER` | `mock`（日志）或 `smtp` |
+| `EMAIL_TEST_ADDRESSES` | 白名单邮箱，可用 `DEV_EMAIL_FIXED_CODE` |
+| `SMTP_*` | 正式发信（Resend 等 SMTP 均可） |
+
+控制台：
+
+1. **Apple Developer** → App ID `com.yizhidao.app` → Sign in with Apple
+2. **Google Cloud** → OAuth：iOS Client、Android Client（包名 + SHA-1）、Web Client（Android Credential Manager 与后端验 `aud`）
+3. **iOS App**：`ios/Yizhidao/App/AuthConfig.swift` 填 iOS Client ID；`Info.plist` 加 reversed client id URL scheme
+4. **Android App**：`android/app/build.gradle.kts` 的 `GOOGLE_WEB_CLIENT_ID` 填 Web Client ID
 
 ## 目录
 
@@ -204,6 +237,5 @@ docker compose up -d --build
 ## 下一步
 
 - App Store：Connect **排除中国大陆**；法律 URL → `https://api.yiwanjia.work/{privacy,terms,support}`；TestFlight → 截屏与元数据 → 提审；品牌名「易玩家」
-- 海外登录：Sign in with Apple / Google（替代短信）；正式短信不走国际通道
-- 正式 `docker compose up -d --build` 固化新加坡机镜像
+- 生产 `.env` 配齐 `GOOGLE_CLIENT_IDS`、SMTP（邮箱 OTP）；正式 `docker compose up -d --build` 固化新加坡机镜像
 - （可选）国内遗留机仅运维对照；不上中国区则无需 ICP / `yizhidao.work` 改 App 基址

@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -14,15 +13,9 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.ui.focus.FocusDirection
-import androidx.compose.ui.platform.LocalFocusManager
-import androidx.compose.ui.platform.LocalSoftwareKeyboardController
-import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Chat
-import androidx.compose.material3.AlertDialog
+import androidx.compose.material.icons.filled.Language
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Switch
@@ -39,10 +32,16 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.yizhidao.app.BuildConfig
 import com.yizhidao.app.auth.AuthApi
+import com.yizhidao.app.auth.GoogleSignInHelper
 import com.yizhidao.app.auth.LocalAuthStore
 import com.yizhidao.app.auth.LocalUserSession
 import com.yizhidao.app.ui.theme.AppTheme
@@ -60,22 +59,37 @@ fun LoginScreen(
     onBack: () -> Unit,
     onSuccess: () -> Unit,
 ) {
-    var phone by remember { mutableStateOf("") }
+    var email by remember { mutableStateOf("") }
     var code by remember { mutableStateOf("") }
+    var debugPhone by remember { mutableStateOf("") }
     var agreed by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var isSendingCode by remember { mutableStateOf(false) }
     var isLoggingIn by remember { mutableStateOf(false) }
     var cooldownSec by remember { mutableIntStateOf(0) }
-    var showWechatTip by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     val focusManager = LocalFocusManager.current
     val keyboard = LocalSoftwareKeyboardController.current
+    val context = LocalContext.current
 
     LaunchedEffect(cooldownSec) {
         if (cooldownSec <= 0) return@LaunchedEffect
         delay(1_000)
         cooldownSec -= 1
+    }
+
+    fun saveSession(resp: AuthApi.LoginResponse, emailOverride: String? = null) {
+        authStore.save(
+            LocalUserSession(
+                isLoggedIn = true,
+                displayName = resp.user.nickname,
+                phone = resp.user.phone,
+                email = resp.user.email ?: emailOverride,
+                avatarSymbol = "person.crop.circle.fill",
+                accessToken = resp.accessToken,
+            ),
+        )
+        onSuccess()
     }
 
     Column(
@@ -106,12 +120,24 @@ fun LoginScreen(
                         errorMessage = "请先勾选并同意用户协议与隐私政策"
                         return@PaperPrimaryButton
                     }
-                    showWechatTip = true
+                    scope.launch {
+                        isLoggingIn = true
+                        try {
+                            val idToken = GoogleSignInHelper.signIn(context)
+                            val resp = AuthApi.loginWithGoogle(idToken)
+                            saveSession(resp)
+                        } catch (e: Exception) {
+                            errorMessage = AuthApi.describe(e)
+                        } finally {
+                            isLoggingIn = false
+                        }
+                    }
                 },
-                label = "微信登录（待接入）",
+                enabled = !isLoggingIn && GoogleSignInHelper.isConfigured,
+                label = if (isLoggingIn) "登录中…" else "Google 登录",
                 leading = {
                     Icon(
-                        Icons.AutoMirrored.Filled.Chat,
+                        Icons.Default.Language,
                         contentDescription = null,
                         tint = Color.White,
                         modifier = Modifier.size(18.dp),
@@ -120,13 +146,22 @@ fun LoginScreen(
                 },
             )
 
+            if (!GoogleSignInHelper.isConfigured) {
+                Text(
+                    "Google 登录需在 build.gradle.kts 配置 GOOGLE_WEB_CLIENT_ID",
+                    fontSize = 11.sp,
+                    color = AppTheme.secondaryText.copy(alpha = 0.7f),
+                    style = AppTheme.compactText,
+                )
+            }
+
             Row(
                 Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 HorizontalDivider(Modifier.weight(1f), color = Color.Black.copy(alpha = 0.1f))
                 Text(
-                    "或使用手机号",
+                    "或使用邮箱",
                     fontSize = 12.sp,
                     color = AppTheme.secondaryText,
                     modifier = Modifier.padding(horizontal = 10.dp),
@@ -136,16 +171,16 @@ fun LoginScreen(
             }
 
             PaperTextField(
-                value = phone,
-                onValueChange = { phone = it.filter(Char::isDigit).take(11) },
+                value = email,
+                onValueChange = { email = it.trim().lowercase() },
                 modifier = Modifier.fillMaxWidth(),
-                placeholder = "手机号",
+                placeholder = "邮箱",
                 keyboardOptions = KeyboardOptions(
-                    keyboardType = KeyboardType.Number,
+                    keyboardType = KeyboardType.Email,
                     imeAction = ImeAction.Next,
                 ),
                 keyboardActions = KeyboardActions(
-                    onNext = { focusManager.moveFocus(FocusDirection.Down) },
+                    onNext = { focusManager.moveFocus(androidx.compose.ui.focus.FocusDirection.Down) },
                 ),
             )
 
@@ -173,15 +208,15 @@ fun LoginScreen(
                             errorMessage = "请先勾选并同意用户协议与隐私政策"
                             return@PaperOutlinedButton
                         }
-                        val trimmed = phone.trim()
-                        if (trimmed.length < 6) {
-                            errorMessage = "请输入正确手机号"
+                        val trimmed = email.trim()
+                        if (!isValidEmail(trimmed)) {
+                            errorMessage = "请输入正确邮箱"
                             return@PaperOutlinedButton
                         }
                         scope.launch {
                             isSendingCode = true
                             try {
-                                val resp = AuthApi.sendSMSCode(trimmed)
+                                val resp = AuthApi.sendEmailCode(trimmed)
                                 cooldownSec = resp.cooldownSec.coerceAtLeast(0)
                                 errorMessage = "验证码已发送"
                             } catch (e: Exception) {
@@ -191,7 +226,7 @@ fun LoginScreen(
                             }
                         }
                     },
-                    enabled = !isSendingCode && cooldownSec <= 0 && phone.trim().length >= 6,
+                    enabled = !isSendingCode && cooldownSec <= 0 && isValidEmail(email.trim()),
                     label = if (cooldownSec > 0) "${cooldownSec}s" else "发送验证码",
                 )
             }
@@ -202,26 +237,17 @@ fun LoginScreen(
                         errorMessage = "请先勾选并同意用户协议与隐私政策"
                         return@PaperPrimaryButton
                     }
-                    val trimmedPhone = phone.trim()
+                    val trimmedEmail = email.trim()
                     val trimmedCode = code.trim()
-                    if (trimmedPhone.isEmpty() || trimmedCode.isEmpty()) {
-                        errorMessage = "请输入手机号和验证码"
+                    if (!isValidEmail(trimmedEmail) || trimmedCode.isEmpty()) {
+                        errorMessage = "请输入邮箱和验证码"
                         return@PaperPrimaryButton
                     }
                     scope.launch {
                         isLoggingIn = true
                         try {
-                            val resp = AuthApi.loginBySMS(trimmedPhone, trimmedCode)
-                            authStore.save(
-                                LocalUserSession(
-                                    isLoggedIn = true,
-                                    displayName = resp.user.nickname,
-                                    phone = resp.user.phone ?: trimmedPhone,
-                                    avatarSymbol = "person.crop.circle.fill",
-                                    accessToken = resp.accessToken,
-                                ),
-                            )
-                            onSuccess()
+                            val resp = AuthApi.loginByEmail(trimmedEmail, trimmedCode)
+                            saveSession(resp, trimmedEmail)
                         } catch (e: Exception) {
                             errorMessage = AuthApi.describe(e)
                         } finally {
@@ -229,9 +255,62 @@ fun LoginScreen(
                         }
                     }
                 },
-                enabled = !isLoggingIn && phone.trim().length >= 6 && code.isNotBlank(),
-                label = if (isLoggingIn) "登录中…" else "手机号登录",
+                enabled = !isLoggingIn && isValidEmail(email.trim()) && code.isNotBlank(),
+                label = if (isLoggingIn) "登录中…" else "邮箱登录",
             )
+
+            if (BuildConfig.DEBUG) {
+                Row(
+                    Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    HorizontalDivider(Modifier.weight(1f), color = Color.Black.copy(alpha = 0.1f))
+                    Text(
+                        "Debug：手机号",
+                        fontSize = 12.sp,
+                        color = AppTheme.secondaryText,
+                        modifier = Modifier.padding(horizontal = 10.dp),
+                        style = AppTheme.compactText,
+                    )
+                    HorizontalDivider(Modifier.weight(1f), color = Color.Black.copy(alpha = 0.1f))
+                }
+
+                PaperTextField(
+                    value = debugPhone,
+                    onValueChange = { debugPhone = it.filter(Char::isDigit).take(11) },
+                    modifier = Modifier.fillMaxWidth(),
+                    placeholder = "手机号",
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                )
+
+                PaperOutlinedButton(
+                    onClick = {
+                        if (!agreed) {
+                            errorMessage = "请先勾选并同意用户协议与隐私政策"
+                            return@PaperOutlinedButton
+                        }
+                        val trimmedPhone = debugPhone.trim()
+                        val trimmedCode = code.trim()
+                        if (trimmedPhone.length < 6 || trimmedCode.isEmpty()) {
+                            errorMessage = "请输入手机号和验证码"
+                            return@PaperOutlinedButton
+                        }
+                        scope.launch {
+                            isLoggingIn = true
+                            try {
+                                val resp = AuthApi.loginBySMS(trimmedPhone, trimmedCode)
+                                saveSession(resp)
+                            } catch (e: Exception) {
+                                errorMessage = AuthApi.describe(e)
+                            } finally {
+                                isLoggingIn = false
+                            }
+                        }
+                    },
+                    enabled = !isLoggingIn && debugPhone.trim().length >= 6 && code.isNotBlank(),
+                    label = "手机号登录（Debug）",
+                )
+            }
 
             Row(
                 Modifier.fillMaxWidth(),
@@ -275,18 +354,9 @@ fun LoginScreen(
             }
         }
     }
+}
 
-    if (showWechatTip) {
-        AlertDialog(
-            onDismissRequest = { showWechatTip = false },
-            title = { Text("暂未接入") },
-            text = { Text("当前为本地演示版，后续接入真实微信登录。") },
-            confirmButton = {
-                TextButton(onClick = { showWechatTip = false }) {
-                    Text("知道了", color = AppTheme.accent)
-                }
-            },
-            containerColor = AppTheme.parchmentTop,
-        )
-    }
+private fun isValidEmail(raw: String): Boolean {
+    val trimmed = raw.trim()
+    return trimmed.contains("@") && trimmed.contains(".") && trimmed.length >= 5
 }

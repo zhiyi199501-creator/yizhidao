@@ -8,11 +8,11 @@
 
 ## 鉴权
 - Header: `Authorization: Bearer <access_token>`
-- Token 由手机号/微信登录后签发
+- Token 由 Apple / Google / 邮箱验证码登录后签发（Debug 仍可用短信白名单）
 
 ## 接口
 
-### 1) 发送短信验证码
+### 1) 发送短信验证码（Debug / 遗留）
 - `POST /v1/auth/sms/send`
 - req:
 ```json
@@ -23,7 +23,7 @@
 { "ok": true, "cooldownSec": 60 }
 ```
 
-### 2) 手机号验证码登录
+### 2) 手机号验证码登录（Debug / 遗留）
 - `POST /v1/auth/sms/login`
 - req:
 ```json
@@ -34,7 +34,7 @@
 {
   "ok": true,
   "accessToken": "jwt-or-session-token",
-  "user": { "id": "u_123", "nickname": "用户138****8000", "phone": "13800138000" }
+  "user": { "id": "u_123", "nickname": "用户138****8000", "phone": "13800138000", "email": null }
 }
 ```
 
@@ -45,7 +45,7 @@
 ```json
 {
   "ok": true,
-  "user": { "id": "u_123", "nickname": "用户138****8000", "phone": "13800138000" }
+  "user": { "id": "u_123", "nickname": "用户138****8000", "phone": "13800138000", "email": null }
 }
 ```
 - 无效/过期 token → HTTP 401，`code: 4003`
@@ -54,27 +54,47 @@
 - `DELETE /v1/me`
 - Header: `Authorization: Bearer <access_token>`
 - resp: `{ "ok": true }`
-- 删除 `users` 行及该手机号下未用短信码；token 随后失效（再 `GET /v1/me` → 401）
+- 删除 `users` 行及该手机号/邮箱下未用验证码；token 随后失效（再 `GET /v1/me` → 401）
 
 ### 3c) 法律与支持页（App Store）
 - `GET /privacy` · `GET /terms` · `GET /support` → HTML（无鉴权）
 
-### 4) 微信登录（未实现，接口预留）
-- `POST /v1/auth/wechat/login`
+### 4) 发送邮箱验证码
+- `POST /v1/auth/email/send`
 - req:
 ```json
-{ "code": "wx_auth_code" }
+{ "email": "you@example.com" }
 ```
 - resp:
 ```json
-{
-  "ok": true,
-  "accessToken": "jwt-or-session-token",
-  "user": { "id": "u_456", "nickname": "微信用户", "phone": null }
-}
+{ "ok": true, "cooldownSec": 60 }
 ```
 
-### 5) AI 解读
+### 5) 邮箱验证码登录
+- `POST /v1/auth/email/login`
+- req:
+```json
+{ "email": "you@example.com", "code": "123456" }
+```
+- resp: 同 §2（`user.email` 有值）
+
+### 6) Sign in with Apple
+- `POST /v1/auth/apple`
+- req:
+```json
+{ "identityToken": "<apple_identity_jwt>", "fullName": "可选昵称" }
+```
+- resp: 同 §2（`user.phone` / `user.email` 可为 null）
+
+### 7) Google 登录
+- `POST /v1/auth/google`
+- req:
+```json
+{ "idToken": "<google_id_jwt>" }
+```
+- resp: 同 §2
+
+### 8) AI 解读
 - `POST /v1/ai/analyze`
 - req:
 ```json
@@ -126,9 +146,16 @@
 - `4290` 请求过快（限流）
 - `5000` 服务内部错误
 
+## 邮箱 / OAuth 通道
+
+- `EMAIL_PROVIDER=mock`：控制台 / `[email:test]` 日志；白名单 `EMAIL_TEST_ADDRESSES` 可用 `DEV_EMAIL_FIXED_CODE`
+- `EMAIL_PROVIDER=smtp`：通用 SMTP（`SMTP_*`）
+- `APPLE_CLIENT_IDS` / `GOOGLE_CLIENT_IDS`：服务端验 token 的 aud 白名单
+- 细节见 `backend/README.md` 与 `backend/app/services/email_otp.py`、`oauth.py`
+
 ## 短信通道
 
-- **海外现役 App**（`api.yiwanjia.work`）：`SMS_PROVIDER=mock` + `SMS_TEST_PHONES` 白名单试号；正式登录待 Apple / Google OAuth
+- **海外现役 App**（`api.yiwanjia.work`）：Release 登录用 Apple / Google / 邮箱 OTP；`SMS_PROVIDER=mock` + `SMS_TEST_PHONES` 仅 Debug 白名单
 - `SMS_PROVIDER=mock`：开发可固定码 / 控制台打印；生产 mock 对普通号随机码写日志（全站固定 `123456` 须 `ALLOW_INSECURE_MOCK_SMS`，勿开）
 - `SMS_TEST_PHONES`：逗号分隔白名单；可用 `DEV_SMS_FIXED_CODE`，且不发真实短信（试号 `13800138000`）
 - `SMS_PROVIDER=aliyun`：阿里云号码认证（**国内遗留机**曾用；现役海外 App 不用）

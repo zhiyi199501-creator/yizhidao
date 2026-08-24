@@ -160,7 +160,9 @@ fun MeScreen(
             container.authStore.save(
                 current.copy(
                     isLoggedIn = true,
+                    displayName = me.user.nickname,
                     phone = me.user.phone ?: current.phone,
+                    email = me.user.email ?: current.email,
                 ),
             )
         } catch (_: LoginError.Unauthorized) {
@@ -336,7 +338,7 @@ private fun MeHome(
                         )
                         if (!session.isLoggedIn) {
                             Text(
-                                "支持手机号或微信登录",
+                                "支持 Google / 邮箱登录",
                                 fontSize = 12.sp,
                                 color = AppTheme.secondaryText,
                                 style = AppTheme.compactText,

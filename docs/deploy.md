@@ -19,7 +19,7 @@
 2. 域名 **A 记录** → 服务器公网 IP（Cloudflare 可用橙云；SSL 建议 Full strict）
 3. Docker + Docker Compose
 
-> **现役 App（海外机）短信**：`SMS_PROVIDER=mock`；白名单 `SMS_TEST_PHONES=13800138000` / `123456`。正式海外登录待 Apple / Google OAuth，不走国际短信。  
+> **现役 App（海外机）登录**：Release 用 Apple / Google / 邮箱 OTP；`SMS_PROVIDER=mock` 白名单仅 Debug（`13800138000` / `123456`；邮箱 `test@example.com` / `123456`）。  
 > **国内遗留机**仍可能是 `SMS_PROVIDER=aliyun`；与现役 App 无关。
 
 ## 海外新加坡机（现役）
@@ -124,8 +124,9 @@ docker compose cp ../ios/Yizhidao/Resources/cases.json api:/app/data/cases.json
 
 - [x] 海外机 `JWT_SECRET` 已换成强随机值（与国内遗留机分开）
 - [x] 未把 `.env` 提交进 Git
-- [x] 海外现役 `SMS_PROVIDER=mock` + 白名单试号（正式登录待 OAuth；勿开 `ALLOW_INSECURE_MOCK_SMS` 给公网任意号）
+- [x] 海外现役 `SMS_PROVIDER=mock` + 白名单试号（Release 登录走 OAuth/邮箱；勿开 `ALLOW_INSECURE_MOCK_SMS` 给公网任意号）
 - [x] `https://api.yiwanjia.work/{privacy,terms,support}` 可访问（Connect 法律 URL）
 - [x] App **不上中国区** → 现役路径 **无需 ICP** / 无需改 `yizhidao.work` App 基址
+- [x] Apple / Google / 邮箱登录（客户端 + 后端；生产需配 OAuth Client 与 SMTP）
 - [ ] 正式 `docker compose up -d --build` 固化新加坡机镜像（若曾热更新）
-- [ ] Apple / Google 登录与 IAP 验单
+- [ ] IAP 验单

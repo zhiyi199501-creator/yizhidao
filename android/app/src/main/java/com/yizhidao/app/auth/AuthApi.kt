@@ -34,7 +34,7 @@ object AuthApi {
     data class SMSCodeResponse(val ok: Boolean, val cooldownSec: Int)
 
     @Serializable
-    data class SMSLoginResponse(
+    data class LoginResponse(
         val ok: Boolean,
         val accessToken: String,
         val user: User,
@@ -44,11 +44,14 @@ object AuthApi {
             val id: String,
             val nickname: String,
             val phone: String? = null,
+            val email: String? = null,
         )
     }
 
+    typealias SMSLoginResponse = LoginResponse
+
     @Serializable
-    data class MeResponse(val ok: Boolean, val user: SMSLoginResponse.User)
+    data class MeResponse(val ok: Boolean, val user: LoginResponse.User)
 
     @Serializable
     data class AIAnalyzeResponse(val ok: Boolean, val analysis: Analysis) {
@@ -76,7 +79,7 @@ object AuthApi {
         return decoded
     }
 
-    suspend fun loginBySMS(phone: String, code: String): SMSLoginResponse {
+    suspend fun loginBySMS(phone: String, code: String): LoginResponse {
         val decoded = post(
             path = "/v1/auth/sms/login",
             body = buildJsonObject {
@@ -84,8 +87,54 @@ object AuthApi {
                 put("code", code)
             }.toString(),
             fallback = "登录失败",
-        ) { json.decodeFromString<SMSLoginResponse>(it) }
+        ) { json.decodeFromString<LoginResponse>(it) }
         if (!decoded.ok) throw LoginError.Network("登录失败")
+        return decoded
+    }
+
+    suspend fun sendEmailCode(email: String): SMSCodeResponse {
+        val decoded = post(
+            path = "/v1/auth/email/send",
+            body = buildJsonObject { put("email", email) }.toString(),
+            fallback = "发送验证码失败",
+        ) { json.decodeFromString<SMSCodeResponse>(it) }
+        if (!decoded.ok) throw LoginError.Network("发送验证码失败")
+        return decoded
+    }
+
+    suspend fun loginByEmail(email: String, code: String): LoginResponse {
+        val decoded = post(
+            path = "/v1/auth/email/login",
+            body = buildJsonObject {
+                put("email", email)
+                put("code", code)
+            }.toString(),
+            fallback = "登录失败",
+        ) { json.decodeFromString<LoginResponse>(it) }
+        if (!decoded.ok) throw LoginError.Network("登录失败")
+        return decoded
+    }
+
+    suspend fun loginWithApple(identityToken: String, fullName: String? = null): LoginResponse {
+        val decoded = post(
+            path = "/v1/auth/apple",
+            body = buildJsonObject {
+                put("identityToken", identityToken)
+                if (!fullName.isNullOrBlank()) put("fullName", fullName)
+            }.toString(),
+            fallback = "Apple 登录失败",
+        ) { json.decodeFromString<LoginResponse>(it) }
+        if (!decoded.ok) throw LoginError.Network("Apple 登录失败")
+        return decoded
+    }
+
+    suspend fun loginWithGoogle(idToken: String): LoginResponse {
+        val decoded = post(
+            path = "/v1/auth/google",
+            body = buildJsonObject { put("idToken", idToken) }.toString(),
+            fallback = "Google 登录失败",
+        ) { json.decodeFromString<LoginResponse>(it) }
+        if (!decoded.ok) throw LoginError.Network("Google 登录失败")
         return decoded
     }
 
