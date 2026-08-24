@@ -1,6 +1,6 @@
-# 易知道 Backend
+# 易玩家 Backend
 
-FastAPI 最小后端：手机号验证码登录 + AI 解读，接口对齐 `docs/backend-min-spec.md`。
+FastAPI 最小后端：Apple / Google / 邮箱 OTP 登录 + AI 解读，接口对齐 `docs/backend-min-spec.md`。短信路由仍保留，现役 App 登录页不展示。
 
 ## 要求
 
@@ -27,9 +27,22 @@ FastAPI 最小后端：手机号验证码登录 + AI 解读，接口对齐 `docs
 - 健康检查：`GET http://127.0.0.1:8080/health`
 - 接口文档：`http://127.0.0.1:8080/docs`
 
-## 开发期验证码（mock）
+## 开发期邮箱验证码（mock）
 
-默认 `SMS_PROVIDER=mock`，`.env` 中 `DEV_SMS_FIXED_CODE=123456`，联调时直接填 `123456`。
+默认 `EMAIL_PROVIDER=mock`。改 `.env` 后必须重启后端。
+
+- `DEV_EMAIL_FIXED_CODE` 有值：开发环境任意合法邮箱都用该码（不必发信）
+- 为空：每次随机 6 位，终端打印（与短信一样用 `print`，uvicorn 默认看不到 `logger.info`）：
+
+```text
+[email:mock] to=t***t@example.com code=482193
+```
+
+白名单 `EMAIL_TEST_ADDRESSES`（逗号分隔）在 **smtp 生产**下也不发真邮件、只用固定码。**审核包不要配白名单**。生产用 `EMAIL_PROVIDER=smtp` + 空白名单 + 空固定码。
+
+## 开发期短信验证码（mock，App 无入口）
+
+默认 `SMS_PROVIDER=mock`，`.env` 中 `DEV_SMS_FIXED_CODE=123456`，curl 联调可填 `123456`。
 
 控制台会打印：
 
@@ -123,7 +136,7 @@ ALIYUN_SMS_VALID_SEC=300
 ### curl 自测
 
 ```bash
-# 邮箱（白名单 test@example.com / 123456）
+# 邮箱（mock：固定码或看终端 [email:mock]）
 curl -X POST http://127.0.0.1:8080/v1/auth/email/send \
   -H 'Content-Type: application/json' \
   -d '{"email":"test@example.com"}'
@@ -150,9 +163,10 @@ curl -X POST http://127.0.0.1:8080/v1/auth/sms/login \
 |------|------|
 | `APPLE_CLIENT_IDS` | 逗号分隔；默认 `com.yizhidao.app` |
 | `GOOGLE_CLIENT_IDS` | Google Cloud OAuth Client ID（iOS / Android / Web，逗号分隔） |
-| `EMAIL_PROVIDER` | `mock`（日志）或 `smtp` |
-| `EMAIL_TEST_ADDRESSES` | 白名单邮箱，可用 `DEV_EMAIL_FIXED_CODE` |
-| `SMTP_*` | 正式发信（Resend 等 SMTP 均可） |
+| `EMAIL_PROVIDER` | `mock`（终端 `[email:mock]`）或 `smtp`（Resend 等） |
+| `EMAIL_TEST_ADDRESSES` | 白名单：固定码且不发信；审核 / 生产公网应留空 |
+| `DEV_EMAIL_FIXED_CODE` | 测试固定码；生产应留空 |
+| `SMTP_*` | `smtp` 时必填；Resend：`smtp.resend.com:587`、`SMTP_USER=resend`、密码为 API Key、`SMTP_USE_TLS=true`（勿用 465） |
 
 控制台：
 
@@ -237,5 +251,5 @@ docker compose up -d --build
 ## 下一步
 
 - App Store：Connect **排除中国大陆**；法律 URL → `https://api.yiwanjia.work/{privacy,terms,support}`；TestFlight → 截屏与元数据 → 提审；品牌名「易玩家」
-- 生产 `.env` 配齐 `GOOGLE_CLIENT_IDS`、SMTP（邮箱 OTP）；正式 `docker compose up -d --build` 固化新加坡机镜像
+- 生产 `.env`：SMTP 已接 Resend（`EMAIL_PROVIDER=smtp`）；`GOOGLE_CLIENT_IDS` 与 App `GOOGLE_WEB_CLIENT_ID` 仍待填。新加坡 API 用 `docker compose -f docker-compose.prod.yml`（Caddy 另容器，勿用带 Caddy 的 `docker-compose.yml` 抢 80/443）
 - （可选）国内遗留机仅运维对照；不上中国区则无需 ICP / `yizhidao.work` 改 App 基址

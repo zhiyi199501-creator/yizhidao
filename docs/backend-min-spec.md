@@ -8,7 +8,7 @@
 
 ## 鉴权
 - Header: `Authorization: Bearer <access_token>`
-- Token 由 Apple / Google / 邮箱验证码登录后签发（Debug 仍可用短信白名单）
+- Token 由 Apple / Google / 邮箱验证码登录后签发（短信路由仍保留，现役 App 登录页不展示）
 
 ## 接口
 
@@ -148,14 +148,14 @@
 
 ## 邮箱 / OAuth 通道
 
-- `EMAIL_PROVIDER=mock`：控制台 / `[email:test]` 日志；白名单 `EMAIL_TEST_ADDRESSES` 可用 `DEV_EMAIL_FIXED_CODE`
-- `EMAIL_PROVIDER=smtp`：通用 SMTP（`SMTP_*`）
+- `EMAIL_PROVIDER=mock`：终端 `[email:mock]` / `[email:test]`（`print`，非 `logger.info`）；`DEV_EMAIL_FIXED_CODE` 在 development+mock 下对任意合法邮箱生效；白名单 `EMAIL_TEST_ADDRESSES` 在 smtp 下也不发真信
+- `EMAIL_PROVIDER=smtp`：通用 SMTP（`SMTP_*`）。现役海外为 Resend：`587` + STARTTLS。App 审核勿配 `EMAIL_TEST_ADDRESSES`
 - `APPLE_CLIENT_IDS` / `GOOGLE_CLIENT_IDS`：服务端验 token 的 aud 白名单
 - 细节见 `backend/README.md` 与 `backend/app/services/email_otp.py`、`oauth.py`
 
 ## 短信通道
 
-- **海外现役 App**（`api.yiwanjia.work`）：Release 登录用 Apple / Google / 邮箱 OTP；`SMS_PROVIDER=mock` + `SMS_TEST_PHONES` 仅 Debug 白名单
+- **海外现役 App**（`api.yiwanjia.work`）：Release 登录用 Apple / Google / 邮箱 OTP；短信仅后端路由，App 无入口
 - `SMS_PROVIDER=mock`：开发可固定码 / 控制台打印；生产 mock 对普通号随机码写日志（全站固定 `123456` 须 `ALLOW_INSECURE_MOCK_SMS`，勿开）
 - `SMS_TEST_PHONES`：逗号分隔白名单；可用 `DEV_SMS_FIXED_CODE`，且不发真实短信（试号 `13800138000`）
 - `SMS_PROVIDER=aliyun`：阿里云号码认证（**国内遗留机**曾用；现役海外 App 不用）
