@@ -240,7 +240,7 @@ enum LocalAuthStore {
 
 struct LoginSheetView: View {
     private enum PendingAction {
-        case apple(identityToken: String, fullName: String?)
+        case apple
         case sendEmailCode
         case emailLogin
     }
@@ -269,20 +269,15 @@ struct LoginSheetView: View {
                 Color.clear.frame(width: 44, height: 1)
             }
 
-            AppleSignInButton(
-                onSuccess: { token, fullName in
-                    Task { @MainActor in
-                        requireConsent(then: .apple(identityToken: token, fullName: fullName))
-                    }
-                },
-                onError: { error in
-                    Task { @MainActor in
-                        errorMessage = LoginError.describe(error)
-                    }
-                }
-            )
+            Button {
+                requireConsent(then: .apple)
+            } label: {
+                Label("通过 Apple 登录".zh, systemImage: "apple.logo")
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(.black)
             .disabled(isLoggingIn)
-            .opacity(isLoggingIn ? 0.6 : 1)
 
 
             HStack {
@@ -403,8 +398,8 @@ struct LoginSheetView: View {
     @MainActor
     private func perform(_ action: PendingAction) async {
         switch action {
-        case .apple(let identityToken, let fullName):
-            await loginWithApple(identityToken: identityToken, fullName: fullName)
+        case .apple:
+            await startAppleLogin()
         case .sendEmailCode:
             await sendEmailCode()
         case .emailLogin:
@@ -416,6 +411,23 @@ struct LoginSheetView: View {
         let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
         guard trimmed.contains("@"), trimmed.contains(".") else { return false }
         return trimmed.count >= 5
+    }
+
+    private func startAppleLogin() async {
+        isLoggingIn = true
+        defer { isLoggingIn = false }
+        do {
+            let result = try await AppleSignIn.signIn()
+            let resp = try await AuthAPI.loginWithApple(
+                identityToken: result.identityToken,
+                fullName: result.fullName
+            )
+            onSuccess(session(from: resp))
+        } catch is CancellationError {
+            // 用户取消，不提示
+        } catch {
+            errorMessage = LoginError.describe(error)
+        }
     }
 
     private func sendEmailCode() async {
@@ -452,18 +464,6 @@ struct LoginSheetView: View {
             errorMessage = LoginError.describe(error)
         }
     }
-
-    private func loginWithApple(identityToken: String, fullName: String?) async {
-        isLoggingIn = true
-        defer { isLoggingIn = false }
-        do {
-            let resp = try await AuthAPI.loginWithApple(identityToken: identityToken, fullName: fullName)
-            onSuccess(session(from: resp))
-        } catch {
-            errorMessage = LoginError.describe(error)
-        }
-    }
-
 
     private func session(from resp: AuthAPI.LoginResponse, email: String? = nil) -> LocalUserSession {
         LocalUserSession(
