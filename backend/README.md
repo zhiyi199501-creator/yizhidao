@@ -156,10 +156,10 @@ curl -X POST http://127.0.0.1:8080/v1/auth/sms/login \
 
 控制台：
 
-1. **Apple Developer** → App ID `com.yizhidao.app` → Sign in with Apple
-2. **Google Cloud** → OAuth：iOS Client、Android Client（包名 + SHA-1）、Web Client（Android Credential Manager 与后端验 `aud`）
-3. **iOS App**：`ios/Yizhidao/App/AuthConfig.swift` 填 iOS Client ID；`Info.plist` 加 reversed client id URL scheme
-4. **Android App**：`android/app/build.gradle.kts` 的 `GOOGLE_WEB_CLIENT_ID` 填 Web Client ID
+1. **Apple Developer** → App ID `com.yizhidao.app` → Sign in with Apple（iOS）
+2. **Google Cloud** → OAuth：Android Client（包名 + SHA-1）+ Web Client（Credential Manager 与后端验 `aud`）
+3. **Android App**：`android/app/build.gradle.kts` 的 `GOOGLE_WEB_CLIENT_ID` 填 Web Client ID
+4. **后端**：`.env` 的 `GOOGLE_CLIENT_IDS` 填入上述 Web / Android Client ID（逗号分隔）；`APPLE_CLIENT_IDS` 默认 `com.yizhidao.app`
 
 ## 目录
 
