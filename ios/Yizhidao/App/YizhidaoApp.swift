@@ -275,12 +275,18 @@ struct LoginSheetView: View {
                         errorMessage = "请先勾选并同意用户协议与隐私政策"
                         return
                     }
-                    Task { await loginWithApple(identityToken: token, fullName: fullName) }
+                    Task { @MainActor in
+                        await loginWithApple(identityToken: token, fullName: fullName)
+                    }
                 },
                 onError: { error in
-                    errorMessage = LoginError.describe(error)
+                    Task { @MainActor in
+                        errorMessage = LoginError.describe(error)
+                    }
                 }
             )
+            .disabled(isLoggingIn)
+            .opacity(isLoggingIn ? 0.6 : 1)
 
             Button {
                 guard agreed else {
@@ -385,7 +391,16 @@ struct LoginSheetView: View {
             if let errorMessage {
                 Text(errorMessage.zh)
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(errorMessage == "验证码已发送" ? Color.secondary : Color.red.opacity(0.85))
+            }
+
+            if isLoggingIn {
+                HStack(spacing: 8) {
+                    ProgressView()
+                    Text("登录中…".zh)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
             }
 
             #if DEBUG

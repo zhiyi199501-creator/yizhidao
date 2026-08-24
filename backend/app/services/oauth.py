@@ -1,5 +1,6 @@
 import logging
 from functools import lru_cache
+from typing import Optional
 
 import httpx
 from jose import jwk, jwt
@@ -40,7 +41,7 @@ def verify_apple_identity_token(identity_token: str) -> dict:
         raise AppError("Apple 登录未配置", code=5000, status_code=503)
 
     key = _get_signing_key(identity_token, APPLE_JWKS_URL)
-    last_error: Exception | None = None
+    last_error: Optional[Exception] = None
     for aud in client_ids:
         try:
             return jwt.decode(
@@ -64,7 +65,7 @@ def verify_google_id_token(id_token: str) -> dict:
         raise AppError("Google 登录未配置", code=5000, status_code=503)
 
     key = _get_signing_key(id_token, GOOGLE_JWKS_URL)
-    last_error: Exception | None = None
+    last_error: Optional[Exception] = None
     for aud in client_ids:
         try:
             return jwt.decode(

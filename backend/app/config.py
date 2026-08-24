@@ -67,10 +67,10 @@ class Settings(BaseSettings):
     smtp_from: str = ""
     smtp_use_tls: bool = True
 
-    def apple_client_ids_list(self) -> list[str]:
+    def apple_client_ids_list(self):
         return [part.strip() for part in self.apple_client_ids.split(",") if part.strip()]
 
-    def google_client_ids_list(self) -> list[str]:
+    def google_client_ids_list(self):
         return [part.strip() for part in self.google_client_ids.split(",") if part.strip()]
 
 

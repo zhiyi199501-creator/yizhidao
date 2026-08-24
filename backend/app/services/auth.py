@@ -2,6 +2,7 @@ import random
 import re
 import uuid
 from datetime import datetime, timedelta, timezone
+from typing import Optional, Tuple
 
 from jose import jwt
 from sqlalchemy import delete, select
@@ -206,7 +207,7 @@ def _get_or_create_user_by_email(db: Session, email: str) -> User:
     return user
 
 
-def _get_or_create_user_by_apple(db: Session, apple_sub: str, nickname: str | None) -> User:
+def _get_or_create_user_by_apple(db: Session, apple_sub: str, nickname: Optional[str]) -> User:
     user = db.scalar(select(User).where(User.apple_sub == apple_sub))
     if not user:
         user = User(
@@ -223,8 +224,8 @@ def _get_or_create_user_by_apple(db: Session, apple_sub: str, nickname: str | No
 def _get_or_create_user_by_google(
     db: Session,
     google_sub: str,
-    email: str | None,
-    nickname: str | None,
+    email: Optional[str],
+    nickname: Optional[str],
 ) -> User:
     user = db.scalar(select(User).where(User.google_sub == google_sub))
     if not user:
@@ -243,7 +244,7 @@ def _get_or_create_user_by_google(
     return user
 
 
-def login_with_sms(db: Session, phone: str, code: str) -> tuple[User, str]:
+def login_with_sms(db: Session, phone: str, code: str) -> Tuple[User, str]:
     phone = validate_phone(phone)
     normalized_code = code.strip()
     if not normalized_code:
@@ -301,7 +302,7 @@ def login_with_sms(db: Session, phone: str, code: str) -> tuple[User, str]:
     return user, issue_access_token(user.id)
 
 
-def login_with_email(db: Session, email: str, code: str) -> tuple[User, str]:
+def login_with_email(db: Session, email: str, code: str) -> Tuple[User, str]:
     email = validate_email(email)
     normalized_code = code.strip()
     if not normalized_code:
@@ -351,8 +352,8 @@ def login_with_email(db: Session, email: str, code: str) -> tuple[User, str]:
 def login_with_apple(
     db: Session,
     identity_token: str,
-    full_name: str | None = None,
-) -> tuple[User, str]:
+    full_name: Optional[str] = None,
+) -> Tuple[User, str]:
     token = identity_token.strip()
     if not token:
         raise AppError("登录凭证不能为空", code=4001, status_code=400)
@@ -369,7 +370,7 @@ def login_with_apple(
     return user, issue_access_token(user.id)
 
 
-def login_with_google(db: Session, id_token: str) -> tuple[User, str]:
+def login_with_google(db: Session, id_token: str) -> Tuple[User, str]:
     token = id_token.strip()
     if not token:
         raise AppError("登录凭证不能为空", code=4001, status_code=400)
