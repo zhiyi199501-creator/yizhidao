@@ -18,7 +18,7 @@ struct CastingHomeView: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
-                    Text("易知道".zh)
+                    Text("易玩家".zh)
                         .font(.largeTitle.weight(.bold))
                     Text("君子居则观象玩辞，动则观变玩占".zh)
                         .font(.subheadline)

@@ -429,8 +429,8 @@ enum AuthAPI {
     private static let baseURL = URL(string: "http://172.20.10.10:8080")!
     #endif
     #else
-    /// 国内新服务器 H2-only；备案通过后改 yizhidao.work。
-    private static let baseURL = URL(string: "https://yzd.codedance.work")!
+    /// 海外 Release；Connect 排除中国大陆。
+    private static let baseURL = URL(string: "https://api.yiwanjia.work")!
     #endif
 
     static var debugEndpoint: String { baseURL.absoluteString }

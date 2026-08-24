@@ -1,6 +1,6 @@
 # 易知道最小后端接口（登录 + AI + 案例热更新）
 
-本文件是现役接口合同（路径与字段）。App Release 基址为 `https://yzd.codedance.work`（备案后 `https://yizhidao.work`）。`GET /v1/cases` 于 2026-08-17 上线。
+本文件是现役接口合同（路径与字段）。App Release 基址：`https://api.yiwanjia.work`（仅海外上架）。`GET /v1/cases` 于 2026-08-17 上线。
 
 ## 目标
 - 客户端不直连大模型，密钥留在服务端
@@ -126,11 +126,13 @@
 - `4290` 请求过快（限流）
 - `5000` 服务内部错误
 
-## 短信通道（现役）
-- `SMS_PROVIDER=mock`：开发可固定码 / 控制台打印；**生产**若仍用 mock，对普通号随机码并写日志（全站固定 `123456` 默认禁用）
-- `SMS_TEST_PHONES`：逗号分隔白名单；生产也可用 `DEV_SMS_FIXED_CODE`，且不发真实短信（现役试号 `13800138000`）
-- `SMS_PROVIDER=aliyun`：**现役生产**；阿里云号码认证 SendSmsVerifyCode / CheckSmsVerifyCode；模板参数须匹配赠送模板（如 `100001` → `{"code":"##code##","min":"5"}`）
-- `SMS_PROVIDER=tencent`：腾讯云短信 SendSms（代码保留；企业资质后再切）
+## 短信通道
+
+- **海外现役 App**（`api.yiwanjia.work`）：`SMS_PROVIDER=mock` + `SMS_TEST_PHONES` 白名单试号；正式登录待 Apple / Google OAuth
+- `SMS_PROVIDER=mock`：开发可固定码 / 控制台打印；生产 mock 对普通号随机码写日志（全站固定 `123456` 须 `ALLOW_INSECURE_MOCK_SMS`，勿开）
+- `SMS_TEST_PHONES`：逗号分隔白名单；可用 `DEV_SMS_FIXED_CODE`，且不发真实短信（试号 `13800138000`）
+- `SMS_PROVIDER=aliyun`：阿里云号码认证（**国内遗留机**曾用；现役海外 App 不用）
+- `SMS_PROVIDER=tencent`：腾讯云短信 SendSms（代码保留）
 - 细节见 `backend/README.md` 与 `backend/app/services/sms.py`
 
 ## AI 解读实现说明（现役）

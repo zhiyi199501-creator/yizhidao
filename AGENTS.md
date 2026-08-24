@@ -1,6 +1,6 @@
-# 易知道 — Agent 入口
+# 易玩家 — Agent 入口
 
-原生 iOS「易知道」：梅花式数字起卦 + 六爻金钱卦，玩占观辞；可选后端登录与 AI 解读。
+原生 iOS / Android「易玩家」（仓库 / Bundle 仍 `yizhidao`）：梅花式数字起卦 + 六爻金钱卦，玩占观辞；可选后端登录与 AI 解读。**仅海外上架**（排除中国大陆）。
 
 ## 怎么跑
 
@@ -39,7 +39,7 @@ cd android && ./gradlew :engines:test
 - 《易经证释》阅读稿：`ios/Yizhidao/Resources/Zhengshi.json`。源文件不入库；更新时 `python3 scripts/import_zhengshi.py [全册.doc]`；代码（`ZhengshiStore`/阅读页）还在，但「我的」菜单暂未挂入口
 - **IMA 黄庭书院讲解**：点经文可看知识库讲解。覆盖卦辞／彖／大象／爻辞+小象（成对）、用九／用六（成对）、文言（乾坤）。包内 `ios/Yizhidao/Resources/ImaExplanations.json`；源采集 gitignore `data/ima-explanations/`。导出 `python3 scripts/export_ima_explanations.py` **会覆盖**包内 JSON，手改过就别跑。Android `copyIosAssets` 拷同文件（**不含** `Zhengshi.json`）。ID：`{nn}-guaci|tuanci|daxiang|wenyan|yong`、`{nn}-yao-{0…5}`（初=0）。入口：结果／案例／六十四卦详情（文言与用九用六仅六十四卦详情有）
 - **IMA 展示**：清洗在运行时 `ImaAnswerFormatter`（iOS / Android），不是改 JSON。去掉整行「思考过程」、出处脚注数字；「表格」标记与 markdown 表画成表。安卓弹层用全屏 Popup（约 93% 高，盖住页头），下拉超过 **1/4** 收起，点遮罩不关。iOS 宣纸 `AppTheme` 已为 OLED 调淡；弹层 `.presentationBackground` 用同一渐变
-- `ios/Yizhidao/App/`：`AppNavigation`、`AppTheme`、登录与「我的」（多在 `YizhidaoApp.swift`）。「我的」：资料、**保存的AI解读**（本地保存的解读）、**易经基础入门** `YijingIntro.json`、**易经六十四卦 / 易经四传** 读 `Hexagrams.json`（详情卡片标题**彖辞** / **大象**，正文带「彖曰：」「象曰：」前缀）、设置（按键音效、回收站，清空需确认；退出登录；**注销账号**调 `DELETE /v1/me`）。包内与生产页：隐私政策 / 用户协议；公网 `https://yzd.codedance.work/{privacy,terms,support}`
+- `ios/Yizhidao/App/`：`AppNavigation`、`AppTheme`、登录与「我的」（多在 `YizhidaoApp.swift`）。「我的」：资料、**保存的AI解读**（本地保存的解读）、**易经基础入门** `YijingIntro.json`、**易经六十四卦 / 易经四传** 读 `Hexagrams.json`（详情卡片标题**彖辞** / **大象**，正文带「彖曰：」「象曰：」前缀）、设置（按键音效、回收站，清空需确认；退出登录；**注销账号**调 `DELETE /v1/me`）。包内与生产页：隐私政策 / 用户协议；公网 `https://api.yiwanjia.work/{privacy,terms,support}`
 - Android「保存的AI解读」与回收站对齐 iOS 分组列表：白卡片竖排卦名／时间／所问；解读左滑删除，回收站左滑恢复＋彻底删除。勿改回设置项左右排布；删除钮未滑开不得透出
 - **经文勿换他本**；改解卦规则先改 `ReadingGuide` 并补测
 - 繁简只跟系统语言 + `.zh`。禁止 hook `UILabel` / `UIButton` / `Bundle.main`（iPhone 11 弹键盘会卡）。点空白收键盘须在手势 `shouldReceive` 跳过输入框；登录数字框用 `UITextField`，勿加 `textContentType` 自动填充
@@ -48,27 +48,23 @@ cd android && ./gradlew :engines:test
 - 金钱卦：可摇 / 「选」手选四象；画面上爻在上、初爻在下；自下而上摇（先初后上）
 - 三数：一键随机；未满三正整数则「起卦」禁用；「清空」始终可点
 - 结果页悬浮 **AI**（需登录）：初次结构化解读，可追问/补背景；合适则 **保存** 到「我的 → 保存的AI解读」。**已保存**后追问成功自动更新；**重新解读**后右上角为「重新保存」。提示词见 `backend/app/services/ai.py`（含本卦初–上案例作参照）
-- Debug API：iOS 模拟器 `127.0.0.1:8080`，真机改 `AuthAPI` 局域网 IP；安卓 Debug 改 `android/app/build.gradle.kts`。**Release** 两端 → `https://yzd.codedance.work`（国内新服务器 H2-only；备案后改 `yizhidao.work`）。安卓须 Cronet + Build Variant = release。勿用已废的 `yizhidao.codedance.work` / `yzh.codedance.work` / 旧海外 `yd`
+- Debug API：iOS 模拟器 `127.0.0.1:8080`，真机改 `AuthAPI` 局域网 IP；安卓 Debug 改 `android/app/build.gradle.kts`。**Release** 仅海外：`https://api.yiwanjia.work`（Connect / Google Play **排除中国大陆**；无需 ICP）。安卓须 Cronet + Build Variant = release。勿用已废的 `yizhidao.codedance.work` / `yzh.codedance.work` / 旧海外 `yd`
 - 生产 TLS/HTTP/3 避坑：`.cursor/rules/prod-tls-http3.mdc`、`docs/deploy.md`
 - **`main` 保护**：禁止直推，经 PR 合并（https://github.com/zhiyi199501-creator/yizhidao）
 - 勿提交 `.derivedData/`、`.firecrawl/`、`.workbuddy/`、`AppIcon-source.png`、`backend/.env`、`backend/*.db`、`案例编辑表.xlsx`、`易经正文编辑表.xlsx`、`张庆祥讲易经案例_txt/`、`Yizhidao.xcscheme` 里把 Run 改成 Release 的本机偏好
 
 ## 当前状态 / 下一步
 
-**生产 API（2026-08-22）**：国内 `119.91.239.58`，`https://yzd.codedance.work/health` 200，HTTP/2、无 `Alt-Svc`；`GET /v1/cases` 313 条。Release 代码 → `yzd`。运维见 `docs/deploy.md`。
+**App Release（仅海外）**：新加坡 `124.156.192.137`，`https://api.yiwanjia.work/health` 200（SSH `yiwanjia`）。iOS / Android Release 均指向该域；**不上架中国区**，无需 ICP。运维见 `docs/deploy.md`。
 
-**备案中**：`yizhidao.work` 首次 ICP 备案（腾讯云审核已通过，待管局）；通过后 DNS A → 新服务器，Caddy 加站点，App 改 `yizhidao.work`。
+**国内后端（遗留，App 不再使用）**：`119.91.239.58` / `yzd.codedance.work` 仍可用于本地对照或日后另做国内产品；现役 App 不连。
 
 **旧海外机（遗留）**：`43.128.104.104` / `yd.codedance.work` 仍开 h3，易知道 API 已迁出。
 
-**安卓侧载**：`/download/yizhidao-0.1.1.apk` 随 Release 域名挂（现役 `yzd`，备案后 `yizhidao.work`）。
+**试用登录（海外白名单）**：海外机 `SMS_PROVIDER=mock`；`SMS_TEST_PHONES=13800138000`，固定码 `123456`。正式海外登录待 Apple / Google OAuth。
 
-**试用登录（白名单）**：`SMS_TEST_PHONES=13800138000`，固定码 `123456`。勿开 `ALLOW_INSECURE_MOCK_SMS`。
+**App Store（进行中）**：Connect 已有 App `com.yizhidao.app`（id `6804203617`）；品牌名 **易玩家**；**定价与可用性排除中国大陆**。法律 URL：`https://api.yiwanjia.work/{privacy,terms,support}`。待：TestFlight、Apple 登录、IAP、提审。
 
-**生产短信（2026-08-22）**：`SMS_PROVIDER=aliyun`（号码认证，签名「恒创联众」、模板 `100001`，`template_param` 须含 `min`）。白名单仍不发真短信。腾讯云通道代码保留，企业资质后再切。
+未做：Apple / Google 登录、IAP 验单、正式 Android keystore、生产镜像 `docker compose build` 固化。
 
-**App Store（进行中）**：Connect 已有 App `com.yizhidao.app`（id `6804203617`）；商店名「易知道」被占用需改用可保存名（如「易知道·易经」）；桌面显示名仍可「易知道」。法律 URL / 支持 URL 见上。账号注销已实现。待：TestFlight 内测闭环、截屏与元数据、提审；中国区 ICP 备案号。
-
-未做：微信登录、正式 Android keystore、`yizhidao.work` 备案落地、生产镜像正式 `docker compose build` 固化（法律页/aliyun SDK 曾热更新进容器）。
-
-**Android**：Compose 四 Tab 已对齐 iOS。Release 须 Cronet → `yzd`（勿 `addQuicHint`）。见 `android/README.md`。
+**Android**：Compose 四 Tab 已对齐 iOS。Release 须 Cronet → `api.yiwanjia.work`（勿 `addQuicHint`）。见 `android/README.md`。

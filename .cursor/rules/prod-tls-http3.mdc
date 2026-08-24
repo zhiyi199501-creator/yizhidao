@@ -5,7 +5,7 @@ alwaysApply: true
 
 # 生产 TLS / HTTP/3
 
-iOS / Android **Release 现役**：`https://yzd.codedance.work`（国内 `119.91.239.58`，**H2-only**）。**备案后**切 `https://yizhidao.work`（同机，仍 H2-only）。
+iOS / Android **Release 现役**：`https://api.yiwanjia.work`（新加坡 `124.156.192.137`，**H2-only**；App **仅海外上架**）。
 
 `yizhidao.codedance.work` / `yzh.codedance.work` 在部分 iPhone 11 已废；旧海外 `yd.codedance.work`（`43.128.104.104`）仍开 h3——勿改 App 指回、勿在该名上关 HTTP/3。
 

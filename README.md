@@ -1,6 +1,6 @@
-# 易知道
+# 易玩家
 
-原生 SwiftUI iOS App：数字起卦（三数 / 时间）与六爻金钱卦，记录占时并展示卦象与经文。界面固定浅色宣纸风格。可选 FastAPI 后端：手机号登录与 AI 解读。
+原生 SwiftUI iOS + Compose Android：**易玩家**（Bundle / applicationId `com.yizhidao.app`）。数字起卦（三数 / 时间）与六爻金钱卦，记录占时并展示卦象与经文。界面固定浅色宣纸风格。可选 FastAPI 后端：登录与 AI 解读。**App Store / Google Play 仅海外**（排除中国大陆）；Release API：`https://api.yiwanjia.work`。
 
 ## 要求
 
@@ -66,7 +66,7 @@ xcodebuild test -project ios/Yizhidao.xcodeproj -scheme Yizhidao -destination 'p
 ```
 
 - iOS **Debug**：模拟器 → `http://127.0.0.1:8080`；真机 → Mac 局域网 IP（代码里 `AuthAPI`，查 IP：`ipconfig getifaddr en0`）
-- iOS **Release**：`https://yzd.codedance.work`（备案后 `yizhidao.work`）；Scheme → Build Configuration 选 Release。旧名 `yizhidao.codedance.work` / `yzh` / 海外 `yd` 勿作正式 Release。
+- iOS **Release**：`https://api.yiwanjia.work`（Connect **排除中国大陆**）。Scheme → Build Configuration 选 Release。
 - Android **Debug**：`android/app/build.gradle.kts` 局域网 IP；**Release**：Build Variant = release，Cronet → 同上生产域名。浏览器能开 `/health` 不算过。
 - 开发期验证码默认 `123456`（本地 mock）。生产默认随机码写日志；白名单 `SMS_TEST_PHONES`（现役 `13800138000`）可用固定 `123456`。TLS / HTTP/3 / 安卓 Cronet / 侧载 APK 见 `docs/deploy.md`
 - AI：`backend/.env` 中 `AI_MODE=mock`（规则）或 `openai`（OpenAI 兼容，如 DeepSeek）；细节见 `backend/README.md`

@@ -1,0 +1,20 @@
+# 海外新加坡机（易玩家付费 API）。部署前把域名改成你的海外域，DNS A → 本机公网 IP。
+# 复制为 Caddyfile 或 docker compose 挂此文件：cp Caddyfile.overseas Caddyfile
+# H2-only，勿开 HTTP/3 / Alt-Svc:h3（见 .cursor/rules/prod-tls-http3.mdc）
+{
+	servers {
+		protocols h1 h2
+	}
+}
+
+api.yiwanjia.work {
+	encode gzip
+	handle {
+		reverse_proxy api:8080 {
+			transport http {
+				read_timeout 180s
+				response_header_timeout 180s
+			}
+		}
+	}
+}
