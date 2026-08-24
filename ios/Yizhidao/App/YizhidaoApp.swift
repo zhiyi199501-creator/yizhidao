@@ -247,9 +247,6 @@ struct LoginSheetView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var email = ""
     @State private var code = ""
-    #if DEBUG
-    @State private var phone = ""
-    #endif
     @State private var agreed = false
     @State private var showLegal: LegalDocKind?
     @State private var errorMessage: String?
@@ -340,28 +337,6 @@ struct LoginSheetView: View {
             .buttonStyle(.borderedProminent)
             .tint(AppTheme.accent)
             .disabled(isLoggingIn || !isValidEmail(email) || code.isEmpty)
-
-            #if DEBUG
-            HStack {
-                Rectangle().fill(Color.black.opacity(0.1)).frame(height: 1)
-                Text("Debug：手机号".zh)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                Rectangle().fill(Color.black.opacity(0.1)).frame(height: 1)
-            }
-
-            LoginNumberField(text: $phone, placeholder: "手机号")
-                .loginFieldChrome()
-            Button("手机号登录（Debug）".zh) {
-                guard agreed else {
-                    errorMessage = "请先勾选并同意用户协议与隐私政策"
-                    return
-                }
-                Task { await loginByPhone() }
-            }
-            .buttonStyle(.bordered)
-            .disabled(isLoggingIn || phone.count < 6 || code.isEmpty)
-            #endif
 
             HStack(alignment: .center, spacing: 0) {
                 Toggle("", isOn: $agreed)
@@ -493,34 +468,6 @@ struct LoginSheetView: View {
         }
     }
 
-    #if DEBUG
-    private func loginByPhone() async {
-        let trimmedPhone = phone.trimmingCharacters(in: .whitespacesAndNewlines)
-        let trimmedCode = code.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmedPhone.isEmpty, !trimmedCode.isEmpty else {
-            errorMessage = "请输入手机号和验证码"
-            return
-        }
-        isLoggingIn = true
-        defer { isLoggingIn = false }
-        do {
-            let resp = try await AuthAPI.loginBySMS(phone: trimmedPhone, code: trimmedCode)
-            onSuccess(
-                LocalUserSession(
-                    isLoggedIn: true,
-                    displayName: resp.user.nickname,
-                    phone: resp.user.phone ?? trimmedPhone,
-                    email: resp.user.email,
-                    avatarSymbol: "person.crop.circle.fill",
-                    accessToken: resp.accessToken
-                )
-            )
-        } catch {
-            errorMessage = LoginError.describe(error)
-        }
-    }
-    #endif
-
     private func session(from resp: AuthAPI.LoginResponse, email: String? = nil) -> LocalUserSession {
         LocalUserSession(
             isLoggedIn: true,
@@ -604,30 +551,6 @@ enum AuthAPI {
             req.assumesHTTP3Capable = false
         }
         return req
-    }
-
-    static func sendSMSCode(phone: String) async throws -> SMSCodeResponse {
-        var req = jsonRequest(path: "v1/auth/sms/send", method: "POST")
-        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        req.httpBody = try JSONSerialization.data(withJSONObject: ["phone": phone])
-        let (data, response) = try await session.data(for: req)
-        guard let http = response as? HTTPURLResponse else { throw LoginError.network("网络异常") }
-        guard (200..<300).contains(http.statusCode) else { throw decodeError(data, fallback: "发送验证码失败") }
-        let decoded = try JSONDecoder().decode(SMSCodeResponse.self, from: data)
-        guard decoded.ok else { throw LoginError.network("发送验证码失败") }
-        return decoded
-    }
-
-    static func loginBySMS(phone: String, code: String) async throws -> LoginResponse {
-        var req = jsonRequest(path: "v1/auth/sms/login", method: "POST")
-        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        req.httpBody = try JSONSerialization.data(withJSONObject: ["phone": phone, "code": code])
-        let (data, response) = try await session.data(for: req)
-        guard let http = response as? HTTPURLResponse else { throw LoginError.network("网络异常") }
-        guard (200..<300).contains(http.statusCode) else { throw decodeError(data, fallback: "登录失败") }
-        let decoded = try JSONDecoder().decode(LoginResponse.self, from: data)
-        guard decoded.ok else { throw LoginError.network("登录失败") }
-        return decoded
     }
 
     static func sendEmailCode(email: String) async throws -> SMSCodeResponse {

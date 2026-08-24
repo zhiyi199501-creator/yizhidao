@@ -61,7 +61,6 @@ fun LoginScreen(
 ) {
     var email by remember { mutableStateOf("") }
     var code by remember { mutableStateOf("") }
-    var debugPhone by remember { mutableStateOf("") }
     var agreed by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var isSendingCode by remember { mutableStateOf(false) }
@@ -258,59 +257,6 @@ fun LoginScreen(
                 enabled = !isLoggingIn && isValidEmail(email.trim()) && code.isNotBlank(),
                 label = if (isLoggingIn) "登录中…" else "邮箱登录",
             )
-
-            if (BuildConfig.DEBUG) {
-                Row(
-                    Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    HorizontalDivider(Modifier.weight(1f), color = Color.Black.copy(alpha = 0.1f))
-                    Text(
-                        "Debug：手机号",
-                        fontSize = 12.sp,
-                        color = AppTheme.secondaryText,
-                        modifier = Modifier.padding(horizontal = 10.dp),
-                        style = AppTheme.compactText,
-                    )
-                    HorizontalDivider(Modifier.weight(1f), color = Color.Black.copy(alpha = 0.1f))
-                }
-
-                PaperTextField(
-                    value = debugPhone,
-                    onValueChange = { debugPhone = it.filter(Char::isDigit).take(11) },
-                    modifier = Modifier.fillMaxWidth(),
-                    placeholder = "手机号",
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                )
-
-                PaperOutlinedButton(
-                    onClick = {
-                        if (!agreed) {
-                            errorMessage = "请先勾选并同意用户协议与隐私政策"
-                            return@PaperOutlinedButton
-                        }
-                        val trimmedPhone = debugPhone.trim()
-                        val trimmedCode = code.trim()
-                        if (trimmedPhone.length < 6 || trimmedCode.isEmpty()) {
-                            errorMessage = "请输入手机号和验证码"
-                            return@PaperOutlinedButton
-                        }
-                        scope.launch {
-                            isLoggingIn = true
-                            try {
-                                val resp = AuthApi.loginBySMS(trimmedPhone, trimmedCode)
-                                saveSession(resp)
-                            } catch (e: Exception) {
-                                errorMessage = AuthApi.describe(e)
-                            } finally {
-                                isLoggingIn = false
-                            }
-                        }
-                    },
-                    enabled = !isLoggingIn && debugPhone.trim().length >= 6 && code.isNotBlank(),
-                    label = "手机号登录（Debug）",
-                )
-            }
 
             Row(
                 Modifier.fillMaxWidth(),

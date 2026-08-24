@@ -69,29 +69,6 @@ object AuthApi {
     @Serializable
     private data class ErrorEnvelope(val message: String? = null)
 
-    suspend fun sendSMSCode(phone: String): SMSCodeResponse {
-        val decoded = post(
-            path = "/v1/auth/sms/send",
-            body = buildJsonObject { put("phone", phone) }.toString(),
-            fallback = "发送验证码失败",
-        ) { json.decodeFromString<SMSCodeResponse>(it) }
-        if (!decoded.ok) throw LoginError.Network("发送验证码失败")
-        return decoded
-    }
-
-    suspend fun loginBySMS(phone: String, code: String): LoginResponse {
-        val decoded = post(
-            path = "/v1/auth/sms/login",
-            body = buildJsonObject {
-                put("phone", phone)
-                put("code", code)
-            }.toString(),
-            fallback = "登录失败",
-        ) { json.decodeFromString<LoginResponse>(it) }
-        if (!decoded.ok) throw LoginError.Network("登录失败")
-        return decoded
-    }
-
     suspend fun sendEmailCode(email: String): SMSCodeResponse {
         val decoded = post(
             path = "/v1/auth/email/send",
