@@ -199,11 +199,11 @@ docker compose up -d --build
 
 与已有系统 Caddy 共用 80/443 时用 `docker compose -f docker-compose.prod.yml up -d --build`（详见 `docs/deploy.md`）。
 
-**现役（App Release）**：`https://yzd.codedance.work`（国内 `119.91.239.58`，Docker 方式 A，H2-only）。备案后 `yizhidao.work`。运维见 `docs/deploy.md`。
+**现役（App Release）**：`https://api.yiwanjia.work`（新加坡 `124.156.192.137`，SSH `yiwanjia`；仅海外上架）。国内 `yzd.codedance.work` 为遗留机，App 不连。运维见 `docs/deploy.md`。
 
 ## 下一步
 
-- App Store：TestFlight 内测 → 截屏与元数据 → 提审；对外品牌名「易玩家」
-- 有企业主体后再视需要切腾讯云短信 / 微信登录
-- 正式 `docker compose up -d --build` 固化生产镜像（法律页与 aliyun SDK）
-- `yizhidao.work` 备案落地后改 App 基址与 Connect URL
+- App Store：Connect **排除中国大陆**；法律 URL → `https://api.yiwanjia.work/{privacy,terms,support}`；TestFlight → 截屏与元数据 → 提审；品牌名「易玩家」
+- 海外登录：Sign in with Apple / Google（替代短信）；正式短信不走国际通道
+- 正式 `docker compose up -d --build` 固化新加坡机镜像
+- （可选）国内遗留机仅运维对照；不上中国区则无需 ICP / `yizhidao.work` 改 App 基址

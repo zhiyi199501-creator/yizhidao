@@ -1,6 +1,6 @@
-# 易知道
+# 易玩家
 
-原生 SwiftUI iOS App：数字起卦（三数 / 时间）与六爻金钱卦，记录占时并展示卦象与经文。界面固定浅色宣纸风格。可选 FastAPI 后端：手机号登录与 AI 解读。
+原生 SwiftUI iOS + Compose Android：**易玩家**（Bundle / applicationId `com.yizhidao.app`）。数字起卦（三数 / 时间）与六爻金钱卦，记录占时并展示卦象与经文。界面固定浅色宣纸风格。可选 FastAPI 后端：登录与 AI 解读。**App Store / Google Play 仅海外**（排除中国大陆）；Release API：`https://api.yiwanjia.work`。
 
 ## 要求
 
