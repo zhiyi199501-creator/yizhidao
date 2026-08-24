@@ -41,7 +41,7 @@ android {
         release {
             isMinifyEnabled = true
             isShrinkResources = true
-            buildConfigField("String", "API_BASE_URL", "\"https://yzd.codedance.work\"")
+            buildConfigField("String", "API_BASE_URL", "\"https://api.yiwanjia.work\"")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",

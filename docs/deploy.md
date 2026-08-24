@@ -4,12 +4,12 @@
 
 | 角色 | 域名 | 服务器 | 说明 |
 |---|---|---|---|
-| **App Release（代码现役）** | `https://yzd.codedance.work` | `119.91.239.58`（国内，SSH `yizhidao`） | Docker 内置 Caddy，**H2-only**（`protocols h1 h2`），无 `Alt-Svc` |
-| **正式生产（备案后）** | `https://yizhidao.work` | 同上 | ICP 备案进行中；通过后 DNS A → `119.91.239.58`，Caddy 加站点块，App 改基址 |
-| **旧海外机（遗留）** | `yd.codedance.work` 等 | `43.128.104.104` | 与 videograb 共用系统 Caddy，**仍开 HTTP/3**；易知道 API 已迁出，勿再改 App 指回 |
+| **App Release（现役）** | `https://api.yiwanjia.work` | `124.156.192.137`（SSH `yiwanjia`） | 仅海外上架；Docker + `Caddyfile.overseas` |
+| **国内后端（遗留，App 不用）** | `https://yzd.codedance.work` | `119.91.239.58`（SSH `yizhidao`） | 运维保留；现役 App 不连 |
+| **旧海外机（遗留）** | `yd.codedance.work` 等 | `43.128.104.104` | 与 videograb 共用系统 Caddy，**仍开 HTTP/3**；勿改 App 指回 |
 | **iPhone 11 已废** | `yizhidao.codedance.work` / `yzh.codedance.work` | — | 勿换证、勿关 h3 救场 |
 
-**现役核验（2026-08-22）**：`GET https://yzd.codedance.work/health` 200；`/v1/cases` 313 条；响应 **HTTP/2**，无 `alt-svc`。
+**现役核验**：`GET https://api.yiwanjia.work/health` 200；`/v1/cases` 313 条；响应 **HTTP/2**。
 
 镜像把 `Hexagrams.json` 拷到 `/app/data/`（与 SQLite 同卷，**重建镜像不会自动刷新经文**）。`cases.json` 默认在镜像 `/app/app/data/`；若 data 卷存在 `/app/data/cases.json` 则优先（热更新不必重建）。可用 `CASES_PATH` 覆盖。
 
@@ -107,7 +107,7 @@ docker compose cp ../ios/Yizhidao/Resources/cases.json api:/app/data/cases.json
 
 ### App 真机 Release 连不上
 
-- Release 基址见上表（现役 `yzd.codedance.work`；备案后 `yizhidao.work`）
+- Release 基址：`https://api.yiwanjia.work`（Connect 排除中国大陆）
 - Debug 走局域网 IP；Xcode / Android Studio 须 **Release** 变体
 - 安卓须 **Cronet**，勿用 `HttpURLConnection`；**不要** `addQuicHint`
 

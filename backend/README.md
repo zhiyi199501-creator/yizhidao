@@ -114,7 +114,7 @@ ALIYUN_SMS_VALID_SEC=300
 
 1. 启动本后端（端口 `8080`）
 2. iOS **Debug** 模拟器请求 `http://127.0.0.1:8080`；安卓 Debug 见 `android/app/build.gradle.kts`
-3. **真机 Release** 走 `https://yzd.codedance.work`（备案后 `yizhidao.work`；iOS `AuthAPI` / Android Cronet `BuildConfig.API_BASE_URL`）。安卓不要用 `HttpURLConnection` 或 `addQuicHint`，见 `docs/deploy.md`。
+3. **真机 Release** 走 `https://api.yiwanjia.work`（仅海外）。安卓不要用 `HttpURLConnection` 或 `addQuicHint`，见 `docs/deploy.md`。
 
 ### curl 自测
 
@@ -203,7 +203,7 @@ docker compose up -d --build
 
 ## 下一步
 
-- App Store：TestFlight 内测 → 截屏与元数据 → 提审；商店名避让「易知道」占用
+- App Store：TestFlight 内测 → 截屏与元数据 → 提审；对外品牌名「易玩家」
 - 有企业主体后再视需要切腾讯云短信 / 微信登录
 - 正式 `docker compose up -d --build` 固化生产镜像（法律页与 aliyun SDK）
 - `yizhidao.work` 备案落地后改 App 基址与 Connect URL
