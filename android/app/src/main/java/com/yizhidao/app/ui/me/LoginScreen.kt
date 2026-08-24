@@ -1,26 +1,32 @@
 package com.yizhidao.app.ui.me
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Language
-import androidx.compose.material.icons.outlined.Email
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
-import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -34,11 +40,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.yizhidao.app.BuildConfig
@@ -48,12 +58,12 @@ import com.yizhidao.app.auth.LocalAuthStore
 import com.yizhidao.app.auth.LocalUserSession
 import com.yizhidao.app.ui.theme.AppTheme
 import com.yizhidao.app.ui.theme.PaperBackHeader
-import com.yizhidao.app.ui.theme.PaperOutlinedButton
-import com.yizhidao.app.ui.theme.PaperPrimaryButton
 import com.yizhidao.app.ui.theme.PaperTextField
 import com.yizhidao.app.ui.theme.Text
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+
+private val LoginShape = RoundedCornerShape(15.dp)
 
 private enum class LoginPage {
     Main,
@@ -141,13 +151,9 @@ private fun MainLoginPage(
         showConsentDialog = true
     }
 
-    Column(
-        Modifier
-            .fillMaxSize()
-            .imePadding(),
-    ) {
+    Column(Modifier.fillMaxSize()) {
         PaperBackHeader(
-            title = "登录",
+            title = "",
             onBack = onBack,
             leading = {
                 TextButton(onClick = onBack) {
@@ -158,15 +164,20 @@ private fun MainLoginPage(
         Column(
             Modifier
                 .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp)
+                .padding(horizontal = 28.dp)
                 .padding(bottom = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            PaperPrimaryButton(
+            Spacer(Modifier.weight(1f))
+
+            LoginBrandMark()
+
+            Spacer(Modifier.height(36.dp))
+
+            LoginFilledButton(
                 onClick = { requireConsent() },
+                label = "Google 登录",
                 enabled = !isLoggingIn && GoogleSignInHelper.isConfigured,
-                label = if (isLoggingIn) "登录中…" else "Google 登录",
                 leading = {
                     Icon(
                         Icons.Default.Language,
@@ -178,41 +189,42 @@ private fun MainLoginPage(
                 },
             )
 
-            if (!GoogleSignInHelper.isConfigured) {
-                Text(
-                    "Google 登录需在 build.gradle.kts 配置 GOOGLE_WEB_CLIENT_ID",
-                    fontSize = 11.sp,
-                    color = AppTheme.secondaryText.copy(alpha = 0.7f),
-                    style = AppTheme.compactText,
-                )
-            }
+            Spacer(Modifier.height(16.dp))
+
+            LoginStatusLine(
+                isBusy = isLoggingIn,
+                message = errorMessage
+                    ?: "Google 登录需在 build.gradle.kts 配置 GOOGLE_WEB_CLIENT_ID"
+                        .takeIf { !GoogleSignInHelper.isConfigured },
+                isError = errorMessage != null,
+            )
+
+            Spacer(Modifier.height(16.dp))
 
             ConsentRow(agreed = agreed, onAgreedChange = onAgreedChange)
 
-            errorMessage?.let {
-                Text(
-                    it,
-                    fontSize = 12.sp,
-                    color = AppTheme.yangRed,
-                    lineHeight = 17.sp,
-                    style = AppTheme.compactText,
-                )
-            }
+            Spacer(Modifier.weight(1f))
 
-            Spacer(Modifier.size(8.dp))
+            LoginSectionDivider("其他登录方式")
 
-            Text(
-                "其他登录方式",
-                fontSize = 12.sp,
-                color = AppTheme.secondaryText,
-                style = AppTheme.compactText,
-            )
-            PaperOutlinedButton(
+            Spacer(Modifier.height(14.dp))
+
+            LoginGhostButton(
                 onClick = onEmailLogin,
                 label = "邮箱登录",
+                leading = {
+                    Icon(
+                        Icons.Default.Email,
+                        contentDescription = null,
+                        tint = AppTheme.accent,
+                        modifier = Modifier.size(17.dp),
+                    )
+                    Spacer(Modifier.width(8.dp))
+                },
             )
 
             if (BuildConfig.DEBUG) {
+                Spacer(Modifier.height(12.dp))
                 Text(
                     "当前接口：${AuthApi.baseUrl}",
                     fontSize = 11.sp,
@@ -323,28 +335,52 @@ private fun EmailLoginPage(
         showConsentDialog = true
     }
 
+    val canSendCode = !isSendingCode && cooldownSec <= 0 && isValidEmail(email.trim())
+
     Column(
         Modifier
             .fillMaxSize()
             .imePadding(),
     ) {
         PaperBackHeader(
-            title = "邮箱登录",
+            title = "",
             onBack = onBack,
         )
         Column(
             Modifier
                 .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp)
+                .padding(horizontal = 28.dp)
                 .padding(bottom = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
         ) {
+            Spacer(Modifier.height(12.dp))
+
+            Text(
+                "邮箱登录",
+                fontSize = 22.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = AppTheme.accent,
+                style = AppTheme.compactText,
+            )
+            Spacer(Modifier.height(8.dp))
+            Text(
+                "收到验证码后填入即可登录",
+                fontSize = 13.sp,
+                color = AppTheme.secondaryText,
+                style = AppTheme.compactText,
+            )
+
+            Spacer(Modifier.height(32.dp))
+
             PaperTextField(
                 value = email,
                 onValueChange = { email = it.trim().lowercase() },
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp),
                 placeholder = "邮箱",
+                shape = LoginShape,
+                horizontalPadding = 14.dp,
                 keyboardOptions = KeyboardOptions(
                     keyboardType = KeyboardType.Email,
                     imeAction = ImeAction.Next,
@@ -352,50 +388,73 @@ private fun EmailLoginPage(
                 keyboardActions = KeyboardActions(
                     onNext = { focusManager.moveFocus(FocusDirection.Down) },
                 ),
+                leading = {
+                    FieldLeadingIcon(Icons.Default.Email)
+                },
             )
 
-            Row(
-                Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                PaperTextField(
-                    value = code,
-                    onValueChange = { code = it.filter(Char::isDigit).take(6) },
-                    modifier = Modifier.weight(1f),
-                    placeholder = "验证码",
-                    keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Number,
-                        imeAction = ImeAction.Done,
-                    ),
-                    keyboardActions = KeyboardActions(
-                        onDone = { keyboard?.hide() },
-                    ),
-                )
-                PaperOutlinedButton(
-                    onClick = { requireConsent(PendingEmailAction.SendEmailCode) },
-                    enabled = !isSendingCode && cooldownSec <= 0 && isValidEmail(email.trim()),
-                    label = if (cooldownSec > 0) "${cooldownSec}s" else "发送验证码",
-                )
-            }
+            Spacer(Modifier.height(12.dp))
 
-            PaperPrimaryButton(
+            PaperTextField(
+                value = code,
+                onValueChange = { code = it.filter(Char::isDigit).take(6) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp),
+                placeholder = "验证码",
+                shape = LoginShape,
+                horizontalPadding = 14.dp,
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Number,
+                    imeAction = ImeAction.Done,
+                ),
+                keyboardActions = KeyboardActions(
+                    onDone = { keyboard?.hide() },
+                ),
+                leading = {
+                    FieldLeadingIcon(Icons.Default.Lock)
+                },
+                trailing = {
+                    Box(
+                        Modifier
+                            .width(1.dp)
+                            .height(22.dp)
+                            .background(AppTheme.fieldStroke),
+                    )
+                    Text(
+                        if (cooldownSec > 0) "${cooldownSec}s" else "发送验证码",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = if (canSendCode) AppTheme.accent else AppTheme.secondaryText,
+                        style = AppTheme.compactText,
+                        modifier = Modifier
+                            .clickable(enabled = canSendCode) {
+                                requireConsent(PendingEmailAction.SendEmailCode)
+                            }
+                            .padding(start = 12.dp),
+                    )
+                },
+            )
+
+            Spacer(Modifier.height(20.dp))
+
+            LoginFilledButton(
                 onClick = { requireConsent(PendingEmailAction.EmailLogin) },
+                label = "登 录",
                 enabled = !isLoggingIn && isValidEmail(email.trim()) && code.isNotBlank(),
-                label = if (isLoggingIn) "登录中…" else "登录",
             )
+
+            Spacer(Modifier.height(16.dp))
+
+            LoginStatusLine(
+                isBusy = isLoggingIn,
+                message = errorMessage,
+                isError = errorMessage != "验证码已发送",
+            )
+
+            Spacer(Modifier.height(16.dp))
 
             ConsentRow(agreed = agreed, onAgreedChange = onAgreedChange)
-
-            errorMessage?.let {
-                Text(
-                    it,
-                    fontSize = 12.sp,
-                    color = if (it == "验证码已发送") AppTheme.secondaryText else AppTheme.yangRed,
-                    lineHeight = 17.sp,
-                    style = AppTheme.compactText,
-                )
-            }
         }
     }
 
@@ -417,28 +476,238 @@ private fun EmailLoginPage(
 }
 
 @Composable
+private fun LoginBrandMark() {
+    // 纯装饰用的六爻图形，自上而下阳阴阳阳阴阳。
+    val strokes = listOf(true, false, true, true, false, true)
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Box(
+            Modifier
+                .size(92.dp)
+                .background(Color.White.copy(alpha = 0.62f), CircleShape)
+                .border(1.dp, AppTheme.accent.copy(alpha = 0.16f), CircleShape),
+            contentAlignment = Alignment.Center,
+        ) {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                strokes.forEach { isYang ->
+                    if (isYang) {
+                        BrandBar(36.dp)
+                    } else {
+                        Row(horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+                            BrandBar(14.dp)
+                            BrandBar(14.dp)
+                        }
+                    }
+                }
+            }
+        }
+        Spacer(Modifier.height(16.dp))
+        Text(
+            "易玩家",
+            fontSize = 27.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = AppTheme.accent,
+            letterSpacing = 8.sp,
+            style = AppTheme.compactText,
+            modifier = Modifier.padding(start = 8.dp),
+        )
+        Spacer(Modifier.height(7.dp))
+        Text(
+            "起卦观辞 · 玩占明理",
+            fontSize = 13.sp,
+            color = AppTheme.secondaryText,
+            letterSpacing = 1.5.sp,
+            style = AppTheme.compactText,
+            modifier = Modifier.padding(start = 1.5.dp),
+        )
+    }
+}
+
+@Composable
+private fun BrandBar(width: Dp) {
+    Box(
+        Modifier
+            .size(width = width, height = 3.5.dp)
+            .background(AppTheme.accent.copy(alpha = 0.82f), RoundedCornerShape(2.dp)),
+    )
+}
+
+@Composable
+private fun FieldLeadingIcon(icon: ImageVector) {
+    Icon(
+        icon,
+        contentDescription = null,
+        tint = AppTheme.accent.copy(alpha = 0.55f),
+        modifier = Modifier
+            .padding(end = 10.dp)
+            .size(17.dp),
+    )
+}
+
+@Composable
+private fun LoginFilledButton(
+    onClick: () -> Unit,
+    label: String,
+    enabled: Boolean = true,
+    fill: Color = AppTheme.accent,
+    leading: @Composable (() -> Unit)? = null,
+) {
+    Box(
+        Modifier
+            .fillMaxWidth()
+            .height(52.dp)
+            .background(fill.copy(alpha = if (enabled) 1f else 0.3f), LoginShape)
+            .clickable(enabled = enabled, onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            leading?.invoke()
+            Text(
+                label,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = Color.White,
+                style = AppTheme.compactText,
+            )
+        }
+    }
+}
+
+@Composable
+private fun LoginGhostButton(
+    onClick: () -> Unit,
+    label: String,
+    leading: @Composable (() -> Unit)? = null,
+) {
+    Box(
+        Modifier
+            .fillMaxWidth()
+            .height(48.dp)
+            .background(Color.White.copy(alpha = 0.55f), LoginShape)
+            .border(1.dp, AppTheme.accent.copy(alpha = 0.22f), LoginShape)
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            leading?.invoke()
+            Text(
+                label,
+                fontSize = 15.sp,
+                fontWeight = FontWeight.Medium,
+                color = AppTheme.accent,
+                style = AppTheme.compactText,
+            )
+        }
+    }
+}
+
+@Composable
+private fun LoginSectionDivider(title: String) {
+    Row(
+        Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        DividerLine(Modifier.weight(1f))
+        Text(
+            title,
+            fontSize = 12.sp,
+            color = AppTheme.secondaryText,
+            style = AppTheme.compactText,
+            modifier = Modifier.padding(horizontal = 12.dp),
+        )
+        DividerLine(Modifier.weight(1f))
+    }
+}
+
+@Composable
+private fun DividerLine(modifier: Modifier = Modifier) {
+    Box(
+        modifier
+            .height(1.dp)
+            .background(AppTheme.accent.copy(alpha = 0.14f)),
+    )
+}
+
+/** 高度固定，避免出错或转圈时按钮上下跳动。 */
+@Composable
+private fun LoginStatusLine(
+    isBusy: Boolean,
+    message: String?,
+    isError: Boolean,
+) {
+    Box(
+        Modifier
+            .fillMaxWidth()
+            .height(18.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        when {
+            isBusy -> Row(verticalAlignment = Alignment.CenterVertically) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(14.dp),
+                    strokeWidth = 2.dp,
+                    color = AppTheme.accent,
+                )
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    "登录中…",
+                    fontSize = 12.sp,
+                    color = AppTheme.secondaryText,
+                    style = AppTheme.compactText,
+                )
+            }
+            message != null -> Text(
+                message,
+                fontSize = 12.sp,
+                color = if (isError) AppTheme.yangRed else AppTheme.secondaryText,
+                textAlign = TextAlign.Center,
+                style = AppTheme.compactText,
+            )
+        }
+    }
+}
+
+@Composable
 private fun ConsentRow(
     agreed: Boolean,
     onAgreedChange: (Boolean) -> Unit,
 ) {
     Row(
         Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Switch(
-            checked = agreed,
-            onCheckedChange = onAgreedChange,
-            colors = SwitchDefaults.colors(
-                checkedThumbColor = Color.White,
-                checkedTrackColor = AppTheme.accent,
-            ),
-        )
-        Spacer(Modifier.width(8.dp))
+        Box(
+            Modifier
+                .size(18.dp)
+                .background(
+                    if (agreed) AppTheme.accent else Color.Transparent,
+                    CircleShape,
+                )
+                .border(
+                    1.dp,
+                    if (agreed) AppTheme.accent else AppTheme.secondaryText,
+                    CircleShape,
+                )
+                .clickable { onAgreedChange(!agreed) },
+            contentAlignment = Alignment.Center,
+        ) {
+            if (agreed) {
+                Icon(
+                    Icons.Default.Check,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.size(12.dp),
+                )
+            }
+        }
+        Spacer(Modifier.width(7.dp))
         Text(
             "已阅读并同意《用户协议》《隐私政策》",
             fontSize = 12.sp,
             color = AppTheme.secondaryText,
-            lineHeight = 17.sp,
             style = AppTheme.compactText,
         )
     }

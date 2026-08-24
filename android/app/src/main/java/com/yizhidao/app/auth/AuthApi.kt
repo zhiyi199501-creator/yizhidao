@@ -48,8 +48,6 @@ object AuthApi {
         )
     }
 
-    typealias SMSLoginResponse = LoginResponse
-
     @Serializable
     data class MeResponse(val ok: Boolean, val user: LoginResponse.User)
 

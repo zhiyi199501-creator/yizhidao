@@ -254,89 +254,74 @@ struct LoginSheetView: View {
 
     var body: some View {
         NavigationStack {
-            VStack(alignment: .leading, spacing: 18) {
+            VStack(spacing: 0) {
                 HStack {
-                    Button("取消".zh) { dismiss() }
-                    Spacer()
-                    Text("登录".zh)
-                        .font(.headline)
-                    Spacer()
-                    Color.clear.frame(width: 44, height: 1)
-                }
-
-                Button {
-                    requireConsent(then: .apple)
-                } label: {
-                    Label("通过 Apple 登录".zh, systemImage: "apple.logo")
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.borderedProminent)
-                .tint(.black)
-                .disabled(isLoggingIn)
-
-                HStack(alignment: .center, spacing: 0) {
-                    Toggle("", isOn: $agreed)
-                        .labelsHidden()
-                        .scaleEffect(0.8)
-                    Text("已阅读并同意".zh)
-                        .font(.caption)
                     Button {
-                        showLegal = .terms
+                        dismiss()
                     } label: {
-                        Text("《用户协议》".zh)
-                            .font(.caption)
-                            .foregroundStyle(AppTheme.accent)
+                        Image(systemName: "xmark")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundStyle(AppTheme.accent.opacity(0.55))
+                            .frame(width: 32, height: 32)
+                            .background(Circle().fill(Color.white.opacity(0.55)))
                     }
                     .buttonStyle(.plain)
+                    .accessibilityLabel("关闭".zh)
+                    Spacer()
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 12)
+
+                Spacer(minLength: 20)
+
+                LoginBrandMark()
+
+                Spacer(minLength: 36)
+
+                VStack(spacing: 16) {
                     Button {
-                        showLegal = .privacy
+                        requireConsent(then: .apple)
                     } label: {
-                        Text("《隐私政策》".zh)
-                            .font(.caption)
-                            .foregroundStyle(AppTheme.accent)
+                        HStack(spacing: 8) {
+                            Image(systemName: "apple.logo")
+                                .font(.system(size: 17, weight: .medium))
+                            Text("通过 Apple 登录".zh)
+                        }
                     }
-                    .buttonStyle(.plain)
-                    Spacer(minLength: 0)
-                }
+                    .buttonStyle(LoginPrimaryButtonStyle(fill: .black))
+                    .disabled(isLoggingIn)
 
-                if let errorMessage {
-                    Text(errorMessage.zh)
-                        .font(.caption)
-                        .foregroundStyle(Color.red.opacity(0.85))
-                }
+                    LoginStatusLine(isBusy: isLoggingIn, message: errorMessage, isError: true)
 
-                if isLoggingIn {
-                    HStack(spacing: 8) {
-                        ProgressView()
-                        Text("登录中…".zh)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
+                    LoginConsentRow(agreed: $agreed) { showLegal = $0 }
                 }
+                .padding(.horizontal, 28)
 
                 Spacer(minLength: 24)
 
-                VStack(alignment: .leading, spacing: 10) {
-                    Text("其他登录方式".zh)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                VStack(spacing: 14) {
+                    LoginSectionDivider(title: "其他登录方式".zh)
                     NavigationLink {
                         EmailLoginView(agreed: $agreed, onSuccess: onSuccess)
                     } label: {
-                        Label("邮箱登录".zh, systemImage: "envelope")
-                            .frame(maxWidth: .infinity)
+                        HStack(spacing: 8) {
+                            Image(systemName: "envelope")
+                                .font(.system(size: 15, weight: .medium))
+                            Text("邮箱登录".zh)
+                        }
                     }
-                    .buttonStyle(.bordered)
-                }
+                    .buttonStyle(LoginSecondaryButtonStyle())
 
-                #if DEBUG
-                Text("当前接口：\(AuthAPI.debugEndpoint)")
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
-                #endif
+                    #if DEBUG
+                    Text("当前接口：\(AuthAPI.debugEndpoint)")
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                    #endif
+                }
+                .padding(.horizontal, 28)
+                .padding(.bottom, 28)
             }
-            .padding()
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(AppTheme.parchmentGradient.ignoresSafeArea(.container))
             .toolbar(.hidden, for: .navigationBar)
         }
@@ -423,74 +408,67 @@ private struct EmailLoginView: View {
     @State private var cooldownSec = 0
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            TextField("邮箱".zh, text: $email)
-                .textInputAutocapitalization(.never)
-                .keyboardType(.emailAddress)
-                .autocorrectionDisabled()
-                .loginFieldChrome()
-            HStack(alignment: .center, spacing: 8) {
-                LoginNumberField(text: $code, placeholder: "验证码")
-                    .loginFieldChrome()
-                Button(cooldownSec > 0 ? "\(cooldownSec)s" : "发送验证码".zh) {
-                    requireConsent(then: .sendEmailCode)
-                }
-                .buttonStyle(.bordered)
-                .disabled(isSendingCode || cooldownSec > 0 || !isValidEmail(email))
-            }
-            Button("登录".zh) {
-                requireConsent(then: .emailLogin)
-            }
-            .buttonStyle(.borderedProminent)
-            .tint(AppTheme.accent)
-            .disabled(isLoggingIn || !isValidEmail(email) || code.isEmpty)
-
-            HStack(alignment: .center, spacing: 0) {
-                Toggle("", isOn: $agreed)
-                    .labelsHidden()
-                    .scaleEffect(0.8)
-                Text("已阅读并同意".zh)
-                    .font(.caption)
-                Button {
-                    showLegal = .terms
-                } label: {
-                    Text("《用户协议》".zh)
-                        .font(.caption)
-                        .foregroundStyle(AppTheme.accent)
-                }
-                .buttonStyle(.plain)
-                Button {
-                    showLegal = .privacy
-                } label: {
-                    Text("《隐私政策》".zh)
-                        .font(.caption)
-                        .foregroundStyle(AppTheme.accent)
-                }
-                .buttonStyle(.plain)
-                Spacer(minLength: 0)
-            }
-
-            if let errorMessage {
-                Text(errorMessage.zh)
-                    .font(.caption)
-                    .foregroundStyle(errorMessage == "验证码已发送" ? Color.secondary : Color.red.opacity(0.85))
-            }
-
-            if isLoggingIn {
-                HStack(spacing: 8) {
-                    ProgressView()
-                    Text("登录中…".zh)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-            }
-
+        VStack(spacing: 0) {
             Spacer()
+                .frame(height: 28)
+
+            VStack(spacing: 8) {
+                Text("邮箱登录".zh)
+                    .font(.system(size: 22, weight: .semibold))
+                    .foregroundStyle(AppTheme.accent)
+                Text("收到验证码后填入即可登录".zh)
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+
+            Spacer(minLength: 24)
+
+            VStack(spacing: 12) {
+                LoginFieldRow(systemImage: "envelope") {
+                    TextField("邮箱".zh, text: $email)
+                        .textFieldStyle(.plain)
+                        .textInputAutocapitalization(.never)
+                        .keyboardType(.emailAddress)
+                        .autocorrectionDisabled()
+                }
+
+                LoginFieldRow(systemImage: "number") {
+                    LoginNumberField(text: $code, placeholder: "验证码")
+                    Rectangle()
+                        .fill(AppTheme.fieldStroke)
+                        .frame(width: 1, height: 22)
+                    Button(cooldownSec > 0 ? "\(cooldownSec)s" : "发送验证码".zh) {
+                        requireConsent(then: .sendEmailCode)
+                    }
+                    .buttonStyle(.plain)
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundStyle(
+                        canSendCode ? AppTheme.accent : Color.secondary.opacity(0.5)
+                    )
+                    .disabled(!canSendCode)
+                }
+
+                Button("登 录".zh) {
+                    requireConsent(then: .emailLogin)
+                }
+                .buttonStyle(LoginPrimaryButtonStyle(fill: AppTheme.accent))
+                .disabled(isLoggingIn || !isValidEmail(email) || code.isEmpty)
+                .padding(.top, 4)
+
+                LoginStatusLine(
+                    isBusy: isLoggingIn,
+                    message: errorMessage,
+                    isError: errorMessage != "验证码已发送"
+                )
+
+                LoginConsentRow(agreed: $agreed) { showLegal = $0 }
+            }
+            .padding(.horizontal, 28)
+
+            Spacer(minLength: 24)
         }
-        .padding()
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(AppTheme.parchmentGradient.ignoresSafeArea(.container))
-        .navigationTitle("邮箱登录".zh)
         .navigationBarTitleDisplayMode(.inline)
         .sheet(item: $showLegal) { kind in
             NavigationStack {
@@ -536,6 +514,10 @@ private struct EmailLoginView: View {
         case .emailLogin:
             await loginByEmail()
         }
+    }
+
+    private var canSendCode: Bool {
+        !isSendingCode && cooldownSec == 0 && isValidEmail(email)
     }
 
     private func isValidEmail(_ raw: String) -> Bool {
@@ -589,6 +571,199 @@ private struct EmailLoginView: View {
                 }
             }
         }
+    }
+}
+
+private struct LoginBrandMark: View {
+    /// 纯装饰用的六爻图形，自上而下阳阴阳阳阴阳。
+    private let strokes = [true, false, true, true, false, true]
+
+    var body: some View {
+        VStack(spacing: 16) {
+            ZStack {
+                Circle()
+                    .fill(Color.white.opacity(0.62))
+                Circle()
+                    .stroke(AppTheme.accent.opacity(0.16), lineWidth: 1)
+                VStack(spacing: 4.5) {
+                    ForEach(Array(strokes.enumerated()), id: \.offset) { _, isYang in
+                        if isYang {
+                            bar(width: 36)
+                        } else {
+                            HStack(spacing: 9) {
+                                bar(width: 13.5)
+                                bar(width: 13.5)
+                            }
+                        }
+                    }
+                }
+            }
+            .frame(width: 92, height: 92)
+
+            VStack(spacing: 7) {
+                Text("易玩家".zh)
+                    .font(.system(size: 27, weight: .semibold))
+                    .tracking(8)
+                    .padding(.leading, 8)
+                    .foregroundStyle(AppTheme.accent)
+                Text("起卦观辞 · 玩占明理".zh)
+                    .font(.footnote)
+                    .tracking(1.5)
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    private func bar(width: CGFloat) -> some View {
+        Capsule(style: .continuous)
+            .fill(AppTheme.accent.opacity(0.82))
+            .frame(width: width, height: 3.5)
+    }
+}
+
+private struct LoginPrimaryButtonStyle: ButtonStyle {
+    @Environment(\.isEnabled) private var isEnabled
+    let fill: Color
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.system(size: 16, weight: .semibold))
+            .foregroundStyle(.white)
+            .frame(maxWidth: .infinity)
+            .frame(height: 52)
+            .background(
+                RoundedRectangle(cornerRadius: 15, style: .continuous)
+                    .fill(fill.opacity(isEnabled ? 1 : 0.3))
+            )
+            .opacity(configuration.isPressed ? 0.82 : 1)
+    }
+}
+
+private struct LoginSecondaryButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.system(size: 15, weight: .medium))
+            .foregroundStyle(AppTheme.accent)
+            .frame(maxWidth: .infinity)
+            .frame(height: 48)
+            .background(
+                RoundedRectangle(cornerRadius: 15, style: .continuous)
+                    .fill(Color.white.opacity(0.55))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 15, style: .continuous)
+                    .stroke(AppTheme.accent.opacity(0.22), lineWidth: 1)
+            )
+            .opacity(configuration.isPressed ? 0.8 : 1)
+    }
+}
+
+private struct LoginFieldRow<Content: View>: View {
+    let systemImage: String
+    @ViewBuilder let content: Content
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Image(systemName: systemImage)
+                .font(.system(size: 15))
+                .foregroundStyle(AppTheme.accent.opacity(0.55))
+                .frame(width: 18)
+            content
+        }
+        .padding(.horizontal, 14)
+        .frame(height: 50)
+        .background(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(AppTheme.fieldFill)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .stroke(AppTheme.fieldStroke, lineWidth: 1)
+        )
+    }
+}
+
+private struct LoginSectionDivider: View {
+    let title: String
+
+    var body: some View {
+        HStack(spacing: 12) {
+            line
+            Text(title)
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+            line
+        }
+    }
+
+    private var line: some View {
+        Rectangle()
+            .fill(AppTheme.accent.opacity(0.14))
+            .frame(height: 1)
+    }
+}
+
+/// 高度固定，避免出错或转圈时按钮上下跳动。
+private struct LoginStatusLine: View {
+    let isBusy: Bool
+    let message: String?
+    let isError: Bool
+
+    var body: some View {
+        ZStack {
+            if isBusy {
+                HStack(spacing: 6) {
+                    ProgressView()
+                        .controlSize(.small)
+                    Text("登录中…".zh)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            } else if let message {
+                Text(message.zh)
+                    .font(.caption)
+                    .multilineTextAlignment(.center)
+                    .foregroundStyle(isError ? Color.red.opacity(0.85) : Color.secondary)
+            }
+        }
+        .frame(minHeight: 18)
+    }
+}
+
+private struct LoginConsentRow: View {
+    @Binding var agreed: Bool
+    let onShowLegal: (LegalDocKind) -> Void
+
+    var body: some View {
+        HStack(spacing: 6) {
+            Button {
+                agreed.toggle()
+            } label: {
+                Image(systemName: agreed ? "checkmark.circle.fill" : "circle")
+                    .font(.system(size: 15))
+                    .foregroundStyle(agreed ? AppTheme.accent : Color.secondary.opacity(0.45))
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("同意用户协议和隐私政策".zh)
+
+            Text("已阅读并同意".zh)
+            Button {
+                onShowLegal(.terms)
+            } label: {
+                Text("《用户协议》".zh)
+                    .foregroundStyle(AppTheme.accent)
+            }
+            .buttonStyle(.plain)
+            Button {
+                onShowLegal(.privacy)
+            } label: {
+                Text("《隐私政策》".zh)
+                    .foregroundStyle(AppTheme.accent)
+            }
+            .buttonStyle(.plain)
+        }
+        .font(.caption)
+        .foregroundStyle(.secondary)
     }
 }
 

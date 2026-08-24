@@ -66,6 +66,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
@@ -353,6 +354,9 @@ fun PaperTextField(
     maxLines: Int = if (singleLine) 1 else Int.MAX_VALUE,
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
     keyboardActions: KeyboardActions = KeyboardActions.Default,
+    shape: Shape = AppTheme.controlShape,
+    horizontalPadding: Dp = 10.dp,
+    leading: @Composable (() -> Unit)? = null,
     trailing: @Composable (() -> Unit)? = null,
 ) {
     val textStyle = AppTheme.compactText.merge(
@@ -373,8 +377,8 @@ fun PaperTextField(
         value = value,
         onValueChange = onValueChange,
         modifier = modifier
-            .background(AppTheme.fieldFill, AppTheme.controlShape)
-            .border(1.dp, AppTheme.fieldStroke, AppTheme.controlShape)
+            .background(AppTheme.fieldFill, shape)
+            .border(1.dp, AppTheme.fieldStroke, shape)
             .then(
                 if (singleLine) {
                     Modifier.height(lineHeight + verticalPad * 2)
@@ -383,7 +387,7 @@ fun PaperTextField(
                 },
             )
             .onGloballyPositioned { hitRegistry.update(hitKey, it.boundsInWindow()) }
-            .padding(horizontal = 10.dp, vertical = verticalPad),
+            .padding(horizontal = horizontalPadding, vertical = verticalPad),
         textStyle = textStyle,
         singleLine = singleLine,
         minLines = minLines,
@@ -393,6 +397,7 @@ fun PaperTextField(
         cursorBrush = SolidColor(AppTheme.accent),
         decorationBox = { inner ->
             Row(verticalAlignment = Alignment.CenterVertically) {
+                leading?.invoke()
                 Box(
                     Modifier
                         .weight(1f)
