@@ -22,5 +22,7 @@ def get_db():
 
 def init_db() -> None:
     from app import models  # noqa: F401
+    from app.migrate import migrate_db
 
     Base.metadata.create_all(bind=engine)
+    migrate_db()

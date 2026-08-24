@@ -61,10 +61,10 @@ cd android && ./gradlew :engines:test
 
 **旧海外机（遗留）**：`43.128.104.104` / `yd.codedance.work` 仍开 h3，易知道 API 已迁出。
 
-**试用登录（海外白名单）**：海外机 `SMS_PROVIDER=mock`；`SMS_TEST_PHONES=13800138000`，固定码 `123456`。正式海外登录待 Apple / Google OAuth。
+**试用登录（Debug）**：邮箱白名单 `test@example.com` / `123456`（`EMAIL_PROVIDER=mock`）。Release 登录：iOS **Apple / 邮箱**，Android **Google / 邮箱**（见 `backend/README.md`）。短信接口仍保留在后端，App 登录页不再展示。
 
-**App Store（进行中）**：Connect 已有 App `com.yizhidao.app`（id `6804203617`）；品牌名 **易玩家**；**定价与可用性排除中国大陆**。法律 URL：`https://api.yiwanjia.work/{privacy,terms,support}`。待：TestFlight、Apple 登录、IAP、提审。
+**App Store（进行中）**：Connect 已有 App `com.yizhidao.app`（id `6804203617`）；品牌名 **易玩家**；**定价与可用性排除中国大陆**。法律 URL：`https://api.yiwanjia.work/{privacy,terms,support}`。待：TestFlight、IAP、提审。
 
-未做：Apple / Google 登录、IAP 验单、正式 Android keystore、生产镜像 `docker compose build` 固化。
+未做：IAP 验单、正式 Android keystore、生产镜像 `docker compose build` 固化。
 
 **Android**：Compose 四 Tab 已对齐 iOS。Release 须 Cronet → `api.yiwanjia.work`（勿 `addQuicHint`）。见 `android/README.md`。

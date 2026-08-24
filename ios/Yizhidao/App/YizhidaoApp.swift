@@ -102,7 +102,7 @@ struct MyMenuView: View {
                                 .foregroundStyle(.secondary)
                             VStack(alignment: .leading, spacing: 2) {
                                 Text("未登录".zh)
-                                Text("支持手机号或微信登录".zh)
+                                Text("支持 Apple / 邮箱登录".zh)
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
                             }
@@ -192,6 +192,7 @@ struct MyMenuView: View {
             let me = try await AuthAPI.fetchMe(accessToken: token)
             session.displayName = me.user.nickname
             session.phone = me.user.phone
+            session.email = me.user.email
             session.isLoggedIn = true
             LocalAuthStore.save(session)
         } catch LoginError.unauthorized {
@@ -207,6 +208,7 @@ struct LocalUserSession: Codable {
     var isLoggedIn: Bool
     var displayName: String
     var phone: String?
+    var email: String?
     var avatarSymbol: String
     var accessToken: String?
 
@@ -214,6 +216,7 @@ struct LocalUserSession: Codable {
         isLoggedIn: false,
         displayName: "游客",
         phone: nil,
+        email: nil,
         avatarSymbol: "person.crop.circle.fill",
         accessToken: nil
     )
@@ -236,118 +239,92 @@ enum LocalAuthStore {
 }
 
 struct LoginSheetView: View {
+    private enum PendingAction {
+        case apple
+    }
+
     @Environment(\.dismiss) private var dismiss
-    @State private var phone = ""
-    @State private var code = ""
-    @State private var showWechatTip = false
     @State private var agreed = false
     @State private var showLegal: LegalDocKind?
+    @State private var showConsentAlert = false
+    @State private var pendingAction: PendingAction?
     @State private var errorMessage: String?
-    @State private var isSendingCode = false
     @State private var isLoggingIn = false
-    @State private var cooldownSec = 0
     let onSuccess: (LocalUserSession) -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            HStack {
-                Button("取消".zh) { dismiss() }
-                Spacer()
-                Text("登录".zh)
-                    .font(.headline)
-                Spacer()
-                Color.clear.frame(width: 44, height: 1)
-            }
-
-            Button {
-                guard agreed else {
-                    errorMessage = "请先勾选并同意用户协议与隐私政策"
-                    return
+        NavigationStack {
+            VStack(spacing: 0) {
+                HStack {
+                    Button {
+                        dismiss()
+                    } label: {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundStyle(AppTheme.accent.opacity(0.55))
+                            .frame(width: 32, height: 32)
+                            .background(Circle().fill(Color.white.opacity(0.55)))
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("关闭".zh)
+                    Spacer()
                 }
-                showWechatTip = true
-            } label: {
-                Label("微信登录（待接入）".zh, systemImage: "message.fill")
-                    .frame(maxWidth: .infinity)
-            }
-            .buttonStyle(.borderedProminent)
-            .tint(AppTheme.accent)
-            .alert("暂未接入".zh, isPresented: $showWechatTip) {
-                Button("知道了".zh, role: .cancel) {}
-            } message: {
-                Text("当前为本地演示版，后续接入真实微信登录。".zh)
-            }
+                .padding(.horizontal, 20)
+                .padding(.top, 12)
 
-            HStack {
-                Rectangle().fill(Color.black.opacity(0.1)).frame(height: 1)
-                Text("或使用手机号".zh)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                Rectangle().fill(Color.black.opacity(0.1)).frame(height: 1)
-            }
+                Spacer(minLength: 20)
 
-            LoginNumberField(text: $phone, placeholder: "手机号")
-                .loginFieldChrome()
-            HStack(alignment: .center, spacing: 8) {
-                LoginNumberField(text: $code, placeholder: "验证码")
-                    .loginFieldChrome()
-                Button(cooldownSec > 0 ? "\(cooldownSec)s" : "发送验证码".zh) {
-                    Task { await sendCode() }
+                LoginBrandMark()
+
+                Spacer(minLength: 36)
+
+                VStack(spacing: 16) {
+                    Button {
+                        requireConsent(then: .apple)
+                    } label: {
+                        HStack(spacing: 8) {
+                            Image(systemName: "apple.logo")
+                                .font(.system(size: 17, weight: .medium))
+                            Text("通过 Apple 登录".zh)
+                        }
+                    }
+                    .buttonStyle(LoginPrimaryButtonStyle(fill: .black))
+                    .disabled(isLoggingIn)
+
+                    LoginStatusLine(isBusy: isLoggingIn, message: errorMessage, isError: true)
+
+                    LoginConsentRow(agreed: $agreed) { showLegal = $0 }
                 }
-                .buttonStyle(.bordered)
-                .disabled(isSendingCode || cooldownSec > 0 || phone.trimmingCharacters(in: .whitespacesAndNewlines).count < 6)
-            }
-            Button("手机号登录".zh) {
-                guard agreed else {
-                    errorMessage = "请先勾选并同意用户协议与隐私政策"
-                    return
+                .padding(.horizontal, 28)
+
+                Spacer(minLength: 24)
+
+                VStack(spacing: 14) {
+                    LoginSectionDivider(title: "其他登录方式".zh)
+                    NavigationLink {
+                        EmailLoginView(agreed: $agreed, onSuccess: onSuccess)
+                    } label: {
+                        HStack(spacing: 8) {
+                            Image(systemName: "envelope")
+                                .font(.system(size: 15, weight: .medium))
+                            Text("邮箱登录".zh)
+                        }
+                    }
+                    .buttonStyle(LoginSecondaryButtonStyle())
+
+                    #if DEBUG
+                    Text("当前接口：\(AuthAPI.debugEndpoint)")
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                    #endif
                 }
-                Task { await loginByPhone() }
+                .padding(.horizontal, 28)
+                .padding(.bottom, 28)
             }
-            .buttonStyle(.borderedProminent)
-            .tint(AppTheme.accent)
-            .disabled(isLoggingIn || phone.count < 6 || code.isEmpty)
-
-            HStack(alignment: .center, spacing: 0) {
-                Toggle("", isOn: $agreed)
-                    .labelsHidden()
-                    .scaleEffect(0.8)
-                Text("已阅读并同意".zh)
-                    .font(.caption)
-                Button {
-                    showLegal = .terms
-                } label: {
-                    Text("《用户协议》".zh)
-                        .font(.caption)
-                        .foregroundStyle(AppTheme.accent)
-                }
-                .buttonStyle(.plain)
-                Button {
-                    showLegal = .privacy
-                } label: {
-                    Text("《隐私政策》".zh)
-                        .font(.caption)
-                        .foregroundStyle(AppTheme.accent)
-                }
-                .buttonStyle(.plain)
-                Spacer(minLength: 0)
-            }
-
-            if let errorMessage {
-                Text(errorMessage.zh)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-
-            #if DEBUG
-            Text("当前接口：\(AuthAPI.debugEndpoint)")
-                .font(.caption2)
-                .foregroundStyle(.tertiary)
-            #endif
-
-            Spacer()
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(AppTheme.parchmentGradient.ignoresSafeArea(.container))
+            .toolbar(.hidden, for: .navigationBar)
         }
-        .padding()
-        .background(AppTheme.parchmentGradient.ignoresSafeArea(.container))
         .sheet(item: $showLegal) { kind in
             NavigationStack {
                 LegalDocumentView(title: kind.title.zh, file: kind.file)
@@ -358,22 +335,207 @@ struct LoginSheetView: View {
                     }
             }
         }
+        .alert("请先同意协议".zh, isPresented: $showConsentAlert) {
+            Button("取消".zh, role: .cancel) {
+                pendingAction = nil
+            }
+            Button("同意并继续".zh) {
+                agreed = true
+                let action = pendingAction
+                pendingAction = nil
+                if let action {
+                    Task { await perform(action) }
+                }
+            }
+        } message: {
+            Text("登录前需同意《用户协议》和《隐私政策》。点击「同意并继续」即表示你已阅读并同意。".zh)
+        }
     }
 
-    private func sendCode() async {
-        guard agreed else {
-            errorMessage = "请先勾选并同意用户协议与隐私政策"
+    private func requireConsent(then action: PendingAction) {
+        if agreed {
+            Task { await perform(action) }
             return
         }
-        let trimmedPhone = phone.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard trimmedPhone.count >= 6 else {
-            errorMessage = "请输入正确手机号"
+        pendingAction = action
+        showConsentAlert = true
+    }
+
+    @MainActor
+    private func perform(_ action: PendingAction) async {
+        switch action {
+        case .apple:
+            await startAppleLogin()
+        }
+    }
+
+    private func startAppleLogin() async {
+        isLoggingIn = true
+        defer { isLoggingIn = false }
+        do {
+            let result = try await AppleSignIn.signIn()
+            let resp = try await AuthAPI.loginWithApple(
+                identityToken: result.identityToken,
+                fullName: result.fullName
+            )
+            onSuccess(makeSession(from: resp))
+        } catch is CancellationError {
+            // 用户取消，不提示
+        } catch {
+            errorMessage = LoginError.describe(error)
+        }
+    }
+}
+
+private struct EmailLoginView: View {
+    private enum PendingAction {
+        case sendEmailCode
+        case emailLogin
+    }
+
+    @Binding var agreed: Bool
+    let onSuccess: (LocalUserSession) -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var email = ""
+    @State private var code = ""
+    @State private var showLegal: LegalDocKind?
+    @State private var showConsentAlert = false
+    @State private var pendingAction: PendingAction?
+    @State private var errorMessage: String?
+    @State private var isSendingCode = false
+    @State private var isLoggingIn = false
+    @State private var cooldownSec = 0
+
+    var body: some View {
+        VStack(spacing: 0) {
+            Spacer()
+                .frame(height: 28)
+
+            VStack(spacing: 8) {
+                Text("邮箱登录".zh)
+                    .font(.system(size: 22, weight: .semibold))
+                    .foregroundStyle(AppTheme.accent)
+                Text("收到验证码后填入即可登录".zh)
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+
+            Spacer(minLength: 24)
+
+            VStack(spacing: 12) {
+                LoginFieldRow(systemImage: "envelope") {
+                    TextField("邮箱".zh, text: $email)
+                        .textFieldStyle(.plain)
+                        .textInputAutocapitalization(.never)
+                        .keyboardType(.emailAddress)
+                        .autocorrectionDisabled()
+                }
+
+                LoginFieldRow(systemImage: "number") {
+                    LoginNumberField(text: $code, placeholder: "验证码")
+                    Rectangle()
+                        .fill(AppTheme.fieldStroke)
+                        .frame(width: 1, height: 22)
+                    Button(cooldownSec > 0 ? "\(cooldownSec)s" : "发送验证码".zh) {
+                        requireConsent(then: .sendEmailCode)
+                    }
+                    .buttonStyle(.plain)
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundStyle(
+                        canSendCode ? AppTheme.accent : Color.secondary.opacity(0.5)
+                    )
+                    .disabled(!canSendCode)
+                }
+
+                Button("登 录".zh) {
+                    requireConsent(then: .emailLogin)
+                }
+                .buttonStyle(LoginPrimaryButtonStyle(fill: AppTheme.accent))
+                .disabled(isLoggingIn || !isValidEmail(email) || code.isEmpty)
+                .padding(.top, 4)
+
+                LoginStatusLine(
+                    isBusy: isLoggingIn,
+                    message: errorMessage,
+                    isError: errorMessage != "验证码已发送"
+                )
+
+                LoginConsentRow(agreed: $agreed) { showLegal = $0 }
+            }
+            .padding(.horizontal, 28)
+
+            Spacer(minLength: 24)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(AppTheme.parchmentGradient.ignoresSafeArea(.container))
+        .navigationBarTitleDisplayMode(.inline)
+        .sheet(item: $showLegal) { kind in
+            NavigationStack {
+                LegalDocumentView(title: kind.title.zh, file: kind.file)
+                    .toolbar {
+                        ToolbarItem(placement: .cancellationAction) {
+                            Button("关闭".zh) { showLegal = nil }
+                        }
+                    }
+            }
+        }
+        .alert("请先同意协议".zh, isPresented: $showConsentAlert) {
+            Button("取消".zh, role: .cancel) {
+                pendingAction = nil
+            }
+            Button("同意并继续".zh) {
+                agreed = true
+                let action = pendingAction
+                pendingAction = nil
+                if let action {
+                    Task { await perform(action) }
+                }
+            }
+        } message: {
+            Text("登录前需同意《用户协议》和《隐私政策》。点击「同意并继续」即表示你已阅读并同意。".zh)
+        }
+    }
+
+    private func requireConsent(then action: PendingAction) {
+        if agreed {
+            Task { await perform(action) }
+            return
+        }
+        pendingAction = action
+        showConsentAlert = true
+    }
+
+    @MainActor
+    private func perform(_ action: PendingAction) async {
+        switch action {
+        case .sendEmailCode:
+            await sendEmailCode()
+        case .emailLogin:
+            await loginByEmail()
+        }
+    }
+
+    private var canSendCode: Bool {
+        !isSendingCode && cooldownSec == 0 && isValidEmail(email)
+    }
+
+    private func isValidEmail(_ raw: String) -> Bool {
+        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard trimmed.contains("@"), trimmed.contains(".") else { return false }
+        return trimmed.count >= 5
+    }
+
+    private func sendEmailCode() async {
+        let trimmedEmail = email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        guard isValidEmail(trimmedEmail) else {
+            errorMessage = "请输入正确邮箱"
             return
         }
         isSendingCode = true
         defer { isSendingCode = false }
         do {
-            let resp = try await AuthAPI.sendSMSCode(phone: trimmedPhone)
+            let resp = try await AuthAPI.sendEmailCode(email: trimmedEmail)
             cooldownSec = max(resp.cooldownSec, 0)
             errorMessage = "验证码已发送"
             startCooldown()
@@ -382,26 +544,18 @@ struct LoginSheetView: View {
         }
     }
 
-    private func loginByPhone() async {
-        let trimmedPhone = phone.trimmingCharacters(in: .whitespacesAndNewlines)
+    private func loginByEmail() async {
+        let trimmedEmail = email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         let trimmedCode = code.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmedPhone.isEmpty, !trimmedCode.isEmpty else {
-            errorMessage = "请输入手机号和验证码"
+        guard !trimmedEmail.isEmpty, !trimmedCode.isEmpty else {
+            errorMessage = "请输入邮箱和验证码"
             return
         }
         isLoggingIn = true
         defer { isLoggingIn = false }
         do {
-            let resp = try await AuthAPI.loginBySMS(phone: trimmedPhone, code: trimmedCode)
-            onSuccess(
-                LocalUserSession(
-                    isLoggedIn: true,
-                    displayName: resp.user.nickname,
-                    phone: resp.user.phone ?? trimmedPhone,
-                    avatarSymbol: "person.crop.circle.fill",
-                    accessToken: resp.accessToken
-                )
-            )
+            let resp = try await AuthAPI.loginByEmail(email: trimmedEmail, code: trimmedCode)
+            onSuccess(makeSession(from: resp, email: trimmedEmail))
         } catch {
             errorMessage = LoginError.describe(error)
         }
@@ -419,6 +573,211 @@ struct LoginSheetView: View {
         }
     }
 }
+
+private struct LoginBrandMark: View {
+    /// 纯装饰用的六爻图形，自上而下阳阴阳阳阴阳。
+    private let strokes = [true, false, true, true, false, true]
+
+    var body: some View {
+        VStack(spacing: 16) {
+            ZStack {
+                Circle()
+                    .fill(Color.white.opacity(0.62))
+                Circle()
+                    .stroke(AppTheme.accent.opacity(0.16), lineWidth: 1)
+                VStack(spacing: 4.5) {
+                    ForEach(Array(strokes.enumerated()), id: \.offset) { _, isYang in
+                        if isYang {
+                            bar(width: 36)
+                        } else {
+                            HStack(spacing: 9) {
+                                bar(width: 13.5)
+                                bar(width: 13.5)
+                            }
+                        }
+                    }
+                }
+            }
+            .frame(width: 92, height: 92)
+
+            VStack(spacing: 7) {
+                Text("易玩家".zh)
+                    .font(.system(size: 27, weight: .semibold))
+                    .tracking(8)
+                    .padding(.leading, 8)
+                    .foregroundStyle(AppTheme.accent)
+                Text("起卦观辞 · 玩占明理".zh)
+                    .font(.footnote)
+                    .tracking(1.5)
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    private func bar(width: CGFloat) -> some View {
+        Capsule(style: .continuous)
+            .fill(AppTheme.accent.opacity(0.82))
+            .frame(width: width, height: 3.5)
+    }
+}
+
+private struct LoginPrimaryButtonStyle: ButtonStyle {
+    @Environment(\.isEnabled) private var isEnabled
+    let fill: Color
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.system(size: 16, weight: .semibold))
+            .foregroundStyle(.white)
+            .frame(maxWidth: .infinity)
+            .frame(height: 52)
+            .background(
+                RoundedRectangle(cornerRadius: 15, style: .continuous)
+                    .fill(fill.opacity(isEnabled ? 1 : 0.3))
+            )
+            .opacity(configuration.isPressed ? 0.82 : 1)
+    }
+}
+
+private struct LoginSecondaryButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.system(size: 15, weight: .medium))
+            .foregroundStyle(AppTheme.accent)
+            .frame(maxWidth: .infinity)
+            .frame(height: 48)
+            .background(
+                RoundedRectangle(cornerRadius: 15, style: .continuous)
+                    .fill(Color.white.opacity(0.55))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 15, style: .continuous)
+                    .stroke(AppTheme.accent.opacity(0.22), lineWidth: 1)
+            )
+            .opacity(configuration.isPressed ? 0.8 : 1)
+    }
+}
+
+private struct LoginFieldRow<Content: View>: View {
+    let systemImage: String
+    @ViewBuilder let content: Content
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Image(systemName: systemImage)
+                .font(.system(size: 15))
+                .foregroundStyle(AppTheme.accent.opacity(0.55))
+                .frame(width: 18)
+            content
+        }
+        .padding(.horizontal, 14)
+        .frame(height: 50)
+        .background(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(AppTheme.fieldFill)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .stroke(AppTheme.fieldStroke, lineWidth: 1)
+        )
+    }
+}
+
+private struct LoginSectionDivider: View {
+    let title: String
+
+    var body: some View {
+        HStack(spacing: 12) {
+            line
+            Text(title)
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+            line
+        }
+    }
+
+    private var line: some View {
+        Rectangle()
+            .fill(AppTheme.accent.opacity(0.14))
+            .frame(height: 1)
+    }
+}
+
+/// 高度固定，避免出错或转圈时按钮上下跳动。
+private struct LoginStatusLine: View {
+    let isBusy: Bool
+    let message: String?
+    let isError: Bool
+
+    var body: some View {
+        ZStack {
+            if isBusy {
+                HStack(spacing: 6) {
+                    ProgressView()
+                        .controlSize(.small)
+                    Text("登录中…".zh)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            } else if let message {
+                Text(message.zh)
+                    .font(.caption)
+                    .multilineTextAlignment(.center)
+                    .foregroundStyle(isError ? Color.red.opacity(0.85) : Color.secondary)
+            }
+        }
+        .frame(minHeight: 18)
+    }
+}
+
+private struct LoginConsentRow: View {
+    @Binding var agreed: Bool
+    let onShowLegal: (LegalDocKind) -> Void
+
+    var body: some View {
+        HStack(spacing: 6) {
+            Button {
+                agreed.toggle()
+            } label: {
+                Image(systemName: agreed ? "checkmark.circle.fill" : "circle")
+                    .font(.system(size: 15))
+                    .foregroundStyle(agreed ? AppTheme.accent : Color.secondary.opacity(0.45))
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("同意用户协议和隐私政策".zh)
+
+            Text("已阅读并同意".zh)
+            Button {
+                onShowLegal(.terms)
+            } label: {
+                Text("《用户协议》".zh)
+                    .foregroundStyle(AppTheme.accent)
+            }
+            .buttonStyle(.plain)
+            Button {
+                onShowLegal(.privacy)
+            } label: {
+                Text("《隐私政策》".zh)
+                    .foregroundStyle(AppTheme.accent)
+            }
+            .buttonStyle(.plain)
+        }
+        .font(.caption)
+        .foregroundStyle(.secondary)
+    }
+}
+
+private func makeSession(from resp: AuthAPI.LoginResponse, email: String? = nil) -> LocalUserSession {
+    LocalUserSession(
+        isLoggedIn: true,
+        displayName: resp.user.nickname,
+        phone: resp.user.phone,
+        email: resp.user.email ?? email,
+        avatarSymbol: "person.crop.circle.fill",
+        accessToken: resp.accessToken
+    )
+}
+
 
 enum AuthAPI {
     #if DEBUG
@@ -452,16 +811,19 @@ enum AuthAPI {
         let cooldownSec: Int
     }
 
-    struct SMSLoginResponse: Decodable {
+    struct LoginResponse: Decodable {
         struct User: Decodable {
             let id: String
             let nickname: String
             let phone: String?
+            let email: String?
         }
         let ok: Bool
         let accessToken: String
         let user: User
     }
+
+    typealias SMSLoginResponse = LoginResponse
 
     private struct ErrorEnvelope: Decodable {
         let message: String?
@@ -478,10 +840,10 @@ enum AuthAPI {
         return req
     }
 
-    static func sendSMSCode(phone: String) async throws -> SMSCodeResponse {
-        var req = jsonRequest(path: "v1/auth/sms/send", method: "POST")
+    static func sendEmailCode(email: String) async throws -> SMSCodeResponse {
+        var req = jsonRequest(path: "v1/auth/email/send", method: "POST")
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        req.httpBody = try JSONSerialization.data(withJSONObject: ["phone": phone])
+        req.httpBody = try JSONSerialization.data(withJSONObject: ["email": email])
         let (data, response) = try await session.data(for: req)
         guard let http = response as? HTTPURLResponse else { throw LoginError.network("网络异常") }
         guard (200..<300).contains(http.statusCode) else { throw decodeError(data, fallback: "发送验证码失败") }
@@ -490,23 +852,41 @@ enum AuthAPI {
         return decoded
     }
 
-    static func loginBySMS(phone: String, code: String) async throws -> SMSLoginResponse {
-        var req = jsonRequest(path: "v1/auth/sms/login", method: "POST")
+    static func loginByEmail(email: String, code: String) async throws -> LoginResponse {
+        var req = jsonRequest(path: "v1/auth/email/login", method: "POST")
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        req.httpBody = try JSONSerialization.data(withJSONObject: ["phone": phone, "code": code])
+        req.httpBody = try JSONSerialization.data(withJSONObject: ["email": email, "code": code])
         let (data, response) = try await session.data(for: req)
         guard let http = response as? HTTPURLResponse else { throw LoginError.network("网络异常") }
         guard (200..<300).contains(http.statusCode) else { throw decodeError(data, fallback: "登录失败") }
-        let decoded = try JSONDecoder().decode(SMSLoginResponse.self, from: data)
+        let decoded = try JSONDecoder().decode(LoginResponse.self, from: data)
         guard decoded.ok else { throw LoginError.network("登录失败") }
         return decoded
     }
+
+    static func loginWithApple(identityToken: String, fullName: String?) async throws -> LoginResponse {
+        var body: [String: Any] = ["identityToken": identityToken]
+        if let fullName, !fullName.isEmpty {
+            body["fullName"] = fullName
+        }
+        var req = jsonRequest(path: "v1/auth/apple", method: "POST")
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        req.httpBody = try JSONSerialization.data(withJSONObject: body)
+        let (data, response) = try await session.data(for: req)
+        guard let http = response as? HTTPURLResponse else { throw LoginError.network("网络异常") }
+        guard (200..<300).contains(http.statusCode) else { throw decodeError(data, fallback: "Apple 登录失败") }
+        let decoded = try JSONDecoder().decode(LoginResponse.self, from: data)
+        guard decoded.ok else { throw LoginError.network("Apple 登录失败") }
+        return decoded
+    }
+
 
     struct MeResponse: Decodable {
         struct User: Decodable {
             let id: String
             let nickname: String
             let phone: String?
+            let email: String?
         }
         let ok: Bool
         let user: User

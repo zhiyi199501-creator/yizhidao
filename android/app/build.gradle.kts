@@ -37,11 +37,13 @@ android {
         debug {
             // 模拟器连本机后端用 10.0.2.2；真机 Debug 改成 Mac 局域网 IP（ipconfig getifaddr en0）。
             buildConfigField("String", "API_BASE_URL", "\"http://172.20.10.10:8080\"")
+            buildConfigField("String", "GOOGLE_WEB_CLIENT_ID", "\"\"")
         }
         release {
             isMinifyEnabled = true
             isShrinkResources = true
             buildConfigField("String", "API_BASE_URL", "\"https://api.yiwanjia.work\"")
+            buildConfigField("String", "GOOGLE_WEB_CLIENT_ID", "\"\"")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
@@ -94,6 +96,9 @@ dependencies {
     implementation(libs.androidx.compose.material.icons)
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.cronet.embedded)
+    implementation(libs.androidx.credentials.core)
+    implementation(libs.androidx.credentials.play.services.auth)
+    implementation(libs.googleid.lib)
     debugImplementation(libs.androidx.compose.ui.tooling)
     testImplementation(libs.junit)
 }

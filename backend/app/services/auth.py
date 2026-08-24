@@ -2,6 +2,7 @@ import random
 import re
 import uuid
 from datetime import datetime, timedelta, timezone
+from typing import Optional, Tuple
 
 from jose import jwt
 from sqlalchemy import delete, select
@@ -9,10 +10,13 @@ from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.errors import AppError
-from app.models import SMSCode, User
+from app.models import EmailCode, SMSCode, User
+from app.services.email_otp import deliver_email_code, is_email_test_address
+from app.services.oauth import verify_apple_identity_token, verify_google_id_token
 from app.services.sms import deliver_sms_code, verify_aliyun_code
 
 PHONE_PATTERN = re.compile(r"^1\d{10}$")
+EMAIL_PATTERN = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
 
 def validate_phone(phone: str) -> str:
@@ -22,8 +26,24 @@ def validate_phone(phone: str) -> str:
     return normalized
 
 
+def validate_email(email: str) -> str:
+    normalized = email.strip().lower()
+    if not EMAIL_PATTERN.fullmatch(normalized):
+        raise AppError("邮箱格式不正确", code=4001, status_code=400)
+    return normalized
+
+
 def mask_phone(phone: str) -> str:
     return f"{phone[:3]}****{phone[-4:]}"
+
+
+def mask_email(email: str) -> str:
+    local, _, domain = email.partition("@")
+    if len(local) <= 2:
+        masked_local = local[0] + "*"
+    else:
+        masked_local = local[0] + "***" + local[-1]
+    return f"{masked_local}@{domain}"
 
 
 def sms_test_phone_set() -> set[str]:
@@ -42,6 +62,15 @@ def issue_access_token(user_id: str) -> str:
     expire = datetime.now(timezone.utc) + timedelta(days=settings.jwt_expire_days)
     payload = {"sub": user_id, "exp": expire}
     return jwt.encode(payload, settings.jwt_secret, algorithm="HS256")
+
+
+def user_to_out(user: User) -> dict:
+    return {
+        "id": user.id,
+        "nickname": user.nickname,
+        "phone": user.phone,
+        "email": user.email,
+    }
 
 
 def send_sms_code(db: Session, phone: str) -> int:
@@ -68,7 +97,6 @@ def send_sms_code(db: Session, phone: str) -> int:
     )
 
     if is_aliyun_managed:
-        # 阿里云全托管：验证码由阿里云生成，本地仅记一条占位记录用于冷却窗口
         code = ""
     else:
         use_fixed = bool(settings.dev_sms_fixed_code) and (
@@ -90,7 +118,6 @@ def send_sms_code(db: Session, phone: str) -> int:
     try:
         deliver_sms_code(phone, code)
     except AppError:
-        # 发送失败则作废刚写入的验证码，避免占冷却窗口却收不到短信
         record = db.scalar(
             select(SMSCode)
             .where(SMSCode.phone == phone, SMSCode.used.is_(False))
@@ -105,7 +132,58 @@ def send_sms_code(db: Session, phone: str) -> int:
     return settings.sms_cooldown_sec
 
 
-def _get_or_create_user(db: Session, phone: str) -> User:
+def send_email_code(db: Session, email: str) -> int:
+    email = validate_email(email)
+    now = datetime.now(timezone.utc)
+
+    latest = db.scalar(
+        select(EmailCode)
+        .where(EmailCode.email == email)
+        .order_by(EmailCode.created_at.desc())
+        .limit(1)
+    )
+    if latest and latest.created_at:
+        created = latest.created_at
+        if created.tzinfo is None:
+            created = created.replace(tzinfo=timezone.utc)
+        elapsed = (now - created).total_seconds()
+        if elapsed < settings.email_cooldown_sec:
+            raise AppError("请求过快，请稍后再试", code=4290, status_code=429)
+
+    use_fixed = bool(settings.dev_email_fixed_code) and (
+        is_email_test_address(email)
+        or (
+            (settings.email_provider or "mock").lower() == "mock"
+            and (
+                settings.app_env.lower() != "production"
+                or settings.allow_insecure_mock_email
+            )
+        )
+    )
+    code = settings.dev_email_fixed_code if use_fixed else f"{random.randint(0, 999999):06d}"
+
+    expires_at = now + timedelta(minutes=settings.email_code_expire_min)
+    db.add(EmailCode(email=email, code=code, expires_at=expires_at, used=False))
+    db.commit()
+
+    try:
+        deliver_email_code(email, code)
+    except AppError:
+        record = db.scalar(
+            select(EmailCode)
+            .where(EmailCode.email == email, EmailCode.used.is_(False))
+            .order_by(EmailCode.created_at.desc())
+            .limit(1)
+        )
+        if record and record.code == code:
+            record.used = True
+            db.commit()
+        raise
+
+    return settings.email_cooldown_sec
+
+
+def _get_or_create_user_by_phone(db: Session, phone: str) -> User:
     user = db.scalar(select(User).where(User.phone == phone))
     if not user:
         user = User(
@@ -117,19 +195,67 @@ def _get_or_create_user(db: Session, phone: str) -> User:
     return user
 
 
-def login_with_sms(db: Session, phone: str, code: str) -> tuple[User, str]:
+def _get_or_create_user_by_email(db: Session, email: str) -> User:
+    user = db.scalar(select(User).where(User.email == email))
+    if not user:
+        user = User(
+            id=f"u_{uuid.uuid4().hex[:12]}",
+            email=email,
+            nickname=f"用户{mask_email(email)}",
+        )
+        db.add(user)
+    return user
+
+
+def _get_or_create_user_by_apple(db: Session, apple_sub: str, nickname: Optional[str]) -> User:
+    user = db.scalar(select(User).where(User.apple_sub == apple_sub))
+    if not user:
+        user = User(
+            id=f"u_{uuid.uuid4().hex[:12]}",
+            apple_sub=apple_sub,
+            nickname=nickname or "Apple 用户",
+        )
+        db.add(user)
+    elif nickname and user.nickname in ("Apple 用户", ""):
+        user.nickname = nickname
+    return user
+
+
+def _get_or_create_user_by_google(
+    db: Session,
+    google_sub: str,
+    email: Optional[str],
+    nickname: Optional[str],
+) -> User:
+    user = db.scalar(select(User).where(User.google_sub == google_sub))
+    if not user:
+        user = User(
+            id=f"u_{uuid.uuid4().hex[:12]}",
+            google_sub=google_sub,
+            email=email,
+            nickname=nickname or (mask_email(email) if email else "Google 用户"),
+        )
+        db.add(user)
+    else:
+        if email and not user.email:
+            user.email = email
+        if nickname and user.nickname in ("Google 用户", ""):
+            user.nickname = nickname
+    return user
+
+
+def login_with_sms(db: Session, phone: str, code: str) -> Tuple[User, str]:
     phone = validate_phone(phone)
     normalized_code = code.strip()
     if not normalized_code:
         raise AppError("验证码不能为空", code=4001, status_code=400)
 
-    # 测试白名单：固定码可直接登录（仍须先点「获取验证码」写入记录，或直接用固定码）
     if (
         is_sms_test_phone(phone)
         and settings.dev_sms_fixed_code
         and normalized_code == settings.dev_sms_fixed_code
     ):
-        user = _get_or_create_user(db, phone)
+        user = _get_or_create_user_by_phone(db, phone)
         record = db.scalar(
             select(SMSCode)
             .where(SMSCode.phone == phone, SMSCode.used.is_(False))
@@ -148,7 +274,7 @@ def login_with_sms(db: Session, phone: str, code: str) -> tuple[User, str]:
     ):
         if not verify_aliyun_code(phone, normalized_code):
             raise AppError("验证码错误或已过期", code=4002, status_code=400)
-        user = _get_or_create_user(db, phone)
+        user = _get_or_create_user_by_phone(db, phone)
         db.commit()
         db.refresh(user)
         return user, issue_access_token(user.id)
@@ -170,15 +296,111 @@ def login_with_sms(db: Session, phone: str, code: str) -> tuple[User, str]:
         raise AppError("验证码错误或已过期", code=4002, status_code=400)
 
     record.used = True
+    user = _get_or_create_user_by_phone(db, phone)
+    db.commit()
+    db.refresh(user)
+    return user, issue_access_token(user.id)
 
-    user = _get_or_create_user(db, phone)
 
+def login_with_email(db: Session, email: str, code: str) -> Tuple[User, str]:
+    email = validate_email(email)
+    normalized_code = code.strip()
+    if not normalized_code:
+        raise AppError("验证码不能为空", code=4001, status_code=400)
+
+    if (
+        is_email_test_address(email)
+        and settings.dev_email_fixed_code
+        and normalized_code == settings.dev_email_fixed_code
+    ):
+        user = _get_or_create_user_by_email(db, email)
+        record = db.scalar(
+            select(EmailCode)
+            .where(EmailCode.email == email, EmailCode.used.is_(False))
+            .order_by(EmailCode.created_at.desc())
+            .limit(1)
+        )
+        if record:
+            record.used = True
+        db.commit()
+        db.refresh(user)
+        return user, issue_access_token(user.id)
+
+    now = datetime.now(timezone.utc)
+    record = db.scalar(
+        select(EmailCode)
+        .where(EmailCode.email == email, EmailCode.used.is_(False))
+        .order_by(EmailCode.created_at.desc())
+        .limit(1)
+    )
+    if not record:
+        raise AppError("验证码错误或已过期", code=4002, status_code=400)
+
+    expires_at = record.expires_at
+    if expires_at.tzinfo is None:
+        expires_at = expires_at.replace(tzinfo=timezone.utc)
+    if record.code != normalized_code or expires_at < now:
+        raise AppError("验证码错误或已过期", code=4002, status_code=400)
+
+    record.used = True
+    user = _get_or_create_user_by_email(db, email)
+    db.commit()
+    db.refresh(user)
+    return user, issue_access_token(user.id)
+
+
+def login_with_apple(
+    db: Session,
+    identity_token: str,
+    full_name: Optional[str] = None,
+) -> Tuple[User, str]:
+    token = identity_token.strip()
+    if not token:
+        raise AppError("登录凭证不能为空", code=4001, status_code=400)
+
+    claims = verify_apple_identity_token(token)
+    apple_sub = claims.get("sub")
+    if not apple_sub:
+        raise AppError("Apple 登录凭证无效", code=4002, status_code=401)
+
+    nickname = full_name.strip() if full_name and full_name.strip() else None
+    user = _get_or_create_user_by_apple(db, apple_sub, nickname)
+    db.commit()
+    db.refresh(user)
+    return user, issue_access_token(user.id)
+
+
+def login_with_google(db: Session, id_token: str) -> Tuple[User, str]:
+    token = id_token.strip()
+    if not token:
+        raise AppError("登录凭证不能为空", code=4001, status_code=400)
+
+    claims = verify_google_id_token(token)
+    google_sub = claims.get("sub")
+    if not google_sub:
+        raise AppError("Google 登录凭证无效", code=4002, status_code=401)
+
+    email = claims.get("email")
+    if isinstance(email, str):
+        email = email.strip().lower() or None
+    else:
+        email = None
+    nickname = claims.get("name")
+    if isinstance(nickname, str):
+        nickname = nickname.strip() or None
+    else:
+        nickname = None
+
+    user = _get_or_create_user_by_google(db, google_sub, email, nickname)
     db.commit()
     db.refresh(user)
     return user, issue_access_token(user.id)
 
 
 def delete_user_account(db: Session, user: User) -> None:
-    db.execute(delete(SMSCode).where(SMSCode.phone == user.phone))
+    if user.phone:
+        db.execute(delete(SMSCode).where(SMSCode.phone == user.phone))
+    if user.email:
+        db.execute(delete(EmailCode).where(EmailCode.email == user.email))
     db.delete(user)
     db.commit()

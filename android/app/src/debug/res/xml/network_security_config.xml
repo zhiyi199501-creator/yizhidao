@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Debug 真机 / 模拟器走 http:// 局域网 API；主 manifest 的 networkSecurityConfig 会覆盖 usesCleartextTraffic，须在此显式放行。 -->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+            <certificates src="@raw/isrg_root_x2" />
+            <certificates src="@raw/isrg_root_ye" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>

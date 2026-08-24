@@ -47,5 +47,31 @@ class Settings(BaseSettings):
     # 生产环境若仍用 mock，必须显式打开才允许固定验证码（极不安全）
     allow_insecure_mock_sms: bool = False
 
+    # Apple / Google OAuth（逗号分隔 client id / bundle id）
+    apple_client_ids: str = "com.yizhidao.app"
+    google_client_ids: str = ""
+
+    # 邮箱验证码
+    email_cooldown_sec: int = 60
+    email_code_expire_min: int = 5
+    email_provider: str = "mock"
+    dev_email_fixed_code: str = "123456"
+    email_test_addresses: str = "test@example.com"
+    allow_insecure_mock_email: bool = False
+
+    # SMTP（EMAIL_PROVIDER=smtp 时必填）
+    smtp_host: str = ""
+    smtp_port: int = 587
+    smtp_user: str = ""
+    smtp_password: str = ""
+    smtp_from: str = ""
+    smtp_use_tls: bool = True
+
+    def apple_client_ids_list(self):
+        return [part.strip() for part in self.apple_client_ids.split(",") if part.strip()]
+
+    def google_client_ids_list(self):
+        return [part.strip() for part in self.google_client_ids.split(",") if part.strip()]
+
 
 settings = Settings()
