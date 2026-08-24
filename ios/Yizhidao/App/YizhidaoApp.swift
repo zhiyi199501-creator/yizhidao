@@ -244,11 +244,20 @@ enum LocalAuthStore {
 }
 
 struct LoginSheetView: View {
+    private enum PendingAction {
+        case apple(identityToken: String, fullName: String?)
+        case google
+        case sendEmailCode
+        case emailLogin
+    }
+
     @Environment(\.dismiss) private var dismiss
     @State private var email = ""
     @State private var code = ""
     @State private var agreed = false
     @State private var showLegal: LegalDocKind?
+    @State private var showConsentAlert = false
+    @State private var pendingAction: PendingAction?
     @State private var errorMessage: String?
     @State private var isSendingCode = false
     @State private var isLoggingIn = false
@@ -268,12 +277,8 @@ struct LoginSheetView: View {
 
             AppleSignInButton(
                 onSuccess: { token, fullName in
-                    guard agreed else {
-                        errorMessage = "请先勾选并同意用户协议与隐私政策"
-                        return
-                    }
                     Task { @MainActor in
-                        await loginWithApple(identityToken: token, fullName: fullName)
+                        requireConsent(then: .apple(identityToken: token, fullName: fullName))
                     }
                 },
                 onError: { error in
@@ -286,11 +291,7 @@ struct LoginSheetView: View {
             .opacity(isLoggingIn ? 0.6 : 1)
 
             Button {
-                guard agreed else {
-                    errorMessage = "请先勾选并同意用户协议与隐私政策"
-                    return
-                }
-                Task { await loginWithGoogle() }
+                requireConsent(then: .google)
             } label: {
                 Label("Google 登录".zh, systemImage: "globe")
                     .frame(maxWidth: .infinity)
@@ -322,17 +323,13 @@ struct LoginSheetView: View {
                 LoginNumberField(text: $code, placeholder: "验证码")
                     .loginFieldChrome()
                 Button(cooldownSec > 0 ? "\(cooldownSec)s" : "发送验证码".zh) {
-                    Task { await sendEmailCode() }
+                    requireConsent(then: .sendEmailCode)
                 }
                 .buttonStyle(.bordered)
                 .disabled(isSendingCode || cooldownSec > 0 || !isValidEmail(email))
             }
             Button("邮箱登录".zh) {
-                guard agreed else {
-                    errorMessage = "请先勾选并同意用户协议与隐私政策"
-                    return
-                }
-                Task { await loginByEmail() }
+                requireConsent(then: .emailLogin)
             }
             .buttonStyle(.borderedProminent)
             .tint(AppTheme.accent)
@@ -398,6 +395,44 @@ struct LoginSheetView: View {
                     }
             }
         }
+        .alert("请先同意协议".zh, isPresented: $showConsentAlert) {
+            Button("取消".zh, role: .cancel) {
+                pendingAction = nil
+            }
+            Button("同意并继续".zh) {
+                agreed = true
+                let action = pendingAction
+                pendingAction = nil
+                if let action {
+                    Task { await perform(action) }
+                }
+            }
+        } message: {
+            Text("登录前需同意《用户协议》和《隐私政策》。点击「同意并继续」即表示你已阅读并同意。".zh)
+        }
+    }
+
+    private func requireConsent(then action: PendingAction) {
+        if agreed {
+            Task { await perform(action) }
+            return
+        }
+        pendingAction = action
+        showConsentAlert = true
+    }
+
+    @MainActor
+    private func perform(_ action: PendingAction) async {
+        switch action {
+        case .apple(let identityToken, let fullName):
+            await loginWithApple(identityToken: identityToken, fullName: fullName)
+        case .google:
+            await loginWithGoogle()
+        case .sendEmailCode:
+            await sendEmailCode()
+        case .emailLogin:
+            await loginByEmail()
+        }
     }
 
     private func isValidEmail(_ raw: String) -> Bool {
@@ -407,10 +442,6 @@ struct LoginSheetView: View {
     }
 
     private func sendEmailCode() async {
-        guard agreed else {
-            errorMessage = "请先勾选并同意用户协议与隐私政策"
-            return
-        }
         let trimmedEmail = email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         guard isValidEmail(trimmedEmail) else {
             errorMessage = "请输入正确邮箱"

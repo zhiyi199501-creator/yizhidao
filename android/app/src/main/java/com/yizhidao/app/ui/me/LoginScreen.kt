@@ -16,6 +16,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Language
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Switch
@@ -53,6 +54,12 @@ import com.yizhidao.app.ui.theme.Text
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
+private enum class PendingLoginAction {
+    Google,
+    SendEmailCode,
+    EmailLogin,
+}
+
 @Composable
 fun LoginScreen(
     authStore: LocalAuthStore,
@@ -66,6 +73,8 @@ fun LoginScreen(
     var isSendingCode by remember { mutableStateOf(false) }
     var isLoggingIn by remember { mutableStateOf(false) }
     var cooldownSec by remember { mutableIntStateOf(0) }
+    var pendingAction by remember { mutableStateOf<PendingLoginAction?>(null) }
+    var showConsentDialog by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     val focusManager = LocalFocusManager.current
     val keyboard = LocalSoftwareKeyboardController.current
@@ -91,6 +100,72 @@ fun LoginScreen(
         onSuccess()
     }
 
+    fun perform(action: PendingLoginAction) {
+        when (action) {
+            PendingLoginAction.Google -> {
+                scope.launch {
+                    isLoggingIn = true
+                    try {
+                        val idToken = GoogleSignInHelper.signIn(context)
+                        val resp = AuthApi.loginWithGoogle(idToken)
+                        saveSession(resp)
+                    } catch (e: Exception) {
+                        errorMessage = AuthApi.describe(e)
+                    } finally {
+                        isLoggingIn = false
+                    }
+                }
+            }
+            PendingLoginAction.SendEmailCode -> {
+                val trimmed = email.trim()
+                if (!isValidEmail(trimmed)) {
+                    errorMessage = "请输入正确邮箱"
+                    return
+                }
+                scope.launch {
+                    isSendingCode = true
+                    try {
+                        val resp = AuthApi.sendEmailCode(trimmed)
+                        cooldownSec = resp.cooldownSec.coerceAtLeast(0)
+                        errorMessage = "验证码已发送"
+                    } catch (e: Exception) {
+                        errorMessage = AuthApi.describe(e)
+                    } finally {
+                        isSendingCode = false
+                    }
+                }
+            }
+            PendingLoginAction.EmailLogin -> {
+                val trimmedEmail = email.trim()
+                val trimmedCode = code.trim()
+                if (!isValidEmail(trimmedEmail) || trimmedCode.isEmpty()) {
+                    errorMessage = "请输入邮箱和验证码"
+                    return
+                }
+                scope.launch {
+                    isLoggingIn = true
+                    try {
+                        val resp = AuthApi.loginByEmail(trimmedEmail, trimmedCode)
+                        saveSession(resp, trimmedEmail)
+                    } catch (e: Exception) {
+                        errorMessage = AuthApi.describe(e)
+                    } finally {
+                        isLoggingIn = false
+                    }
+                }
+            }
+        }
+    }
+
+    fun requireConsent(action: PendingLoginAction) {
+        if (agreed) {
+            perform(action)
+            return
+        }
+        pendingAction = action
+        showConsentDialog = true
+    }
+
     Column(
         Modifier
             .fillMaxSize()
@@ -114,24 +189,7 @@ fun LoginScreen(
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             PaperPrimaryButton(
-                onClick = {
-                    if (!agreed) {
-                        errorMessage = "请先勾选并同意用户协议与隐私政策"
-                        return@PaperPrimaryButton
-                    }
-                    scope.launch {
-                        isLoggingIn = true
-                        try {
-                            val idToken = GoogleSignInHelper.signIn(context)
-                            val resp = AuthApi.loginWithGoogle(idToken)
-                            saveSession(resp)
-                        } catch (e: Exception) {
-                            errorMessage = AuthApi.describe(e)
-                        } finally {
-                            isLoggingIn = false
-                        }
-                    }
-                },
+                onClick = { requireConsent(PendingLoginAction.Google) },
                 enabled = !isLoggingIn && GoogleSignInHelper.isConfigured,
                 label = if (isLoggingIn) "登录中…" else "Google 登录",
                 leading = {
@@ -202,58 +260,14 @@ fun LoginScreen(
                     ),
                 )
                 PaperOutlinedButton(
-                    onClick = {
-                        if (!agreed) {
-                            errorMessage = "请先勾选并同意用户协议与隐私政策"
-                            return@PaperOutlinedButton
-                        }
-                        val trimmed = email.trim()
-                        if (!isValidEmail(trimmed)) {
-                            errorMessage = "请输入正确邮箱"
-                            return@PaperOutlinedButton
-                        }
-                        scope.launch {
-                            isSendingCode = true
-                            try {
-                                val resp = AuthApi.sendEmailCode(trimmed)
-                                cooldownSec = resp.cooldownSec.coerceAtLeast(0)
-                                errorMessage = "验证码已发送"
-                            } catch (e: Exception) {
-                                errorMessage = AuthApi.describe(e)
-                            } finally {
-                                isSendingCode = false
-                            }
-                        }
-                    },
+                    onClick = { requireConsent(PendingLoginAction.SendEmailCode) },
                     enabled = !isSendingCode && cooldownSec <= 0 && isValidEmail(email.trim()),
                     label = if (cooldownSec > 0) "${cooldownSec}s" else "发送验证码",
                 )
             }
 
             PaperPrimaryButton(
-                onClick = {
-                    if (!agreed) {
-                        errorMessage = "请先勾选并同意用户协议与隐私政策"
-                        return@PaperPrimaryButton
-                    }
-                    val trimmedEmail = email.trim()
-                    val trimmedCode = code.trim()
-                    if (!isValidEmail(trimmedEmail) || trimmedCode.isEmpty()) {
-                        errorMessage = "请输入邮箱和验证码"
-                        return@PaperPrimaryButton
-                    }
-                    scope.launch {
-                        isLoggingIn = true
-                        try {
-                            val resp = AuthApi.loginByEmail(trimmedEmail, trimmedCode)
-                            saveSession(resp, trimmedEmail)
-                        } catch (e: Exception) {
-                            errorMessage = AuthApi.describe(e)
-                        } finally {
-                            isLoggingIn = false
-                        }
-                    }
-                },
+                onClick = { requireConsent(PendingLoginAction.EmailLogin) },
                 enabled = !isLoggingIn && isValidEmail(email.trim()) && code.isNotBlank(),
                 label = if (isLoggingIn) "登录中…" else "邮箱登录",
             )
@@ -299,6 +313,43 @@ fun LoginScreen(
                 )
             }
         }
+    }
+
+    if (showConsentDialog) {
+        AlertDialog(
+            onDismissRequest = {
+                showConsentDialog = false
+                pendingAction = null
+            },
+            title = { Text("请先同意协议") },
+            text = {
+                Text("登录前需同意《用户协议》和《隐私政策》。点击「同意并继续」即表示你已阅读并同意。")
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        agreed = true
+                        val action = pendingAction
+                        pendingAction = null
+                        showConsentDialog = false
+                        if (action != null) perform(action)
+                    },
+                ) {
+                    Text("同意并继续", color = AppTheme.accent)
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        showConsentDialog = false
+                        pendingAction = null
+                    },
+                ) {
+                    Text("取消", color = AppTheme.secondaryText)
+                }
+            },
+            containerColor = AppTheme.parchmentTop,
+        )
     }
 }
 
