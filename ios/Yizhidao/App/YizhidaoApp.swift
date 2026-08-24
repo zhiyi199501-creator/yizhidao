@@ -1,7 +1,6 @@
 import SwiftUI
 import SwiftData
 import WebKit
-import GoogleSignIn
 
 @main
 struct YizhidaoApp: App {
@@ -20,15 +19,11 @@ struct YizhidaoApp: App {
         _ = HexagramStore.shared
         _ = ImaExplanationStore.shared
         TapSoundPlayer.shared.prepare()
-        OAuthSignIn.configureGoogleIfNeeded()
     }
 
     var body: some Scene {
         WindowGroup {
             RootTabView()
-                .onOpenURL { url in
-                    _ = GIDSignIn.sharedInstance.handle(url)
-                }
         }
         .modelContainer(sharedModelContainer)
     }
@@ -107,7 +102,7 @@ struct MyMenuView: View {
                                 .foregroundStyle(.secondary)
                             VStack(alignment: .leading, spacing: 2) {
                                 Text("未登录".zh)
-                                Text("支持 Apple / Google / 邮箱登录".zh)
+                                Text("支持 Apple / 邮箱登录".zh)
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
                             }
@@ -246,7 +241,6 @@ enum LocalAuthStore {
 struct LoginSheetView: View {
     private enum PendingAction {
         case apple(identityToken: String, fullName: String?)
-        case google
         case sendEmailCode
         case emailLogin
     }
@@ -290,21 +284,6 @@ struct LoginSheetView: View {
             .disabled(isLoggingIn)
             .opacity(isLoggingIn ? 0.6 : 1)
 
-            Button {
-                requireConsent(then: .google)
-            } label: {
-                Label("Google 登录".zh, systemImage: "globe")
-                    .frame(maxWidth: .infinity)
-            }
-            .buttonStyle(.borderedProminent)
-            .tint(AppTheme.accent)
-            .disabled(isLoggingIn || !AuthConfig.isGoogleConfigured)
-
-            if !AuthConfig.isGoogleConfigured {
-                Text("Google 登录需在 AuthConfig.swift 配置 Client ID".zh)
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
-            }
 
             HStack {
                 Rectangle().fill(Color.black.opacity(0.1)).frame(height: 1)
@@ -426,8 +405,6 @@ struct LoginSheetView: View {
         switch action {
         case .apple(let identityToken, let fullName):
             await loginWithApple(identityToken: identityToken, fullName: fullName)
-        case .google:
-            await loginWithGoogle()
         case .sendEmailCode:
             await sendEmailCode()
         case .emailLogin:
@@ -487,17 +464,6 @@ struct LoginSheetView: View {
         }
     }
 
-    private func loginWithGoogle() async {
-        isLoggingIn = true
-        defer { isLoggingIn = false }
-        do {
-            let idToken = try await OAuthSignIn.signInWithGoogle()
-            let resp = try await AuthAPI.loginWithGoogle(idToken: idToken)
-            onSuccess(session(from: resp))
-        } catch {
-            errorMessage = LoginError.describe(error)
-        }
-    }
 
     private func session(from resp: AuthAPI.LoginResponse, email: String? = nil) -> LocalUserSession {
         LocalUserSession(
@@ -624,17 +590,6 @@ enum AuthAPI {
         return decoded
     }
 
-    static func loginWithGoogle(idToken: String) async throws -> LoginResponse {
-        var req = jsonRequest(path: "v1/auth/google", method: "POST")
-        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        req.httpBody = try JSONSerialization.data(withJSONObject: ["idToken": idToken])
-        let (data, response) = try await session.data(for: req)
-        guard let http = response as? HTTPURLResponse else { throw LoginError.network("网络异常") }
-        guard (200..<300).contains(http.statusCode) else { throw decodeError(data, fallback: "Google 登录失败") }
-        let decoded = try JSONDecoder().decode(LoginResponse.self, from: data)
-        guard decoded.ok else { throw LoginError.network("Google 登录失败") }
-        return decoded
-    }
 
     struct MeResponse: Decodable {
         struct User: Decodable {

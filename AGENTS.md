@@ -61,7 +61,7 @@ cd android && ./gradlew :engines:test
 
 **旧海外机（遗留）**：`43.128.104.104` / `yd.codedance.work` 仍开 h3，易知道 API 已迁出。
 
-**试用登录（Debug）**：邮箱白名单 `test@example.com` / `123456`（`EMAIL_PROVIDER=mock`）。Release 登录：**Apple / Google / 邮箱验证码**（见 `backend/README.md` 控制台配置）。短信接口仍保留在后端，App 登录页不再展示。
+**试用登录（Debug）**：邮箱白名单 `test@example.com` / `123456`（`EMAIL_PROVIDER=mock`）。Release 登录：iOS **Apple / 邮箱**，Android **Google / 邮箱**（见 `backend/README.md`）。短信接口仍保留在后端，App 登录页不再展示。
 
 **App Store（进行中）**：Connect 已有 App `com.yizhidao.app`（id `6804203617`）；品牌名 **易玩家**；**定价与可用性排除中国大陆**。法律 URL：`https://api.yiwanjia.work/{privacy,terms,support}`。待：TestFlight、IAP、提审。
 
