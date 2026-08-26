@@ -4,12 +4,12 @@
 
 | 角色 | 域名 | 服务器 | 说明 |
 |---|---|---|---|
-| **App Release（现役）** | `https://api.yiwanjia.work` | `124.156.192.137`（SSH `yiwanjia`） | 仅海外上架；Docker + `Caddyfile.overseas`；**H2-only** |
+| **App Release（现役）** | `https://api.yiwanjia.work` | `124.156.192.137`（SSH `yiwanjia`） | 仅海外上架；H2-only |
+| **同机备用名** | `https://v1.yiwanjia.work` | 同上 | 仍指向同一 API；App 不再使用 |
 | **国内后端（遗留，App 不用）** | `https://yzd.codedance.work` | `119.91.239.58`（SSH `yizhidao`） | 运维保留；现役 App 不连 |
-| **旧海外机（遗留）** | `yd.codedance.work` 等 | `43.128.104.104` | 与 videograb 共用系统 Caddy，**仍开 HTTP/3**；勿改 App 指回 |
-| **iPhone 11 已废** | `yizhidao.codedance.work` / `yzh.codedance.work` | — | 勿换证、勿关 h3 救场 |
+| **旧海外机（遗留）** | `yd.codedance.work` 等 | `43.128.104.104` | 与 videograb 共用系统 Caddy；2026-08-26 改为 **H2-only**（实测关代理不通、开代理通） |
 
-**现役核验（2026-08-24）**：`GET https://api.yiwanjia.work/health` 200；`/privacy` `/terms` `/support` 200；响应 **HTTP/2**（经 Cloudflare 时 `via: Caddy` 仍可见）。
+**现役核验（2026-08-26）**：`GET https://api.yiwanjia.work/health` 200；`/privacy` `/terms` `/support` 200；响应 **HTTP/2**，无 `alt-svc`。
 
 镜像把 `Hexagrams.json` 拷到 `/app/data/`（与 SQLite 同卷，**重建镜像不会自动刷新经文**）。`cases.json` 默认在镜像 `/app/app/data/`；若 data 卷存在 `/app/data/cases.json` 则优先（热更新不必重建）。可用 `CASES_PATH` 覆盖。
 
@@ -76,7 +76,7 @@ curl -s https://yzd.codedance.work/health
 ```bash
 cd ~/yizhidao/backend
 docker compose -f docker-compose.prod.yml up -d --build
-curl https://yd.codedance.work/health   # 仍开 h3，勿给 iPhone 11 当正式 Release
+curl https://yd.codedance.work/health   # 2026-08-26 起 H2-only；遗留对照，勿给 App 当 Release
 ```
 
 公网 IP 的 HTTP 进 videograb 用 `http://43.128.104.104`；**不要**写 `:80` 通配，否则抢走 ACME。
@@ -102,18 +102,15 @@ docker compose cp ../ios/Yizhidao/Resources/cases.json api:/app/data/cases.json
 ### App 真机 Release 连不上
 
 - Release 基址：`https://api.yiwanjia.work`（Connect 排除中国大陆）
+- 国内 iPhone 11 蜂窝直连失败时先开代理，不要换子域/换证
 - Debug 走局域网 IP；Xcode / Android Studio 须 **Release** 变体
 - 安卓须 **Cronet**，勿用 `HttpURLConnection`；**不要** `addQuicHint`
 
-### iPhone 11 / HTTP/3
+### iPhone 11 / 国内直连
 
-失败按**主机名**记住。旧海外机 `yd` 仍发 `Alt-Svc: h3`——**不要**对其关 UDP 443。
+**2026-08-26 纠正**：失败主要是国内蜂窝直连该 IP 的 443（开代理即通），不是「关 HTTP/3 后主机名永久报废」。`api.yiwanjia.work` 开代理可通；`yd` 关掉 h3 后关代理不通、开代理仍通。不要用轮换子域救场。
 
-**国内新服务器**：从第一天 `protocols h1 h2`（或新域名不广告 h3）。新主机名无 Alt-Svc 缓存，Safari / URLSession 走 TCP/H2。
-
-已废主机名：`yizhidao` / `yzh`（部分 iPhone 11）；不要换 CA 救场。应急用**全新**子域或迁新服务器。
-
-验收：改 Caddy/证书后 **iPhone 11 Safari** 开 `/health`，确认 HTTP/2、无 `alt-svc`，再装 Release。
+现役 `api.yiwanjia.work` H2-only。国内 iPhone 11 验收用代理（TUN 全局，API 域名走代理）。海外用户直连即可。
 
 ### Android / Cronet
 

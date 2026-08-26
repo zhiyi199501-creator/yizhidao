@@ -7,7 +7,8 @@
 	}
 }
 
-api.yiwanjia.work {
+(api_proxy) {
+	header -Alt-Svc
 	encode gzip
 	handle {
 		reverse_proxy api:8080 {
@@ -17,4 +18,20 @@ api.yiwanjia.work {
 			}
 		}
 	}
+}
+
+# 现役 App 基址（H2-only）。国内蜂窝直连 iPhone 11 不稳，开代理可通。
+api.yiwanjia.work {
+	tls {
+		key_type rsa2048
+	}
+	import api_proxy
+}
+
+# 同机备用名，App 不再指向。
+v1.yiwanjia.work {
+	tls {
+		key_type rsa2048
+	}
+	import api_proxy
 }
