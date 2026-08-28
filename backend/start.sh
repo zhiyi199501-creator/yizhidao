@@ -31,7 +31,7 @@ if [[ ! -f .env ]]; then
 fi
 
 echo ""
-echo "易知道后端启动中"
+echo "易玩家后端启动中"
 echo "  本地地址   http://127.0.0.1:${PORT}"
 echo "  接口文档   http://127.0.0.1:${PORT}/docs"
 echo "  开发验证码 见 .env 中 DEV_SMS_FIXED_CODE（默认 123456）"
