@@ -1,4 +1,4 @@
-# 方式 A（Docker 内 Caddy）。H2-only。现役 yzd；备案通过后加 yizhidao.work 站点块。
+# 国内遗留机（yzd.codedance.work）。H2-only。现役 App 不连此文件；新加坡用 Caddyfile.overseas。
 {
 	servers {
 		protocols h1 h2

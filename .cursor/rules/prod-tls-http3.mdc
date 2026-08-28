@@ -12,6 +12,7 @@ iOS / Android **Release 现役**：`https://api.yiwanjia.work`（新加坡 `124.
 ## 禁止
 
 - 用轮换子域 / 换证「救」国内 iPhone 11 直连。开代理就能通的名字没有废。
+- Cloudflare **橙云** / 任何 CDN 代理生产 API 域（边缘会再开 h3、发 `Alt-Svc`、换证书链）。解析只 DNS-only（灰云），A 直指源站。
 - 只在 Mac / iPhone 17 上验收国内蜂窝。
 - 让国内真机把 DNS 改成 `8.8.8.8`（常被墙，整网超时）。
 - 安卓禁止用 `HttpURLConnection` 打生产域名；禁止 `addQuicHint` 指生产域。现役走 Cronet。
@@ -24,4 +25,4 @@ iOS / Android **Release 现役**：`https://api.yiwanjia.work`（新加坡 `124.
 - 海外用户、审核不走这条蜂窝，直连即可。
 - Debug 真机走局域网 IP；Release Build Variant 才会打到生产 HTTPS。
 
-细节见 `docs/deploy.md`「iPhone 11 / 国内直连」和「Android / Cronet」。
+细节见 `docs/deploy.md`「DNS」「iPhone 11 / 国内直连」和「Android / Cronet」。

@@ -1,3 +1,6 @@
+# 独占 80/443 时用（Docker 内 Caddy）。挂载 ./Caddyfile：
+# 新加坡现役须先 cp Caddyfile.overseas Caddyfile；仓库默认 Caddyfile 是国内 yzd。
+# 与系统 Caddy 共用端口时改用 docker-compose.prod.yml（遗留机，不是新加坡现役）。
 services:
   api:
     build:
