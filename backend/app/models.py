@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Optional
 
-from sqlalchemy import Boolean, DateTime, String, func
+from sqlalchemy import Boolean, DateTime, Index, Integer, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db import Base
@@ -17,6 +17,7 @@ class User(Base):
     google_sub: Mapped[Optional[str]] = mapped_column(String(255), unique=True, index=True, nullable=True)
     nickname: Mapped[str] = mapped_column(String(64))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    last_login_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
 
 
 class SMSCode(Base):
@@ -39,3 +40,43 @@ class EmailCode(Base):
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     used: Mapped[bool] = mapped_column(Boolean, default=False, server_default="0")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class AIUsageEvent(Base):
+    """AI 调用用量。禁止写入所问、解读正文、追问对话。"""
+
+    __tablename__ = "ai_usage_events"
+    __table_args__ = (
+        Index("ix_ai_usage_events_created_at", "created_at"),
+        Index("ix_ai_usage_events_user_created", "user_id", "created_at"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    user_id: Mapped[str] = mapped_column(String(36), index=True)
+    kind: Mapped[str] = mapped_column(String(16))
+    ok: Mapped[bool] = mapped_column(Boolean, default=False, server_default="0")
+    error_code: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    latency_ms: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    prompt_tokens: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    completion_tokens: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    model: Mapped[str] = mapped_column(String(128), default="", server_default="")
+    method: Mapped[Optional[str]] = mapped_column(String(32), nullable=True)
+
+
+class ContentCase(Base):
+    """案例工作副本。未发布前不影响 GET /v1/cases。"""
+
+    __tablename__ = "content_cases"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    file: Mapped[str] = mapped_column(String(128), unique=True, index=True)
+    hexagram: Mapped[str] = mapped_column(String(32))
+    position: Mapped[str] = mapped_column(String(64), default="卦辞", server_default="卦辞")
+    background: Mapped[str] = mapped_column(Text, default="", server_default="")
+    question: Mapped[str] = mapped_column(Text, default="", server_default="")
+    casting: Mapped[str] = mapped_column(Text, default="", server_default="")
+    explanation: Mapped[str] = mapped_column(Text, default="", server_default="")
+    verification: Mapped[str] = mapped_column(Text, default="", server_default="")
+    number: Mapped[int] = mapped_column(Integer, default=0, server_default="0", index=True)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

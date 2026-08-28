@@ -122,7 +122,7 @@ cd backend && .venv/bin/python -m unittest
 .venv/bin/python scripts/eval_ai_reading.py --dry-run
 ```
 
-样本在 `backend/tests/eval_fixtures.py`。live 结果写到 `backend/.eval/`（gitignore，勿提交）。看：JSON 是否完整、是否扣所问、有没有整段抄黄庭或套案例原事、主看卦辞时有没有大讲某爻、4 动案例是否来自之卦、追问有没有这一轮建议。
+样本在 `backend/tests/eval_fixtures.py`（假问题，不是用户数据）。后台「抽检」跑同一套槽位检查，可选按现役 `AI_MODE` 出卡，不写 `ai_usage_events`。CLI live 结果写到 `backend/.eval/`（gitignore，勿提交）。看：JSON 是否完整、是否扣所问、有没有整段抄黄庭或套案例原事、主看卦辞时有没有大讲某爻、4 动案例是否来自之卦、追问有没有这一轮建议。
 
 **2026-08-28 本机抽检**（`deepseek-v4-flash`，约 2 分钟、9 次调用）：卡片齐全，兑上案例封顶 3 则，0/3/6 动未附爻位案例，跳槽所问与追问（对方反对／挽留）都落到具体建议，未见讲座人名或「思考过程」。轻问题：0 动须防仍引用未动之爻（来兑／孚于剥），因经文块仍附全六爻；3 动当下仍写初九／九三，卦辞主看未贯彻到「当下」卡。当时追问 prompt 约 4k token（全文重喂）。同日追问改为短上下文后再打 career 一条：followup prompt **776** token（初次仍约 3800），答复仍扣挽留／反对并带建议。
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""把 App 内 cases.json 导出成可编辑的 Excel（案例编辑表.xlsx）。"""
+"""遗留：把 cases.json 导出成 Excel。日常导出走 admin/「案例」下载 JSON。"""
 from pathlib import Path
 
 from openpyxl import Workbook

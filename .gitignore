@@ -17,6 +17,8 @@ ios/Yizhidao/Resources/AppIcon-source.png
 backend/.venv/
 backend/.env
 backend/*.db
+admin/node_modules/
+admin/dist/
 /cases_raw/
 /data/
 /张庆祥讲易经案例_txt/

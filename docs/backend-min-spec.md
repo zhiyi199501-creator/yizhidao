@@ -182,3 +182,4 @@
 - 发短信/邮箱验证码另有冷却，同用 `4290`
 - 分环境密钥（dev/staging/prod）
 - 勿将 `backend/.env`、密钥提交进仓库
+- 内部运营后台 `/admin/` 与 `/v1/admin/*` 不是 App 合同，见 [`deploy.md`](deploy.md)

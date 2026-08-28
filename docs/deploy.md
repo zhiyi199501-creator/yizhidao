@@ -97,11 +97,38 @@ curl https://yd.codedance.work/health   # 2026-08-26 起 H2-only；遗留对照�
 
 **国内遗留机**：`ssh yizhidao` + 同上（仅运维对照）。
 
-**更新案例**（App 下次打开「案例」即拉取；在对应机 `backend/` 下执行）：
+**更新案例**（App 下次打开「案例」即 `GET /v1/cases` 全量替换）：
+
+- **现役生产（2026-08-28 实测 `/admin/` 与 `/v1/admin/cases` 均 404）**：镜像尚未含运营后台。在对应机 `backend/`：
 
 ```bash
 docker compose cp ../ios/Yizhidao/Resources/cases.json api:/app/data/cases.json
 ```
+
+- **本仓库代码（镜像含此后台后）**：在 `/admin/`「案例」改 SQLite 工作副本再点**发布**（Docker 写 `/app/data/cases.json`，新 `version` 立刻给 App）。导出 JSON 提交包内文件，供下次发 App。可选导入旧 xlsx / JSON；Excel 不再当日常编辑器。
+
+## 运营后台
+
+本仓库 `admin/`：用量看板 + 案例 CMS + 黄庭改 `answer` + 经文只读 + 夹具抽检。不上架、不进 App。两道门：Caddy `basic_auth` + FastAPI `ADMIN_PASSWORD`（Cookie）。用户所问与解读正文不展示、不入库。抽检只用 `backend/tests/eval_fixtures.py`。
+
+**2026-08-28 生产 `https://api.yiwanjia.work/admin/` 404**（第一版看板也未发）。合入并 `docker compose up -d --build` 之后才有这些页。黄庭保存后服务端 AI 立刻用新稿，App 点经文弹层要下次发版；不要跑 `scripts/export_ima_explanations.py`（会覆盖手改）。
+
+1. 生产 `.env` 设强随机 `ADMIN_PASSWORD`（与 App 用户无关）
+2. 生成 Caddy 口令哈希（**必须是有效 bcrypt**；空哈希可能让 Caddy 起不来、连 App API 一起挂）。`.env` 里把哈希里的 `$` 写成 `$$`：
+
+```bash
+ssh yiwanjia 'cd ~/yizhidao/backend && sudo docker compose exec caddy caddy hash-password --plaintext '"'"'另一组强密码'"'"''
+# 输出形如 $2a$14$... ；写入 .env 时每个 $ 加倍：ADMIN_BASIC_HASH=$$2a$$14$$...
+# ADMIN_BASIC_USER=admin
+# 仓库示例默认口令是 change-me-basic，生产必须换掉
+sudo docker compose up -d --build --force-recreate
+```
+
+3. 浏览器先弹 HTTP Basic，再进网页登录。改 `.env` 后 API 也要 `--force-recreate` 才会读到 `ADMIN_PASSWORD`。
+
+可选：`AI_USD_PER_1M_PROMPT_TOKENS` / `AI_USD_PER_1M_COMPLETION_TOKENS` 用来粗估花费；不配只显示 token。
+
+本地：`ADMIN_PASSWORD` + `cd admin && npm run dev` → `http://127.0.0.1:5173/admin/`（Vite 代理 `/v1`，无 Caddy 那一层）。
 
 ## 常见问题
 
@@ -136,6 +163,7 @@ docker compose cp ../ios/Yizhidao/Resources/cases.json api:/app/data/cases.json
 - [x] 未把 `.env` 提交进 Git
 - [x] 海外现役 `SMS_PROVIDER=mock`（App 无短信入口；勿开 `ALLOW_INSECURE_MOCK_SMS`）
 - [x] `https://api.yiwanjia.work/{privacy,terms,support}` 可访问（Connect 法律 URL）
+- [ ] 运营后台：生产 `ADMIN_PASSWORD` 与 Caddy `ADMIN_BASIC_HASH` 换成强密码（勿留 `dev-admin` / `change-me-basic`）
 - [x] App **不上中国区** → 现役路径 **无需 ICP**；基址保持 `api.yiwanjia.work`
 - [x] Apple / 邮箱登录（客户端 + 后端）；生产邮箱 SMTP（Resend，2026-08-24 已 live：`email_provider=smtp`）
 - [ ] Android Google：生产 `GOOGLE_CLIENT_IDS` 与 `GOOGLE_WEB_CLIENT_ID`

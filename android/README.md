@@ -34,7 +34,7 @@ cd android
 
 `applicationId`：`com.yizhidao.app`。Release API：`https://api.yiwanjia.work`（仅海外 Google Play；**不上架国内商店**）。生产 HTTPS 必须走 **Cronet**，不要 `addQuicHint`，不要改回 `HttpURLConnection`。
 
-经文／案例／入门／IMA 讲解 JSON 构建时从 `ios/Yizhidao/Resources/` 拷贝（`copyIosAssets`），勿在 `android/` 另维护一份。**不含** `Zhengshi.json`（安卓暂无证释入口）。重新导出讲解：`python3 scripts/export_ima_explanations.py`（会覆盖包内 JSON；脚注／「思考过程」／表格在 `ImaAnswerFormatter` 运行时清洗，不要为此重跑导出）。App 单测：`./gradlew :app:testDebugUnitTest`。Release 侧载包：`arm64-v8a` + R8 minify（约 10MB）。
+经文／案例／入门／IMA 讲解 JSON 构建时从 `ios/Yizhidao/Resources/` 拷贝（`copyIosAssets`），勿在 `android/` 另维护一份。**不含** `Zhengshi.json`（安卓暂无证释入口）。服务端讲解走运营后台「黄庭」（立刻影响 AI）；App 弹层读包内 JSON，要发版。`python3 scripts/export_ima_explanations.py` 会覆盖手改，改过后别跑。脚注／「思考过程」／表格在 `ImaAnswerFormatter` 运行时清洗。App 单测：`./gradlew :app:testDebugUnitTest`。Release 侧载包：`arm64-v8a` + R8 minify（约 10MB）。
 
 ## 连生产
 

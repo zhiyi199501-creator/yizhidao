@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""读回用户编辑后的「案例编辑表.xlsx」，生成新 cases.json
+"""遗留：读「案例编辑表.xlsx」生成 cases.json。日常改案例走 admin/「案例」导入或网页编辑。
 
 - 用 zipfile 直接解 XML 读（绕开 WPS 保存后 openpyxl 的样式兼容问题）
 - 根据「卦名」重新关联卦号 number
