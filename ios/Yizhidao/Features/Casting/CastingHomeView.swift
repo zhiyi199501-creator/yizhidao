@@ -27,7 +27,7 @@ struct CastingHomeView: View {
                     castingRitualSection
 
                     HStack(alignment: .top, spacing: 6) {
-                        TextField("所问何事（可选）", text: $question, axis: .vertical)
+                        TextField("所问何事（必填）", text: $question, axis: .vertical)
                             .lineLimit(2...5)
                         if !question.isEmpty {
                             Button {

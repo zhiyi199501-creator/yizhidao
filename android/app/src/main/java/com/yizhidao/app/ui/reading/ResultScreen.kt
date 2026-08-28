@@ -180,7 +180,7 @@ fun ResultScreen(
                                 }
                             },
                             modifier = Modifier.fillMaxWidth(),
-                            placeholder = "所问何事（可选）",
+                            placeholder = "所问何事",
                             singleLine = false,
                             minLines = 2,
                             maxLines = 5,
@@ -242,7 +242,7 @@ fun ResultScreen(
                                 }
                             },
                             modifier = Modifier.fillMaxWidth(),
-                            placeholder = "验证结果（可选）",
+                            placeholder = "验证结果",
                             singleLine = false,
                             minLines = 2,
                             maxLines = 5,

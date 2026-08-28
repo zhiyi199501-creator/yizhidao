@@ -9,6 +9,10 @@ struct CoinCastView: View {
 
     private var filledCount: Int { lines.compactMap { $0 }.count }
 
+    private var questionReady: Bool {
+        !question.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("三钱摇六次，自下而上成卦。字面为阳，背面为阴；也可点「选」手选四象。".zh)
@@ -84,7 +88,7 @@ struct CoinCastView: View {
             }
             .buttonStyle(.borderedProminent)
             .tint(AppTheme.accent)
-            .disabled(filledCount < 6)
+            .disabled(!questionReady || filledCount < 6)
         }
     }
 
@@ -124,9 +128,13 @@ struct CoinCastView: View {
             return
         }
         let q = question.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !q.isEmpty else {
+            errorMessage = "请填写所问何事"
+            return
+        }
         let result = CoinCastingEngine.cast(
             lines: resolved,
-            question: q.isEmpty ? nil : q,
+            question: q,
             at: .now
         )
         onResult(result)

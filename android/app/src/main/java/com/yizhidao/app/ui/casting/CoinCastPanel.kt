@@ -47,6 +47,7 @@ fun CoinCastPanel(
     var error by remember { mutableStateOf<String?>(null) }
     val rng = remember { SecureRandomSource() }
     val filled = lines.count { it != null }
+    val questionReady = question.trim().isNotEmpty()
 
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -96,10 +97,14 @@ fun CoinCastPanel(
                     error = "请摇满六爻"
                     return@PaperPrimaryButton
                 }
-                val q = question.trim().ifEmpty { null }
+                val q = question.trim()
+                if (q.isEmpty()) {
+                    error = "请填写所问何事"
+                    return@PaperPrimaryButton
+                }
                 onResult(CoinCastingEngine.cast(resolved, q))
             },
-            enabled = filled == 6,
+            enabled = questionReady && filled == 6,
             label = "起卦",
         )
     }

@@ -128,7 +128,7 @@ fun CastingHomeScreen(
             value = question,
             onValueChange = { question = it },
             modifier = Modifier.fillMaxWidth(),
-            placeholder = "所问何事（可选）",
+            placeholder = "所问何事（必填）",
             singleLine = false,
             minLines = 2,
             maxLines = 5,

@@ -122,7 +122,7 @@ struct ResultView: View {
                 .font(.footnote)
                 .foregroundStyle(.secondary)
             if editableRecord != nil {
-                    TextField("所问何事（可选）", text: $questionText, axis: .vertical)
+                    TextField("所问何事", text: $questionText, axis: .vertical)
                         .lineLimit(2...5)
                         .appTextFieldStyle()
                         .onChange(of: questionText) { _, newValue in
@@ -154,7 +154,7 @@ struct ResultView: View {
             .onChange(of: verificationStatus) { _, newValue in
                 persistVerification(status: newValue, note: verificationNote)
             }
-            TextField("验证结果（可选）", text: $verificationNote, axis: .vertical)
+            TextField("验证结果", text: $verificationNote, axis: .vertical)
                 .lineLimit(2...5)
                 .appTextFieldStyle()
                 .onChange(of: verificationNote) { _, newValue in

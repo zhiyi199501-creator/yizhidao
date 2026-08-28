@@ -57,8 +57,12 @@ struct DigitalCastView: View {
             }
             .buttonStyle(.borderedProminent)
             .tint(AppTheme.accent)
-            .disabled(mode == .threeNumbers && !threeNumbersReady)
+            .disabled(!questionReady || (mode == .threeNumbers && !threeNumbersReady))
         }
+    }
+
+    private var questionReady: Bool {
+        !question.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
     private var threeNumbersReady: Bool {
@@ -212,7 +216,10 @@ struct DigitalCastView: View {
     private func cast() {
         errorMessage = nil
         let q = question.trimmingCharacters(in: .whitespacesAndNewlines)
-        let questionValue = q.isEmpty ? nil : q
+        guard !q.isEmpty else {
+            errorMessage = "请填写所问何事"
+            return
+        }
 
         switch mode {
         case .threeNumbers:
@@ -224,7 +231,7 @@ struct DigitalCastView: View {
                 number1: a,
                 number2: b,
                 number3: c,
-                question: questionValue,
+                question: q,
                 at: .now
             )
             onResult(result)
@@ -237,7 +244,7 @@ struct DigitalCastView: View {
                 month: comps.month,
                 day: comps.day,
                 hour: comps.hourBranch,
-                question: questionValue,
+                question: q,
                 at: selectedDate
             )
             onResult(result)

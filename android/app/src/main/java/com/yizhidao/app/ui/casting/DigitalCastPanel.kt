@@ -72,6 +72,7 @@ fun DigitalCastPanel(
     val rng = remember { SecureRandomSource() }
 
     val ready = listOf(n1, n2, n3).all { it.toIntOrNull()?.let { n -> n > 0 } == true }
+    val questionReady = question.trim().isNotEmpty()
 
     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
         PaperSegmentedRow(
@@ -185,7 +186,11 @@ fun DigitalCastPanel(
         PaperPrimaryButton(
             onClick = {
                 error = null
-                val q = question.trim().ifEmpty { null }
+                val q = question.trim()
+                if (q.isEmpty()) {
+                    error = "请填写所问何事"
+                    return@PaperPrimaryButton
+                }
                 if (threeNumbers) {
                     val a = n1.toIntOrNull()
                     val b = n2.toIntOrNull()
@@ -213,7 +218,7 @@ fun DigitalCastPanel(
                     )
                 }
             },
-            enabled = !threeNumbers || ready,
+            enabled = questionReady && (!threeNumbers || ready),
             label = "起卦",
         )
     }

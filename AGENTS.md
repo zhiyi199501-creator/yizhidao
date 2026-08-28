@@ -48,6 +48,7 @@ cd android && ./gradlew :engines:test
 - **主看 UI**：0 动→本卦卦辞；2 动→本卦上动爻；3 动→本卦卦辞；4 动→之卦下静爻；5 动→之卦静爻；6 动→之卦卦辞；1 动不标「主看」
 - 时间起卦默认十二时辰；「公历取数」→公历月日 + 1–24 时
 - 金钱卦：可摇 / 「选」手选四象；画面上爻在上、初爻在下；自下而上摇（先初后上）
+- 起卦页所问必填；空则「起卦」禁用
 - 三数：一键随机；未满三正整数则「起卦」禁用；「清空」始终可点
 - 结果页悬浮 **AI**（需登录）：可追问、保存。点「可以接着问」直接发出。机制见 `docs/ai-reading.md`；接口见 `docs/backend-min-spec.md`。已保存后追问成功自动更新；重新解读后「重新保存」。
 - Debug API：iOS 模拟器 `127.0.0.1:8080`，真机改 `AuthAPI` 局域网 IP；安卓 Debug 改 `android/app/build.gradle.kts`（明文 HTTP 靠 `android/app/src/debug/res/xml/network_security_config.xml`，主配置会覆盖 `usesCleartextTraffic`）。**Release** 仅海外：`https://api.yiwanjia.work`。安卓须 Cronet + Build Variant = release。国内 iPhone 11 蜂窝直连不稳，开代理可通，勿靠轮换子域救场
