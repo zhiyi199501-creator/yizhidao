@@ -20,6 +20,10 @@ services:
 
   caddy:
     image: caddy:2
+    environment:
+      ADMIN_BASIC_USER: ${ADMIN_BASIC_USER:-admin}
+      # 默认口令 change-me-basic；生产必须在 .env 覆盖。$$ 是 compose 转义。
+      ADMIN_BASIC_HASH: ${ADMIN_BASIC_HASH:-$$2y$$05$$mcN7SFqqVWiV6DAneU5py.AveRdxqccf/DQtR.3CeRW3YDKixOCyC}
     ports:
       - "80:80/tcp"
       - "443:443/tcp"

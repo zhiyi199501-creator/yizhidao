@@ -51,8 +51,9 @@ xcodebuild test -project ios/Yizhidao.xcodeproj -scheme Yizhidao -destination 'p
 | `ios/Yizhidao/Data/` | SwiftData `ReadingRecord`、回收站、`SavedAIAnalysis`、经文加载、`ImaExplanationStore` |
 | `ios/Yizhidao/Resources/Hexagrams.json` | 64 卦（卦辞／彖／象／爻／用九用六／文言）+ 系辞／说卦／序卦／杂卦。编辑根目录 `易经正文编辑表.xlsx` → `python3 scripts/import_jingwen.py` |
 | `ios/Yizhidao/Resources/Zhengshi.json` | 《易经证释》全册阅读稿；由 `scripts/import_zhengshi.py` 从全册 `.doc` 生成，暂未挂「我的」入口 |
-| `ios/Yizhidao/Resources/cases.json` | 讲习案例底稿（按卦号；离线与 AI 提示词共用）。App 打开案例页走 `GET /v1/cases`；线上以服务端列表为准 |
-| `ios/Yizhidao/Resources/ImaExplanations.json` | IMA 黄庭书院讲解（卦辞／彖／大象／爻+小象／用九用六／文言）；`python3 scripts/export_ima_explanations.py` 自 `data/ima-explanations/`（gitignore）导出 |
+| `ios/Yizhidao/Resources/cases.json` | 讲习案例包内底稿。日常在 `admin/`「案例」编辑并发布（立刻热更新 `GET /v1/cases`）；导出 JSON 再提交本文件。生产镜像未含后台前仍 `docker compose cp`，见 `docs/deploy.md` |
+| `ios/Yizhidao/Resources/ImaExplanations.json` | IMA 黄庭书院讲解。后台「黄庭」改 `answer` 立刻影响服务端 AI，App 弹层要发版。`scripts/export_ima_explanations.py` 会覆盖手改 |
+| `admin/` | 内部运营后台（用量 + 内容）。本地 `npm run dev`；生产须重建镜像。不上架 |
 | `ios/YizhidaoTests/` | 起卦、时辰、`ReadingGuide`、`ImaAnswerFormatter` 单测 |
 | `docs/backend-min-spec.md` | 登录、AI、案例热更新的接口合同 |
 | `docs/ai-reading.md` | AI 解读机制（prompt、黄庭槽、案例筛选、出卡） |
@@ -70,4 +71,5 @@ xcodebuild test -project ios/Yizhidao.xcodeproj -scheme Yizhidao -destination 'p
 - iOS **Release**：`https://api.yiwanjia.work`（Connect **排除中国大陆**）。Scheme → Build Configuration 选 Release。
 - Android **Debug**：`android/app/build.gradle.kts` 局域网 IP；**Release**：Build Variant = release，Cronet → 同上生产域名。浏览器能开 `/health` 不算过。
 - 本地邮箱：`EMAIL_PROVIDER=mock`；`DEV_EMAIL_FIXED_CODE` 有值则任意合法邮箱用该码，为空则看终端 `[email:mock]`。生产走 SMTP（Resend），审核勿配邮箱白名单。TLS / HTTP/3 / 安卓 Cronet 见 `docs/deploy.md`
-- AI：`backend/.env` 中 `AI_MODE=mock`（规则）或 `openai`（OpenAI **兼容协议**，本机常用 DeepSeek）。机制见 `docs/ai-reading.md`，接口见 `docs/backend-min-spec.md`
+- AI：`backend/.env` 中 `AI_MODE=mock`（规则）或 `openai`（OpenAI **兼容协议**，本机常用 DeepSeek）。机制见 `docs/ai-reading.md`，App 接口见 `docs/backend-min-spec.md`
+- 运营后台（本地）：`ADMIN_PASSWORD` + `cd admin && npm run dev` → `http://127.0.0.1:5173/admin/`。生产尚未挂此页，见 `docs/deploy.md`

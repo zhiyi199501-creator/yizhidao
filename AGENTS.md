@@ -18,7 +18,7 @@ cd android && ./gradlew :engines:test
 ./gradlew :app:testDebugUnitTest
 ```
 
-后端 AI 单测：`cd backend && .venv/bin/python -m unittest`。本机抽检真实模型：`cd backend && .venv/bin/python scripts/eval_ai_reading.py`（需 `.env` 的 key；`--dry-run` 只看槽位）。
+后端单测：`cd backend && .venv/bin/python -m unittest`。本机抽检真实模型：`cd backend && .venv/bin/python scripts/eval_ai_reading.py`（需 `.env` 的 key；`--dry-run` 只看槽位）。运营后台：`ADMIN_PASSWORD` + `cd admin && npm run dev` → `http://127.0.0.1:5173/admin/`（须后端已起）。
 
 用 Android Studio 打开 `android/` 跑 App。后端本地：`./start-backend.sh`。iOS 17+ / Xcode 15+。Bundle / applicationId：`com.yizhidao.app`。全 App **固定浅色**宣纸主题。
 
@@ -26,7 +26,7 @@ cd android && ./gradlew :engines:test
 
 - **App（iOS）**：SwiftUI + SwiftData；无第三方依赖。经文 `Hexagrams.json`（卦爻辞取证释；文言／四传并入同文件）；案例 `cases.json`。繁简跟系统语言（台湾／香港／澳门为繁体），无应用内开关。
 - **App（Android）**：Kotlin + Jetpack Compose；生产 HTTPS 用 **Cronet**（`AppHttp`，勿改回 `HttpURLConnection`）。引擎在 `android/engines`（纯 JVM，与 iOS 单测对拍）。见 `android/README.md`
-- **后端**：`backend/` FastAPI + SQLite；登录为 Apple / Google / 邮箱 OTP（短信路由仍保留，App 不展示）；AI（`AI_MODE=mock|openai`）
+- **后端**：`backend/` FastAPI + SQLite；登录为 Apple / Google / 邮箱 OTP（短信路由仍保留，App 不展示）；AI（`AI_MODE=mock|openai`）；内部 `admin/`（Vite，Cookie 鉴权）
 
 ## 目录与约定
 
@@ -36,10 +36,10 @@ cd android && ./gradlew :engines:test
 - `ios/Yizhidao/Domain/ReadingGuide`：多动爻主看焦点；本卦/之卦展示在 `HexagramReadingBody`（结果页与案例详情共用）
 - `ios/Yizhidao/Features/History/`：时间线 / 按卦；同卦明细内数字按动爻位、金钱按 0–6 动筛选；删除进回收站
 - `ios/Yizhidao/Features/Cases/`：按卦列表（无时间、无应验徽章）；iOS 打开时 `GET /v1/cases` 拉最新，失败则用包内/缓存；详情为背景 / 所问 / 验证 / 讲师解读 + 本卦之卦
-- 案例底稿：`ios/Yizhidao/Resources/cases.json`。编辑根目录 `案例编辑表.xlsx`（gitignore）→ `python3 scripts/import_cases.py`；导出 `python3 scripts/export_cases.py`。补占编号按实际文王序，括号标讲座来源（如 `01-3乾卦三爻（从大有卦三爻讲）`）
+- 案例底稿：`ios/Yizhidao/Resources/cases.json`。日常在运营后台「案例」编辑工作副本并**发布**（立刻热更新 App `GET /v1/cases`）。导出 JSON 再提交包内文件，供下次发 App。可选导入旧「案例编辑表.xlsx」或 JSON；Excel 不再当日常编辑器。补占编号按实际文王序，括号标讲座来源（如 `01-3乾卦三爻（从大有卦三爻讲）`）
 - 经文底稿：`ios/Yizhidao/Resources/Hexagrams.json`。编辑根目录 `易经正文编辑表.xlsx`（gitignore）→ `python3 scripts/import_jingwen.py`；导出 `python3 scripts/export_jingwen.py`
 - 《易经证释》阅读稿：`ios/Yizhidao/Resources/Zhengshi.json`。源文件不入库；更新时 `python3 scripts/import_zhengshi.py [全册.doc]`；代码（`ZhengshiStore`/阅读页）还在，但「我的」菜单暂未挂入口
-- **IMA 黄庭书院讲解**：点经文可看知识库讲解。覆盖卦辞／彖／大象／爻辞+小象（成对）、用九／用六（成对）、文言（乾坤）。包内 `ios/Yizhidao/Resources/ImaExplanations.json`；源采集 gitignore `data/ima-explanations/`。导出 `python3 scripts/export_ima_explanations.py` **会覆盖**包内 JSON，手改过就别跑。Android `copyIosAssets` 拷同文件（**不含** `Zhengshi.json`）。ID：`{nn}-guaci|tuanci|daxiang|wenyan|yong`、`{nn}-yao-{0…5}`（初=0）。入口：结果／案例／六十四卦详情（文言与用九用六仅六十四卦详情有）
+- **IMA 黄庭书院讲解**：点经文可看知识库讲解。覆盖卦辞／彖／大象／爻辞+小象（成对）、用九／用六（成对）、文言（乾坤）。包内 `ios/Yizhidao/Resources/ImaExplanations.json`；源采集 gitignore `data/ima-explanations/`。后台「黄庭」可改 `answer`：**立刻影响服务端 AI**；App 弹层要下次发版。导出 `python3 scripts/export_ima_explanations.py` **会覆盖**手改，改过后别跑。Android `copyIosAssets` 拷同文件（**不含** `Zhengshi.json`）。ID：`{nn}-guaci|tuanci|daxiang|wenyan|yong`、`{nn}-yao-{0…5}`（初=0）。入口：结果／案例／六十四卦详情（文言与用九用六仅六十四卦详情有）
 - **IMA 展示**：清洗在运行时 `ImaAnswerFormatter`（iOS / Android），不是改 JSON。去掉整行「思考过程」、出处脚注数字；「表格」标记与 markdown 表画成表。安卓弹层用全屏 Popup（约 93% 高，盖住页头），下拉超过 **1/4** 收起，点遮罩不关。iOS 宣纸 `AppTheme` 已为 OLED 调淡；弹层 `.presentationBackground` 用同一渐变
 - `ios/Yizhidao/App/`：`AppNavigation`、`AppTheme`、登录与「我的」（多在 `YizhidaoApp.swift`）。「我的」：资料、**保存的AI解读**（本地保存的解读）、**易经基础入门** `YijingIntro.json`、**易经六十四卦 / 易经四传** 读 `Hexagrams.json`（详情卡片标题**彖辞** / **大象**，正文带「彖曰：」「象曰：」前缀）、设置（按键音效、回收站，清空需确认；退出登录；**注销账号**调 `DELETE /v1/me`）。包内与生产页：隐私政策 / 用户协议；公网 `https://api.yiwanjia.work/{privacy,terms,support}`
 - Android「保存的AI解读」与回收站对齐 iOS 分组列表：白卡片竖排卦名／时间／所问；解读左滑删除，回收站左滑恢复＋彻底删除。勿改回设置项左右排布；删除钮未滑开不得透出
@@ -58,7 +58,9 @@ cd android && ./gradlew :engines:test
 
 ## 当前状态 / 下一步
 
-**本分支未部署（2026-08-27）**：AI 扩卡、黄庭讲解进 prompt、追问带建议。生产 `api.yiwanjia.work` 仍是发版前的三字段解读；须重建镜像（含 `ImaExplanations.json`）并发 App 后才现役。
+**已合 main、生产未发（2026-08-28）**：AI 扩卡已进 `main`（[PR #12](https://github.com/zhiyi199501-creator/yizhidao/pull/12)）。生产 `api.yiwanjia.work` 仍是发版前的三字段解读；须重建镜像（含 `ImaExplanations.json`）并发 App 后才现役。
+
+**内容后台（未合 main、生产未发）**：`admin/` 第二版（案例发布 / 黄庭改 answer / 经文只读 / 夹具抽检）。生产 `/admin/` **404**。合入并重建镜像前，生产更新案例仍 `docker compose cp`（见 `docs/deploy.md`）。
 
 **App Release（仅海外）**：新加坡 `124.156.192.137`，`https://api.yiwanjia.work/health` 200（SSH `yiwanjia`）。iOS / Android Release 均指向该域；**不上架中国区**，无需 ICP。现役栈是 `docker compose` + `Caddyfile.overseas`（拷成 `Caddyfile`），不是 `prod.yml`；解析 DNSPod，禁止橙云。运维见 `docs/deploy.md`。国内 iPhone 11 直连 443 不稳，开代理可通。
 
@@ -70,6 +72,6 @@ cd android && ./gradlew :engines:test
 
 **App Store（进行中）**：Connect App `com.yizhidao.app`（id `6804203617`）；品牌名 **易玩家**；排除中国大陆。法律 URL：`https://api.yiwanjia.work/{privacy,terms,support}`。待：TestFlight、IAP、提审。
 
-未做：IAP 验单、正式 Android keystore、生产 `GOOGLE_CLIENT_IDS` / App `GOOGLE_WEB_CLIENT_ID`、把 `8e3bceb`（mock 邮箱 print）并进 `main`。
+未做：IAP 验单、正式 Android keystore、生产 `GOOGLE_CLIENT_IDS` / App `GOOGLE_WEB_CLIENT_ID`。mock 邮箱 `print`（`8e3bceb`）已随 PR #12 进 `main`。
 
 **Android**：Compose 四 Tab 已对齐 iOS。Release 须 Cronet → `api.yiwanjia.work`（勿 `addQuicHint`）。见 `android/README.md`。

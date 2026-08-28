@@ -1,7 +1,7 @@
 from sqlalchemy import inspect, text
 
 from app.config import settings
-from app.db import engine
+from app import db as app_db
 
 
 def migrate_db() -> None:
@@ -9,6 +9,7 @@ def migrate_db() -> None:
     if not settings.database_url.startswith("sqlite"):
         return
 
+    engine = app_db.engine
     insp = inspect(engine)
     if not insp.has_table("users"):
         return
@@ -62,3 +63,9 @@ def migrate_db() -> None:
             conn.execute(
                 text("CREATE UNIQUE INDEX IF NOT EXISTS ix_users_google_sub ON users (google_sub)")
             )
+
+        existing = {
+            row[1] for row in conn.execute(text("PRAGMA table_info(users)")).fetchall()
+        }
+        if "last_login_at" not in existing:
+            conn.execute(text("ALTER TABLE users ADD COLUMN last_login_at DATETIME"))

@@ -2,7 +2,7 @@
 
 本文件是 AI 解读的机制说明（怎么拼材料、怎么出卡、App 怎么用）。接口路径与 JSON 字段以 `[backend-min-spec.md](backend-min-spec.md)` 为准；提示词原文以 `backend/app/services/ai.py` 为准。改解卦通则先改 App 的 `ReadingGuide` 并补测，再对这里的焦点表。
 
-**状态（2026-08-28）**：本仓库已实现扩卡、黄庭进 prompt、按爻裁案例、主看卦辞时附彖辞。生产 `api.yiwanjia.work` 仍是发版前的三字段解读（`summary` / `focus` / `advice` + 追问单段 `reply`），须重建镜像（含 `ImaExplanations.json`）并发 App 后才现役。
+**状态（2026-08-28）**：扩卡、黄庭进 prompt、按爻裁案例、主看卦辞时附彖辞已合 `main`（[PR #12](https://github.com/zhiyi199501-creator/yizhidao/pull/12)）。生产 `api.yiwanjia.work` 仍是发版前的三字段解读（`summary` / `focus` / `advice` + 追问单段 `reply`）；须重建镜像（含 `ImaExplanations.json`）并发 App 后才现役。
 
 这不是对话 agent，也不是多跳 RAG：本地起卦算完卦象，后端一次 Chat Completions，强制 JSON。密钥只在服务端。
 
@@ -122,13 +122,13 @@ cd backend && .venv/bin/python -m unittest
 .venv/bin/python scripts/eval_ai_reading.py --dry-run
 ```
 
-样本在 `backend/tests/eval_fixtures.py`。live 结果写到 `backend/.eval/`（gitignore，勿提交）。看：JSON 是否完整、是否扣所问、有没有整段抄黄庭或套案例原事、主看卦辞时有没有大讲某爻、4 动案例是否来自之卦、追问有没有这一轮建议。
+样本在 `backend/tests/eval_fixtures.py`（假问题，不是用户数据）。后台「抽检」跑同一套槽位检查，可选按现役 `AI_MODE` 出卡，不写 `ai_usage_events`。CLI live 结果写到 `backend/.eval/`（gitignore，勿提交）。看：JSON 是否完整、是否扣所问、有没有整段抄黄庭或套案例原事、主看卦辞时有没有大讲某爻、4 动案例是否来自之卦、追问有没有这一轮建议。
 
 **2026-08-28 本机抽检**（`deepseek-v4-flash`，约 2 分钟、9 次调用）：卡片齐全，兑上案例封顶 3 则，0/3/6 动未附爻位案例，跳槽所问与追问（对方反对／挽留）都落到具体建议，未见讲座人名或「思考过程」。轻问题：0 动须防仍引用未动之爻（来兑／孚于剥），因经文块仍附全六爻；3 动当下仍写初九／九三，卦辞主看未贯彻到「当下」卡。当时追问 prompt 约 4k token（全文重喂）。同日追问改为短上下文后再打 career 一条：followup prompt **776** token（初次仍约 3800），答复仍扣挽留／反对并带建议。
 
 ## 未做（有意留下）
 
-- 生产未发这版；镜像须带上 `ImaExplanations.json`
+- 已合 `main`（PR #12）；生产镜像未重建，解读仍三字段。镜像须带上 `ImaExplanations.json`
 - 0 动经文块仍给六爻，模型有时把未动爻写进须防；3 动「当下」有时仍落在动爻而非卦辞
 - 繁体系统语言下模型仍出简体
 - 不是多轮 agent，没有工具调用

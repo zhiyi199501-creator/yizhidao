@@ -72,6 +72,13 @@ class Settings(BaseSettings):
     smtp_from: str = ""
     smtp_use_tls: bool = True
 
+    # 运营后台（与 App 用户完全分开）
+    admin_password: str = ""
+    admin_session_days: int = 7
+    # token 粗估单价（美元 / 百万 tokens）；均为 0 则看板不显示金额
+    ai_usd_per_1m_prompt_tokens: float = 0.0
+    ai_usd_per_1m_completion_tokens: float = 0.0
+
     def apple_client_ids_list(self):
         return [part.strip() for part in self.apple_client_ids.split(",") if part.strip()]
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Export slim ImaExplanations.json into ios/Yizhidao/Resources (iOS bundle; Android copies via copyIosAssets)."""
+"""从 data/ima-explanations/ 重建包内 ImaExplanations.json。会覆盖手改与后台保存的 answer；改过后不要跑。"""
 from __future__ import annotations
 
 import json

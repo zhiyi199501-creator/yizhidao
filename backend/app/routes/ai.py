@@ -1,9 +1,11 @@
 from fastapi import APIRouter, Depends
+from sqlalchemy.orm import Session
 
+from app.db import get_db
 from app.deps import get_current_user_id
 from app.schemas import AIAnalysisBody, AIAnalysisResponse, AIFollowupBody, AIFollowupResponse
 from app.services.ai import analyze_reading, followup_reading
-from app.services.ai_rate_limit import acquire_ai_call
+from app.services.ai_usage import run_logged_ai
 
 router = APIRouter()
 
@@ -12,9 +14,15 @@ router = APIRouter()
 def ai_analyze(
     body: AIAnalysisBody,
     user_id: str = Depends(get_current_user_id),
+    db: Session = Depends(get_db),
 ) -> AIAnalysisResponse:
-    with acquire_ai_call(user_id):
-        analysis, usage = analyze_reading(body)
+    analysis, usage = run_logged_ai(
+        db,
+        user_id=user_id,
+        kind="analyze",
+        method=body.method,
+        fn=lambda: analyze_reading(body),
+    )
     return AIAnalysisResponse(analysis=analysis, usage=usage)
 
 
@@ -22,7 +30,17 @@ def ai_analyze(
 def ai_followup(
     body: AIFollowupBody,
     user_id: str = Depends(get_current_user_id),
+    db: Session = Depends(get_db),
 ) -> AIFollowupResponse:
-    with acquire_ai_call(user_id):
+    def _run():
         reply, advice, ask_next, usage = followup_reading(body)
+        return (reply, advice, ask_next), usage
+
+    (reply, advice, ask_next), usage = run_logged_ai(
+        db,
+        user_id=user_id,
+        kind="followup",
+        method=body.method,
+        fn=_run,
+    )
     return AIFollowupResponse(reply=reply, advice=advice, askNext=ask_next, usage=usage)

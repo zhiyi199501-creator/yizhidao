@@ -16,7 +16,7 @@ _POSITION_ORDER = ["初爻", "二爻", "三爻", "四爻", "五爻", "上爻"]
 _cache: Optional[Tuple[float, int, str, List[Dict[str, Any]]]] = None
 
 
-def _resolve_cases_path() -> Path:
+def resolve_cases_path() -> Path:
     if settings.cases_path:
         return Path(settings.cases_path)
     if _VOLUME_CASES_PATH.exists():
@@ -26,10 +26,18 @@ def _resolve_cases_path() -> Path:
     return _DEFAULT_CASES_PATH
 
 
+def resolve_cases_write_path() -> Path:
+    if settings.cases_path:
+        return Path(settings.cases_path)
+    if Path("/app/data").is_dir():
+        return _VOLUME_CASES_PATH
+    return resolve_cases_path()
+
+
 def _load_cases() -> Tuple[str, List[Dict[str, Any]]]:
     """读盘；文件未变则走缓存，便于热更新 cases.json 后不必重启。"""
     global _cache
-    path = _resolve_cases_path()
+    path = resolve_cases_path()
     if not path.exists():
         print(f"[cases] missing file: {path}")
         return "", []
@@ -50,6 +58,35 @@ def all_cases() -> List[Dict[str, Any]]:
 
 def cases_version() -> str:
     return _load_cases()[0]
+
+
+def invalidate_cases_cache() -> None:
+    global _cache
+    _cache = None
+
+
+def write_published_cases(items: List[Dict[str, Any]]) -> Tuple[str, Path]:
+    path = resolve_cases_write_path()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    payload = json.dumps(items, ensure_ascii=False, indent=1)
+    tmp = path.with_name(path.name + ".tmp")
+    tmp.write_text(payload, encoding="utf-8")
+    tmp.replace(path)
+    invalidate_cases_cache()
+    version, _ = _load_cases()
+    return version, path
+
+
+def case_catalog_status() -> Dict[str, Any]:
+    path = resolve_cases_path()
+    version, items = _load_cases()
+    return {
+        "loaded": path.exists(),
+        "count": len(items),
+        "version": version,
+        "path": str(path),
+        "exists": path.exists(),
+    }
 
 
 def _position_rank(position: str) -> int:

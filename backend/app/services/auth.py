@@ -64,6 +64,13 @@ def issue_access_token(user_id: str) -> str:
     return jwt.encode(payload, settings.jwt_secret, algorithm="HS256")
 
 
+def _finish_login(db: Session, user: User) -> Tuple[User, str]:
+    user.last_login_at = datetime.now(timezone.utc)
+    db.commit()
+    db.refresh(user)
+    return user, issue_access_token(user.id)
+
+
 def user_to_out(user: User) -> dict:
     return {
         "id": user.id,
@@ -264,9 +271,7 @@ def login_with_sms(db: Session, phone: str, code: str) -> Tuple[User, str]:
         )
         if record:
             record.used = True
-        db.commit()
-        db.refresh(user)
-        return user, issue_access_token(user.id)
+        return _finish_login(db, user)
 
     if (
         (settings.sms_provider or "mock").lower() == "aliyun"
@@ -275,9 +280,7 @@ def login_with_sms(db: Session, phone: str, code: str) -> Tuple[User, str]:
         if not verify_aliyun_code(phone, normalized_code):
             raise AppError("验证码错误或已过期", code=4002, status_code=400)
         user = _get_or_create_user_by_phone(db, phone)
-        db.commit()
-        db.refresh(user)
-        return user, issue_access_token(user.id)
+        return _finish_login(db, user)
 
     now = datetime.now(timezone.utc)
     record = db.scalar(
@@ -297,9 +300,7 @@ def login_with_sms(db: Session, phone: str, code: str) -> Tuple[User, str]:
 
     record.used = True
     user = _get_or_create_user_by_phone(db, phone)
-    db.commit()
-    db.refresh(user)
-    return user, issue_access_token(user.id)
+    return _finish_login(db, user)
 
 
 def login_with_email(db: Session, email: str, code: str) -> Tuple[User, str]:
@@ -322,9 +323,7 @@ def login_with_email(db: Session, email: str, code: str) -> Tuple[User, str]:
         )
         if record:
             record.used = True
-        db.commit()
-        db.refresh(user)
-        return user, issue_access_token(user.id)
+        return _finish_login(db, user)
 
     now = datetime.now(timezone.utc)
     record = db.scalar(
@@ -344,9 +343,7 @@ def login_with_email(db: Session, email: str, code: str) -> Tuple[User, str]:
 
     record.used = True
     user = _get_or_create_user_by_email(db, email)
-    db.commit()
-    db.refresh(user)
-    return user, issue_access_token(user.id)
+    return _finish_login(db, user)
 
 
 def login_with_apple(
@@ -365,9 +362,7 @@ def login_with_apple(
 
     nickname = full_name.strip() if full_name and full_name.strip() else None
     user = _get_or_create_user_by_apple(db, apple_sub, nickname)
-    db.commit()
-    db.refresh(user)
-    return user, issue_access_token(user.id)
+    return _finish_login(db, user)
 
 
 def login_with_google(db: Session, id_token: str) -> Tuple[User, str]:
@@ -392,9 +387,7 @@ def login_with_google(db: Session, id_token: str) -> Tuple[User, str]:
         nickname = None
 
     user = _get_or_create_user_by_google(db, google_sub, email, nickname)
-    db.commit()
-    db.refresh(user)
-    return user, issue_access_token(user.id)
+    return _finish_login(db, user)
 
 
 def delete_user_account(db: Session, user: User) -> None:
