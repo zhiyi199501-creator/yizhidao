@@ -1,6 +1,7 @@
 package com.yizhidao.app.ui.reading
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -42,6 +43,7 @@ import com.yizhidao.app.ai.SavedAIAnalysis
 import com.yizhidao.app.ai.SavedAIAnalysisStore
 import com.yizhidao.app.ai.SavedAIContent
 import com.yizhidao.app.ai.SavedAIFollowUp
+import com.yizhidao.app.ai.aiAdviceDisplayItems
 import com.yizhidao.app.auth.AuthApi
 import com.yizhidao.app.auth.LocalAuthStore
 import com.yizhidao.app.ui.theme.AppTheme
@@ -66,7 +68,14 @@ fun AIAnalysisScreen(
     var analysis by remember {
         mutableStateOf(
             saved?.analysis?.let {
-                AuthApi.AIAnalyzeResponse.Analysis(it.summary, it.focus, it.advice)
+                AuthApi.AIAnalyzeResponse.Analysis(
+                    summary = it.summary,
+                    focus = it.focus,
+                    advice = it.advice,
+                    direction = it.direction,
+                    risks = it.risks,
+                    askNext = it.askNext,
+                )
             },
         )
     }
@@ -109,6 +118,9 @@ fun AIAnalysisScreen(
             summary = current.summary,
             focus = current.focus,
             advice = current.advice,
+            direction = current.direction,
+            risks = current.risks,
+            askNext = current.askNext,
         )
         val existing = savedID?.let { id -> analysisStore.load().firstOrNull { it.id == id } }
         if (existing != null) {
@@ -125,6 +137,47 @@ fun AIAnalysisScreen(
             savedID = item.id
         }
         isDirty = false
+    }
+
+    fun sendFollowup(message: String, fromComposer: Boolean = false) {
+        val token = authStore.session.value.accessToken
+        val current = analysis
+        val text = message.trim()
+        if (token.isNullOrBlank()) {
+            errorMessage = "请先登录"
+            return
+        }
+        if (current == null || text.isEmpty() || isLoading || isFollowupLoading) return
+        if (fromComposer) draft = ""
+        isFollowupLoading = true
+        errorMessage = null
+        scope.launch {
+            try {
+                val response = AuthApi.followupReading(
+                    result = result,
+                    analysis = current,
+                    conversation = followUps,
+                    message = text,
+                    accessToken = token,
+                )
+                followUps = followUps + SavedAIFollowUp(
+                    user = text,
+                    assistant = response.reply,
+                    advice = response.advice,
+                    askNext = response.askNext,
+                )
+                if (savedID != null) {
+                    persistCurrent()
+                } else {
+                    isDirty = true
+                }
+            } catch (e: Exception) {
+                draft = text
+                errorMessage = AuthApi.describe(e)
+            } finally {
+                isFollowupLoading = false
+            }
+        }
     }
 
     LaunchedEffect(saved?.id) {
@@ -206,38 +259,25 @@ fun AIAnalysisScreen(
             }
 
             analysis?.let { item ->
-                AnalysisCard("总览", item.summary)
-                AnalysisCard("焦点", item.focus)
-                Column(
-                    Modifier
-                        .fillMaxWidth()
-                        .background(AppTheme.cardFill, RoundedCornerShape(12.dp))
-                        .padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    Text(
-                        "建议",
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = AppTheme.accent,
-                        style = AppTheme.compactText,
+                AnalysisCard("事情背景", item.summary)
+                AnalysisCard("当下", item.focus)
+                if (item.direction.isNotBlank()) {
+                    AnalysisCard("方向", item.direction)
+                }
+                val adviceItems = aiAdviceDisplayItems(item.advice, item.risks)
+                if (adviceItems.isNotEmpty()) {
+                    BulletCard("建议", adviceItems)
+                }
+                if (item.askNext.isNotEmpty() && followUps.isEmpty() && !isLoading && !isFollowupLoading) {
+                    AskNextCard(
+                        questions = item.askNext,
+                        onPick = { sendFollowup(it) },
                     )
-                    item.advice.forEachIndexed { index, advice ->
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Text(
-                                "${index + 1}.",
-                                fontSize = 15.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = AppTheme.accent,
-                                style = AppTheme.compactText,
-                            )
-                            Text(advice, fontSize = 16.sp, color = AppTheme.ink, style = AppTheme.compactText)
-                        }
-                    }
                 }
             }
 
-            followUps.forEach { turn ->
+            followUps.forEachIndexed { index, turn ->
+                val isLatest = index == followUps.lastIndex
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                         Text(
@@ -252,6 +292,18 @@ fun AIAnalysisScreen(
                         )
                     }
                     AnalysisCard("回复", turn.assistant)
+                    if (turn.advice.isNotEmpty()) {
+                        BulletCard("建议", turn.advice)
+                    }
+                    if (isLatest && !isFollowupLoading) {
+                        val nextQuestions = turn.askNext.ifEmpty { analysis?.askNext.orEmpty() }
+                        if (nextQuestions.isNotEmpty()) {
+                            AskNextCard(
+                                questions = nextQuestions,
+                                onPick = { sendFollowup(it) },
+                            )
+                        }
+                    }
                 }
             }
 
@@ -322,39 +374,7 @@ fun AIAnalysisScreen(
                         .clip(CircleShape)
                         .background(if (canSendFollowup) AppTheme.accent else AppTheme.disabledFill)
                         .clickable(enabled = canSendFollowup) {
-                            val token = authStore.session.value.accessToken
-                            val current = analysis
-                            val message = draft.trim()
-                            if (token.isNullOrBlank()) {
-                                errorMessage = "请先登录"
-                                return@clickable
-                            }
-                            if (current == null || message.isEmpty()) return@clickable
-                            draft = ""
-                            scope.launch {
-                                isFollowupLoading = true
-                                errorMessage = null
-                                try {
-                                    val response = AuthApi.followupReading(
-                                        result = result,
-                                        analysis = current,
-                                        conversation = followUps,
-                                        message = message,
-                                        accessToken = token,
-                                    )
-                                    followUps = followUps + SavedAIFollowUp(user = message, assistant = response.reply)
-                                    if (savedID != null) {
-                                        persistCurrent()
-                                    } else {
-                                        isDirty = true
-                                    }
-                                } catch (e: Exception) {
-                                    draft = message
-                                    errorMessage = AuthApi.describe(e)
-                                } finally {
-                                    isFollowupLoading = false
-                                }
-                            }
+                            sendFollowup(draft, fromComposer = true)
                         },
                     contentAlignment = Alignment.Center,
                 ) {
@@ -387,5 +407,74 @@ private fun AnalysisCard(title: String, text: String) {
             style = AppTheme.compactText,
         )
         Text(text, fontSize = 16.sp, color = AppTheme.ink, style = AppTheme.compactText)
+    }
+}
+
+@Composable
+private fun BulletCard(title: String, items: List<String>) {
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .background(AppTheme.cardFill, RoundedCornerShape(12.dp))
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Text(
+            title,
+            fontSize = 15.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = AppTheme.accent,
+            style = AppTheme.compactText,
+        )
+        items.forEachIndexed { index, item ->
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(
+                    "${index + 1}.",
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = AppTheme.accent,
+                    style = AppTheme.compactText,
+                )
+                Text(item, fontSize = 16.sp, color = AppTheme.ink, style = AppTheme.compactText)
+            }
+        }
+    }
+}
+
+@Composable
+private fun AskNextCard(questions: List<String>, onPick: (String) -> Unit) {
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .background(AppTheme.cardFill, RoundedCornerShape(12.dp))
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Text(
+            "可以接着问",
+            fontSize = 15.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = AppTheme.accent,
+            style = AppTheme.compactText,
+        )
+        Text(
+            "点一句直接发出。",
+            fontSize = 12.sp,
+            color = AppTheme.secondaryText,
+            style = AppTheme.compactText,
+        )
+        questions.forEach { question ->
+            Text(
+                question,
+                fontSize = 16.sp,
+                color = AppTheme.ink,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .border(1.dp, AppTheme.accent.copy(alpha = 0.35f), RoundedCornerShape(10.dp))
+                    .clickable { onPick(question) }
+                    .padding(horizontal = 12.dp, vertical = 10.dp),
+                style = AppTheme.compactText,
+            )
+        }
     }
 }

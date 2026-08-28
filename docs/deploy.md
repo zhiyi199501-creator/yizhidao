@@ -1,6 +1,6 @@
 # 易玩家后端部署指南
 
-## 域名与服务器（2026-08-24）
+## 域名与服务器（2026-08-27）
 
 | 角色 | 域名 | 服务器 | 说明 |
 |---|---|---|---|
@@ -9,14 +9,21 @@
 | **国内后端（遗留，App 不用）** | `https://yzd.codedance.work` | `119.91.239.58`（SSH `yizhidao`） | 运维保留；现役 App 不连 |
 | **旧海外机（遗留）** | `yd.codedance.work` 等 | `43.128.104.104` | 与 videograb 共用系统 Caddy；2026-08-26 改为 **H2-only**（实测关代理不通、开代理通） |
 
-**现役核验（2026-08-26）**：`GET https://api.yiwanjia.work/health` 200；`/privacy` `/terms` `/support` 200；响应 **HTTP/2**，无 `alt-svc`。
+**现役核验（2026-08-27）**：`GET https://api.yiwanjia.work/health` 200；`/privacy` `/terms` `/support` 200；响应 **HTTP/2**，无 `alt-svc`。新加坡机跑 `docker compose`（`backend-caddy-1` + `backend-api-1`），**不是** `docker-compose.prod.yml`。
 
-镜像把 `Hexagrams.json` 拷到 `/app/data/`（与 SQLite 同卷，**重建镜像不会自动刷新经文**）。`cases.json` 默认在镜像 `/app/app/data/`；若 data 卷存在 `/app/data/cases.json` 则优先（热更新不必重建）。可用 `CASES_PATH` 覆盖。
+### DNS（`yiwanjia.work`）
+
+2026-08-26 核验：注册商 **DNSPod**（腾讯，WHOIS Registrant Country CN）；权威 NS `ivy.dnspod.net` / `justin.dnspod.net`；`api` / `v1` 的 A 记录是源站 `124.156.192.137`。
+
+- **禁止橙云 / CDN 代理**生产 API。橙云让客户端和 Cloudflare 握手（默认 h3 + `Alt-Svc`），源站 H2-only 失效；国内 CF 段干扰更重；App JSON 还可能碰到挑战页或超时。
+- 若迁 NS 到 Cloudflare，只用 **DNS only（灰云）**，A 仍填源站 IP。只换 NS 不改变国内 443 干扰，也换不了 DNSPod 作为注册商的管辖。
+
+镜像把 `Hexagrams.json` 拷到 `/app/data/`（与 SQLite 同卷，**重建镜像不会自动刷新经文**）。`cases.json` 与 `ImaExplanations.json` 默认在镜像 `/app/app/data/`；若 data 卷存在同名文件则优先。可用 `CASES_PATH` / `IMA_EXPLANATIONS_PATH` 覆盖。
 
 ## 你需要准备什么
 
 1. 海外 VPS + 独立域名（不备案）；安全组放行 **80 / 443**
-2. 域名 **A 记录** → 服务器公网 IP（Cloudflare 可用橙云；SSL 建议 Full strict）
+2. 域名 **A 记录** → 服务器公网 IP（DNS-only；**不要** Cloudflare 橙云 / CDN）
 3. Docker + Docker Compose
 
 > **现役 App（海外机）登录**（2026-08-24）：Release 用 Apple / Google / 邮箱 OTP；生产 `EMAIL_PROVIDER=smtp`（Resend），`EMAIL_TEST_ADDRESSES` 与 `DEV_EMAIL_FIXED_CODE` 应空。短信路由仍在，App 登录页不展示。  
@@ -27,10 +34,12 @@
 ```bash
 ssh yiwanjia
 cd ~/yizhidao/backend
-# Caddy 已单独跑；API 用 prod 文件
-docker compose -f docker-compose.prod.yml up -d --build
+# 仓库根 Caddyfile 是国内 yzd；新加坡必须用 overseas，compose 挂的是 ./Caddyfile
+sudo cp Caddyfile.overseas Caddyfile
+sudo docker compose up -d --build
 curl -s https://api.yiwanjia.work/health
-curl -sI https://api.yiwanjia.work/health | grep -iE 'HTTP/|alt-svc'   # 期望 HTTP/2，无 alt-svc:h3
+# FastAPI 对 HEAD /health 返回 405，要用 GET 看协议头
+curl -sD - -o /dev/null https://api.yiwanjia.work/health | grep -iE 'HTTP/|alt-svc'   # 期望 HTTP/2，无 alt-svc
 ```
 
 从本机同步（**不要 `--delete`**，会清服务器 `.env`）：
@@ -42,10 +51,11 @@ rsync -az --exclude '.git' --exclude '.derivedData' --exclude 'backend/.env' \
   -e "ssh -i ~/.ssh/yiwanjia.pem" \
   ./ ubuntu@124.156.192.137:~/yizhidao/
 # 源若是 backend/ 目录，必须 --exclude '.env'（写 backend/.env 挡不住，会覆盖生产配置）
-ssh yiwanjia 'cd ~/yizhidao/backend && sudo docker compose -f docker-compose.prod.yml up -d --build'
+# rsync 会把国内用的 Caddyfile 盖过来，必须再拷 overseas 后起默认 compose
+ssh yiwanjia 'cd ~/yizhidao/backend && sudo cp Caddyfile.overseas Caddyfile && sudo docker compose up -d --build'
 ```
 
-现役新加坡 **API** 用 `docker-compose.prod.yml`（只起 `api`，映射 `127.0.0.1:8080`）。Caddy 已单独跑；不要用带 Caddy 的 `docker-compose.yml` 去抢 80/443。改 `.env` 后须 `--force-recreate`，否则容器仍是旧环境变量。
+现役新加坡是 **`docker compose`（api + Caddy 同项目，80/443 仅 tcp）**。`docker-compose.prod.yml` 只给与**系统 Caddy** 共用端口的遗留机用；在新加坡上切过去会丢掉 443。改 `.env` 后须 `--force-recreate`，否则容器仍是旧环境变量。
 
 ## 国内新服务器（遗留，方式 A）
 
@@ -83,7 +93,7 @@ curl https://yd.codedance.work/health   # 2026-08-26 起 H2-only；遗留对照�
 
 ## 更新版本
 
-**海外新加坡机（现役）**：rsync 到 `yiwanjia` 后 `docker compose -f docker-compose.prod.yml up -d --build`（改 env 加 `--force-recreate`）。
+**海外新加坡机（现役）**：rsync 到 `yiwanjia` 后 `sudo cp Caddyfile.overseas Caddyfile && sudo docker compose up -d --build`（改 env 加 `--force-recreate`）。
 
 **国内遗留机**：`ssh yizhidao` + 同上（仅运维对照）。
 
@@ -97,7 +107,7 @@ docker compose cp ../ios/Yizhidao/Resources/cases.json api:/app/data/cases.json
 
 ### 证书申请失败
 
-- 域名 A 记录已指向本机；80/443 已放行；等 DNS 生效后 `docker compose restart caddy`
+- 域名 A 记录已指向本机（不要橙云）；80/443 已放行；等 DNS 生效后 `docker compose restart caddy`
 
 ### App 真机 Release 连不上
 
@@ -126,7 +136,7 @@ docker compose cp ../ios/Yizhidao/Resources/cases.json api:/app/data/cases.json
 - [x] 未把 `.env` 提交进 Git
 - [x] 海外现役 `SMS_PROVIDER=mock`（App 无短信入口；勿开 `ALLOW_INSECURE_MOCK_SMS`）
 - [x] `https://api.yiwanjia.work/{privacy,terms,support}` 可访问（Connect 法律 URL）
-- [x] App **不上中国区** → 现役路径 **无需 ICP** / 无需改 `yizhidao.work` App 基址
+- [x] App **不上中国区** → 现役路径 **无需 ICP**；基址保持 `api.yiwanjia.work`
 - [x] Apple / 邮箱登录（客户端 + 后端）；生产邮箱 SMTP（Resend，2026-08-24 已 live：`email_provider=smtp`）
 - [ ] Android Google：生产 `GOOGLE_CLIENT_IDS` 与 `GOOGLE_WEB_CLIENT_ID`
 - [ ] 正式固化新加坡机镜像（避免只热更代码）

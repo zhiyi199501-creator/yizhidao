@@ -472,11 +472,7 @@ struct AIAnalysisView: View {
     init(saved: SavedAIAnalysis) {
         self.result = saved.toCastResult()
         self.initialSavedID = saved.id
-        _analysis = State(initialValue: AuthAPI.AIAnalyzeResponse.Analysis(
-            summary: saved.analysis.summary,
-            focus: saved.analysis.focus,
-            advice: saved.analysis.advice
-        ))
+        _analysis = State(initialValue: AuthAPI.AIAnalyzeResponse.Analysis(saved: saved.analysis))
         _followUps = State(initialValue: saved.followUps)
         _savedID = State(initialValue: saved.id)
         _isDirty = State(initialValue: false)
@@ -498,30 +494,22 @@ struct AIAnalysisView: View {
                     }
 
                     if let analysis {
-                        analysisSection(title: "总览", text: analysis.summary)
-                        analysisSection(title: "焦点", text: analysis.focus)
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("建议".zh)
-                                .font(.subheadline.weight(.semibold))
-                                .foregroundStyle(AppTheme.accent)
-                            ForEach(Array(analysis.advice.enumerated()), id: \.offset) { index, item in
-                                HStack(alignment: .top, spacing: 8) {
-                                    Text("\(index + 1).".zh)
-                                        .font(.subheadline.weight(.semibold))
-                                        .foregroundStyle(AppTheme.accent)
-                                    Text(item.zh)
-                                        .font(.body)
-                                        .fixedSize(horizontal: false, vertical: true)
-                                }
-                            }
+                        analysisSection(title: "事情背景", text: analysis.summary)
+                        analysisSection(title: "当下", text: analysis.focus)
+                        if !analysis.direction.isEmpty {
+                            analysisSection(title: "方向", text: analysis.direction)
                         }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding()
-                        .background(RoundedRectangle(cornerRadius: 12).fill(AppTheme.cardFill))
+                        let adviceItems = aiAdviceDisplayItems(advice: analysis.advice, risks: analysis.risks)
+                        if !adviceItems.isEmpty {
+                            bulletSection(title: "建议", items: adviceItems)
+                        }
+                        if !analysis.askNext.isEmpty, followUps.isEmpty, !isLoading, !isFollowupLoading {
+                            askNextSection(analysis.askNext)
+                        }
                     }
 
-                    ForEach(followUps) { turn in
-                        followUpTurn(turn)
+                    ForEach(Array(followUps.enumerated()), id: \.element.id) { index, turn in
+                        followUpTurn(turn, isLatest: index == followUps.count - 1)
                     }
 
                     if isFollowupLoading {
@@ -609,7 +597,7 @@ struct AIAnalysisView: View {
         .background(AppTheme.cardFill)
     }
 
-    private func followUpTurn(_ turn: SavedAIFollowUp) -> some View {
+    private func followUpTurn(_ turn: SavedAIFollowUp, isLatest: Bool) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
                 Spacer(minLength: 40)
@@ -623,6 +611,15 @@ struct AIAnalysisView: View {
                     )
             }
             analysisSection(title: "回复", text: turn.assistant)
+            if !turn.advice.isEmpty {
+                bulletSection(title: "建议", items: turn.advice)
+            }
+            if isLatest, !isFollowupLoading {
+                let nextQuestions = turn.askNext.isEmpty ? (analysis?.askNext ?? []) : turn.askNext
+                if !nextQuestions.isEmpty {
+                    askNextSection(nextQuestions)
+                }
+            }
         }
     }
 
@@ -656,13 +653,63 @@ struct AIAnalysisView: View {
         .background(RoundedRectangle(cornerRadius: 12).fill(AppTheme.cardFill))
     }
 
+    private func bulletSection(title: String, items: [String]) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(title.zh)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(AppTheme.accent)
+            ForEach(Array(items.enumerated()), id: \.offset) { index, item in
+                HStack(alignment: .top, spacing: 8) {
+                    Text("\(index + 1).".zh)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(AppTheme.accent)
+                    Text(item.zh)
+                        .font(.body)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding()
+        .background(RoundedRectangle(cornerRadius: 12).fill(AppTheme.cardFill))
+    }
+
+    private func askNextSection(_ questions: [String]) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("可以接着问".zh)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(AppTheme.accent)
+            Text("点一句直接发出。".zh)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            ForEach(Array(questions.enumerated()), id: \.offset) { _, question in
+                Button {
+                    Task { await sendFollowup(prefilled: question) }
+                } label: {
+                    Text(question.zh)
+                        .font(.body)
+                        .multilineTextAlignment(.leading)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 10)
+                        .background(
+                            RoundedRectangle(cornerRadius: 10)
+                                .stroke(AppTheme.accent.opacity(0.35), lineWidth: 1)
+                        )
+                }
+                .buttonStyle(.plain)
+                .disabled(isFollowupLoading || isLoading)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding()
+        .background(RoundedRectangle(cornerRadius: 12).fill(AppTheme.cardFill))
+    }
+
     private func saveCurrent() {
         guard let analysis else { return }
-        let content = SavedAIContent(
-            summary: analysis.summary,
-            focus: analysis.focus,
-            advice: analysis.advice
-        )
+        let content = analysis.savedContent()
         if var existing = SavedAIAnalysisStore.load().first(where: { $0.id == savedID }) {
             existing.updatedAt = Date()
             existing.analysis = content
@@ -697,15 +744,21 @@ struct AIAnalysisView: View {
     }
 
     @MainActor
-    private func sendFollowup() async {
-        let message = draft.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard canSendFollowup, let analysis, let token = LocalAuthStore.load().accessToken else {
+    private func sendFollowup(prefilled: String? = nil) async {
+        let message = (prefilled ?? draft).trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !message.isEmpty, analysis != nil, !isLoading, !isFollowupLoading else {
             if LocalAuthStore.load().accessToken == nil {
                 errorMessage = "请先登录"
             }
             return
         }
-        draft = ""
+        guard let analysis, let token = LocalAuthStore.load().accessToken else {
+            errorMessage = "请先登录"
+            return
+        }
+        if prefilled == nil {
+            draft = ""
+        }
         isFollowupLoading = true
         errorMessage = nil
         defer { isFollowupLoading = false }
@@ -717,7 +770,12 @@ struct AIAnalysisView: View {
                 message: message,
                 accessToken: token
             )
-            followUps.append(SavedAIFollowUp(user: message, assistant: response.reply))
+            followUps.append(SavedAIFollowUp(
+                user: message,
+                assistant: response.reply,
+                advice: response.advice,
+                askNext: response.askNext
+            ))
             if savedID != nil {
                 saveCurrent()
             } else {

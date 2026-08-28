@@ -85,6 +85,9 @@ class AIAnalysisContent(BaseModel):
     summary: str
     focus: str
     advice: list[str]
+    direction: str = ""
+    risks: list[str] = Field(default_factory=list)
+    askNext: list[str] = Field(default_factory=list)
 
 
 class AIUsage(BaseModel):
@@ -101,6 +104,7 @@ class AIAnalysisResponse(BaseModel):
 class AIChatTurn(BaseModel):
     user: str = Field(min_length=1, max_length=2000)
     assistant: str = Field(min_length=1, max_length=8000)
+    advice: list[str] = Field(default_factory=list)
 
 
 class AIFollowupBody(AIAnalysisBody):
@@ -112,4 +116,6 @@ class AIFollowupBody(AIAnalysisBody):
 class AIFollowupResponse(BaseModel):
     ok: bool = True
     reply: str
+    advice: list[str] = Field(default_factory=list)
+    askNext: list[str] = Field(default_factory=list)
     usage: AIUsage

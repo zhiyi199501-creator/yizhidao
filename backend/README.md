@@ -193,6 +193,8 @@ backend/
 │       ├── token.py         # token 校验
 │       ├── hexagram_store.py# 读 App 侧 Hexagrams.json
 │       ├── case_store.py    # 读 App 侧 cases.json
+│       ├── ima_store.py     # 读 App 侧 ImaExplanations.json
+│       ├── ima_format.py    # 讲解清洗（去思考过程／脚注）
 │       └── ai.py            # mock / openai 解读、追问与提示词
 │   ├── routes/
 │   │   ├── auth.py          # 登录、/v1/me、注销
@@ -208,7 +210,7 @@ backend/
 
 ## 接入真实模型
 
-App 端不用改，只改后端 `.env`：
+App 端不用改，只改后端 `.env`。`AI_MODE=openai` 表示走 **OpenAI 兼容** Chat Completions，不表示必须用 OpenAI；`OPENAI_BASE_URL` / `OPENAI_MODEL` 以 `.env` 为准（本机常用 DeepSeek）。
 
 ```bash
 AI_MODE=openai
@@ -226,30 +228,29 @@ OPENAI_BASE_URL=https://api.deepseek.com/v1
 OPENAI_MODEL=deepseek-chat
 ```
 
-`AI_MODE=mock` 时走规则解读（不耗 token）。
+`AI_MODE=mock` 时走规则解读（不耗 token）。解读机制见 [`docs/ai-reading.md`](../docs/ai-reading.md)；接口合同见 `docs/backend-min-spec.md`。单测：`.venv/bin/python -m unittest`。本机抽检：`.venv/bin/python scripts/eval_ai_reading.py`（`--dry-run` 不调模型）。AI 限流：登录用户、解读与追问合计自然日 40 次（UTC+8）、间隔 8 秒；`AI_RATE_*` 见 `.env.example`。
 
-解读框架（提示词）：**卦辞→事情背景；大象辞→宜努力方向；动爻爻辞/小象→当下情形**；并附该本卦初爻至上爻讲习案例作取象参照。实现见 `app/services/ai.py`。追问走 `POST /v1/ai/followup`。
-
-经文来源：`ios/Yizhidao/Resources/Hexagrams.json`。案例来源：`ios/Yizhidao/Resources/cases.json`。App 用 `GET /v1/cases` 热更新（2026-08-17 已部署）。镜像内 `/app/app/data/cases.json`；若 data 卷存在 `/app/data/cases.json` 则优先。
+经文来源：`ios/Yizhidao/Resources/Hexagrams.json`。讲解来源：同目录 `ImaExplanations.json`（镜像 `/app/app/data/`）。案例来源：`cases.json`。App 用 `GET /v1/cases` 热更新（2026-08-17 已部署）。镜像内 `/app/app/data/cases.json`；若 data 卷存在 `/app/data/cases.json` 则优先。
 
 ## 生产部署
 
 见仓库文档：[docs/deploy.md](../docs/deploy.md)
 
-简要（独占服务器）：
+简要（独占服务器，**新加坡现役**）：
 
 ```bash
 cd backend
 cp .env.example .env   # 改 JWT_SECRET 等
+cp Caddyfile.overseas Caddyfile   # 仓库根 Caddyfile 是国内 yzd，勿直接拿去起新加坡
 docker compose up -d --build
 ```
 
-与已有系统 Caddy 共用 80/443 时用 `docker compose -f docker-compose.prod.yml up -d --build`（详见 `docs/deploy.md`）。
+与已有**系统 Caddy** 共用 80/443 时（旧海外 / 国内遗留机）才用 `docker compose -f docker-compose.prod.yml`。详见 `docs/deploy.md`。
 
 **现役（App Release）**：`https://api.yiwanjia.work`（新加坡 `124.156.192.137`，SSH `yiwanjia`；仅海外上架）。国内 `yzd.codedance.work` 为遗留机，App 不连。运维见 `docs/deploy.md`。
 
 ## 下一步
 
 - App Store：Connect **排除中国大陆**；法律 URL → `https://api.yiwanjia.work/{privacy,terms,support}`；TestFlight → 截屏与元数据 → 提审；品牌名「易玩家」
-- 生产 `.env`：SMTP 已接 Resend（`EMAIL_PROVIDER=smtp`）；`GOOGLE_CLIENT_IDS` 与 App `GOOGLE_WEB_CLIENT_ID` 仍待填。新加坡 API 用 `docker compose -f docker-compose.prod.yml`（Caddy 另容器，勿用带 Caddy 的 `docker-compose.yml` 抢 80/443）
-- （可选）国内遗留机仅运维对照；不上中国区则无需 ICP / `yizhidao.work` 改 App 基址
+- 生产 `.env`：SMTP 已接 Resend（`EMAIL_PROVIDER=smtp`）；`GOOGLE_CLIENT_IDS` 与 App `GOOGLE_WEB_CLIENT_ID` 仍待填。新加坡现役是默认 `docker compose`（api + Caddy）；勿改成 `docker-compose.prod.yml`
+- （可选）国内遗留机仅运维对照；不上中国区则无需 ICP；App 基址保持 `api.yiwanjia.work`

@@ -40,10 +40,15 @@ class Settings(BaseSettings):
     openai_model: str = "gpt-4o-mini"
     openai_temperature: float = 0.7
     openai_timeout_sec: float = 90.0
+    # AI 限流：按登录用户；自然日 UTC+8；解读与追问共用次数
+    ai_rate_interval_sec: float = 8.0
+    ai_rate_daily_limit: int = 40
     # 经文 JSON；默认读仓库内 App 资源，Docker 部署可指向 /app/data/Hexagrams.json
     hexagrams_path: str = ""
     # 案例 JSON。未设时：/app/data/cases.json（data 卷热更新）→ 镜像内 /app/app/data/cases.json → 仓库 App 资源
     cases_path: str = ""
+    # 黄庭书院讲解 JSON。未设时：/app/data/ImaExplanations.json → 镜像 /app/app/data/ → 仓库 App 资源
+    ima_explanations_path: str = ""
     # 生产环境若仍用 mock，必须显式打开才允许固定验证码（极不安全）
     allow_insecure_mock_sms: bool = False
 

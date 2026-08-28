@@ -28,7 +28,7 @@ xcodebuild test -project ios/Yizhidao.xcodeproj -scheme Yizhidao -destination 'p
 - **数字起卦 · 三数**：各框随机 + **一键随机** / 清空；三数未齐则「起卦」禁用
 - **数字起卦 · 时间**：默认农历年支、月、日 + **十二时辰**；可开「公历取数」（公历月日 + 1–24 时）；占问时刻 `yyyy-MM-dd HH:mm`，弹层中文日历
 - **金钱卦**：逐爻摇或「选」手选四象（少阳／少阴／阳动／阴动）；一键摇满；上爻在上、初爻在下
-- **结果**：本卦 / 之卦 tab；卦辞、彖曰、象曰、六爻；动爻红字；「主看」；可改所问与验证；右上角「同类」；右下角悬浮 **AI**（需登录；可追问、保存）；卦辞／彖／大象／爻+小象可点开 **IMA 黄庭书院讲解**（包内 `ImaExplanations.json`）
+- **结果**：本卦 / 之卦 tab；卦辞、彖曰、象曰、六爻；动爻红字；「主看」；可改所问与验证；右上角「同类」；右下角悬浮 **AI**（需登录；结构化解读可追问、保存；卡片为事情背景／当下／方向／建议（须防并入建议），追问后仍给建议）；卦辞／彖／大象／爻+小象可点开 **IMA 黄庭书院讲解**（包内 `ImaExplanations.json`）
 - **历史**：SwiftData 本地；**时间** / **按卦**（文王序）；状态筛选；左滑删除进回收站；数字起卦单爻动在箭头上方标红字（初/二/三/四/五/上）
 - **案例**：按卦浏览（文王序）；打开页面向服务端拉取最新（可下拉刷新）；离线用 App 内底稿；卦内按爻位筛选、不分数字/金钱起卦；详情为背景、所问何事、验证结果、讲师解读，以及与历史相同的本卦/之卦（经文同样可点 IMA 讲解）
 - **我的**：登录为 iOS **Apple** / Android **Google**（主按钮）+ 邮箱验证码（子页）；无微信、登录页无短信。资料编辑、**保存的AI解读**（需登录；已保存后追问自动更新）、**易经基础入门**、可读《易经》六十四卦（详情卡片彖辞/大象；经文可点 IMA 讲解）、系辞/说卦/序卦/杂卦、设置（按键音效、回收站，清空需确认；退出登录；**注销账号**）。繁简跟系统语言，无应用内开关。
@@ -54,7 +54,8 @@ xcodebuild test -project ios/Yizhidao.xcodeproj -scheme Yizhidao -destination 'p
 | `ios/Yizhidao/Resources/cases.json` | 讲习案例底稿（按卦号；离线与 AI 提示词共用）。App 打开案例页走 `GET /v1/cases`；线上以服务端列表为准 |
 | `ios/Yizhidao/Resources/ImaExplanations.json` | IMA 黄庭书院讲解（卦辞／彖／大象／爻+小象／用九用六／文言）；`python3 scripts/export_ima_explanations.py` 自 `data/ima-explanations/`（gitignore）导出 |
 | `ios/YizhidaoTests/` | 起卦、时辰、`ReadingGuide`、`ImaAnswerFormatter` 单测 |
-| `docs/backend-min-spec.md` | 登录与 AI（含追问）现役接口 |
+| `docs/backend-min-spec.md` | 登录、AI、案例热更新的接口合同 |
+| `docs/ai-reading.md` | AI 解读机制（prompt、黄庭槽、案例筛选、出卡） |
 | `docs/deploy.md` | 后端 Docker + Caddy 上线指南 |
 | `backend/` | FastAPI：Apple / Google / 邮箱 OTP + AI 解读 |
 | `start-backend.sh` | 一键启动后端（本地开发） |
@@ -69,4 +70,4 @@ xcodebuild test -project ios/Yizhidao.xcodeproj -scheme Yizhidao -destination 'p
 - iOS **Release**：`https://api.yiwanjia.work`（Connect **排除中国大陆**）。Scheme → Build Configuration 选 Release。
 - Android **Debug**：`android/app/build.gradle.kts` 局域网 IP；**Release**：Build Variant = release，Cronet → 同上生产域名。浏览器能开 `/health` 不算过。
 - 本地邮箱：`EMAIL_PROVIDER=mock`；`DEV_EMAIL_FIXED_CODE` 有值则任意合法邮箱用该码，为空则看终端 `[email:mock]`。生产走 SMTP（Resend），审核勿配邮箱白名单。TLS / HTTP/3 / 安卓 Cronet 见 `docs/deploy.md`
-- AI：`backend/.env` 中 `AI_MODE=mock`（规则）或 `openai`（OpenAI 兼容，如 DeepSeek）；细节见 `backend/README.md`
+- AI：`backend/.env` 中 `AI_MODE=mock`（规则）或 `openai`（OpenAI **兼容协议**，本机常用 DeepSeek）。机制见 `docs/ai-reading.md`，接口见 `docs/backend-min-spec.md`
