@@ -9,7 +9,7 @@
 | **国内后端（遗留，App 不用）** | `https://yzd.codedance.work` | `119.91.239.58`（SSH `yizhidao`） | 运维保留；现役 App 不连 |
 | **旧海外机（遗留）** | `yd.codedance.work` 等 | `43.128.104.104` | 与 videograb 共用系统 Caddy；2026-08-26 改为 **H2-only**（实测关代理不通、开代理通） |
 
-**现役核验（2026-08-27）**：`GET https://api.yiwanjia.work/health` 200；`/privacy` `/terms` `/support` 200；响应 **HTTP/2**，无 `alt-svc`。新加坡机跑 `docker compose`（`backend-caddy-1` + `backend-api-1`），**不是** `docker-compose.prod.yml`。
+**现役核验（2026-08-28）**：`GET https://api.yiwanjia.work/health` 200；`/privacy` `/terms` `/support` 200；响应 **HTTP/2**，无 `alt-svc`。新加坡机跑 `docker compose`（`backend-caddy-1` + `backend-api-1`），**不是** `docker-compose.prod.yml`。AI 扩卡已合 `main`（PR #12），镜像未重建，解读仍是三字段。
 
 ### DNS（`yiwanjia.work`）
 

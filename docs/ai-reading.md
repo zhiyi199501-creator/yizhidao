@@ -2,7 +2,7 @@
 
 本文件是 AI 解读的机制说明（怎么拼材料、怎么出卡、App 怎么用）。接口路径与 JSON 字段以 `[backend-min-spec.md](backend-min-spec.md)` 为准；提示词原文以 `backend/app/services/ai.py` 为准。改解卦通则先改 App 的 `ReadingGuide` 并补测，再对这里的焦点表。
 
-**状态（2026-08-28）**：本仓库已实现扩卡、黄庭进 prompt、按爻裁案例、主看卦辞时附彖辞。生产 `api.yiwanjia.work` 仍是发版前的三字段解读（`summary` / `focus` / `advice` + 追问单段 `reply`），须重建镜像（含 `ImaExplanations.json`）并发 App 后才现役。
+**状态（2026-08-28）**：扩卡、黄庭进 prompt、按爻裁案例、主看卦辞时附彖辞已合 `main`（[PR #12](https://github.com/zhiyi199501-creator/yizhidao/pull/12)）。生产 `api.yiwanjia.work` 仍是发版前的三字段解读（`summary` / `focus` / `advice` + 追问单段 `reply`）；须重建镜像（含 `ImaExplanations.json`）并发 App 后才现役。
 
 这不是对话 agent，也不是多跳 RAG：本地起卦算完卦象，后端一次 Chat Completions，强制 JSON。密钥只在服务端。
 
@@ -128,7 +128,7 @@ cd backend && .venv/bin/python -m unittest
 
 ## 未做（有意留下）
 
-- 生产未发这版；镜像须带上 `ImaExplanations.json`
+- 已合 `main`（PR #12）；生产镜像未重建，解读仍三字段。镜像须带上 `ImaExplanations.json`
 - 0 动经文块仍给六爻，模型有时把未动爻写进须防；3 动「当下」有时仍落在动爻而非卦辞
 - 繁体系统语言下模型仍出简体
 - 不是多轮 agent，没有工具调用

@@ -58,7 +58,7 @@ cd android && ./gradlew :engines:test
 
 ## 当前状态 / 下一步
 
-**本分支未部署（2026-08-27）**：AI 扩卡、黄庭讲解进 prompt、追问带建议。生产 `api.yiwanjia.work` 仍是发版前的三字段解读；须重建镜像（含 `ImaExplanations.json`）并发 App 后才现役。
+**已合 main、生产未发（2026-08-28）**：AI 扩卡已进 `main`（[PR #12](https://github.com/zhiyi199501-creator/yizhidao/pull/12)）。生产 `api.yiwanjia.work` 仍是发版前的三字段解读；须重建镜像（含 `ImaExplanations.json`）并发 App 后才现役。
 
 **App Release（仅海外）**：新加坡 `124.156.192.137`，`https://api.yiwanjia.work/health` 200（SSH `yiwanjia`）。iOS / Android Release 均指向该域；**不上架中国区**，无需 ICP。现役栈是 `docker compose` + `Caddyfile.overseas`（拷成 `Caddyfile`），不是 `prod.yml`；解析 DNSPod，禁止橙云。运维见 `docs/deploy.md`。国内 iPhone 11 直连 443 不稳，开代理可通。
 
@@ -70,6 +70,6 @@ cd android && ./gradlew :engines:test
 
 **App Store（进行中）**：Connect App `com.yizhidao.app`（id `6804203617`）；品牌名 **易玩家**；排除中国大陆。法律 URL：`https://api.yiwanjia.work/{privacy,terms,support}`。待：TestFlight、IAP、提审。
 
-未做：IAP 验单、正式 Android keystore、生产 `GOOGLE_CLIENT_IDS` / App `GOOGLE_WEB_CLIENT_ID`、把 `8e3bceb`（mock 邮箱 print）并进 `main`。
+未做：IAP 验单、正式 Android keystore、生产 `GOOGLE_CLIENT_IDS` / App `GOOGLE_WEB_CLIENT_ID`。mock 邮箱 `print`（`8e3bceb`）已随 PR #12 进 `main`。
 
 **Android**：Compose 四 Tab 已对齐 iOS。Release 须 Cronet → `api.yiwanjia.work`（勿 `addQuicHint`）。见 `android/README.md`。

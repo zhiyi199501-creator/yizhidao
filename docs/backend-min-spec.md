@@ -1,6 +1,6 @@
 # 易玩家最小后端接口（登录 + AI + 案例热更新）
 
-本文件是接口合同（路径与字段），以仓库 `backend/app/schemas.py` 为准。App Release 基址：`https://api.yiwanjia.work`（仅海外上架）。`GET /v1/cases` 于 2026-08-17 上线。AI 扩卡（`direction` / `risks` / `askNext`、追问 `advice`）随本分支发版后才到生产；发版前旧客户端仍只依赖三字段解读与单段 `reply`。
+本文件是接口合同（路径与字段），以仓库 `backend/app/schemas.py` 为准。App Release 基址：`https://api.yiwanjia.work`（仅海外上架）。`GET /v1/cases` 于 2026-08-17 上线。AI 扩卡（`direction` / `risks` / `askNext`、追问 `advice`）已合 `main`（PR #12，2026-08-28）；生产镜像未重建前仍是三字段解读。旧客户端只依赖三字段与追问单段 `reply`，多出的字段可忽略。
 
 ## 目标
 - 客户端不直连大模型，密钥留在服务端
