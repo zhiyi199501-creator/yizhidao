@@ -12,11 +12,26 @@ import kotlinx.serialization.json.Json
 import java.time.Instant
 import java.util.UUID
 
+fun aiAdviceDisplayItems(advice: List<String>, risks: List<String> = emptyList()): List<String> {
+    val prefixes = listOf("须防：", "须防:", "須防：", "須防:")
+    val parts = risks.mapNotNull { raw ->
+        var text = raw.trim()
+        if (text.isEmpty()) return@mapNotNull null
+        val prefix = prefixes.firstOrNull { text.startsWith(it) }
+        if (prefix != null) text = text.removePrefix(prefix).trim()
+        text.ifEmpty { null }
+    }
+    if (parts.isEmpty()) return advice
+    return advice + listOf("须防：${parts.joinToString("；")}")
+}
+
 @Serializable
 data class SavedAIFollowUp(
     val id: String = UUID.randomUUID().toString(),
     val user: String,
     val assistant: String,
+    val advice: List<String> = emptyList(),
+    val askNext: List<String> = emptyList(),
 )
 
 @Serializable
@@ -24,6 +39,9 @@ data class SavedAIContent(
     val summary: String,
     val focus: String,
     val advice: List<String>,
+    val direction: String = "",
+    val risks: List<String> = emptyList(),
+    val askNext: List<String> = emptyList(),
 )
 
 @Serializable

@@ -26,9 +26,9 @@ def deliver_email_code(email: str, code: str) -> None:
         _deliver_smtp(email, code)
         return
     if is_email_test_address(email):
-        logger.info("[email:test] to=%s code=%s", _mask_email(email), code)
+        print(f"[email:test] to={_mask_email(email)} code={code}")
         return
-    logger.info("[email:mock] to=%s code=%s", _mask_email(email), code)
+    print(f"[email:mock] to={_mask_email(email)} code={code}")
 
 
 def _deliver_smtp(email: str, code: str) -> None:

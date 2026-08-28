@@ -1,4 +1,4 @@
-# 与系统 Caddy 共用 80/443 时使用（见 docs/deploy.md）
+# 与系统 Caddy 共用 80/443 时使用（旧海外 / 国内遗留机）。新加坡现役用 docker-compose.yml。
 services:
   api:
     build:

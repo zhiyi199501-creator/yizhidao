@@ -1,6 +1,6 @@
-# 易知道 Backend
+# 易玩家 Backend
 
-FastAPI 最小后端：手机号验证码登录 + AI 解读，接口对齐 `docs/backend-min-spec.md`。
+FastAPI 最小后端：Apple / Google / 邮箱 OTP 登录 + AI 解读，接口对齐 `docs/backend-min-spec.md`。短信路由仍保留，现役 App 登录页不展示。
 
 ## 要求
 
@@ -27,9 +27,22 @@ FastAPI 最小后端：手机号验证码登录 + AI 解读，接口对齐 `docs
 - 健康检查：`GET http://127.0.0.1:8080/health`
 - 接口文档：`http://127.0.0.1:8080/docs`
 
-## 开发期验证码（mock）
+## 开发期邮箱验证码（mock）
 
-默认 `SMS_PROVIDER=mock`，`.env` 中 `DEV_SMS_FIXED_CODE=123456`，联调时直接填 `123456`。
+默认 `EMAIL_PROVIDER=mock`。改 `.env` 后必须重启后端。
+
+- `DEV_EMAIL_FIXED_CODE` 有值：开发环境任意合法邮箱都用该码（不必发信）
+- 为空：每次随机 6 位，终端打印（与短信一样用 `print`，uvicorn 默认看不到 `logger.info`）：
+
+```text
+[email:mock] to=t***t@example.com code=482193
+```
+
+白名单 `EMAIL_TEST_ADDRESSES`（逗号分隔）在 **smtp 生产**下也不发真邮件、只用固定码。**审核包不要配白名单**。生产用 `EMAIL_PROVIDER=smtp` + 空白名单 + 空固定码。
+
+## 开发期短信验证码（mock，App 无入口）
+
+默认 `SMS_PROVIDER=mock`，`.env` 中 `DEV_SMS_FIXED_CODE=123456`，curl 联调可填 `123456`。
 
 控制台会打印：
 
@@ -123,7 +136,7 @@ ALIYUN_SMS_VALID_SEC=300
 ### curl 自测
 
 ```bash
-# 邮箱（白名单 test@example.com / 123456）
+# 邮箱（mock：固定码或看终端 [email:mock]）
 curl -X POST http://127.0.0.1:8080/v1/auth/email/send \
   -H 'Content-Type: application/json' \
   -d '{"email":"test@example.com"}'
@@ -150,9 +163,10 @@ curl -X POST http://127.0.0.1:8080/v1/auth/sms/login \
 |------|------|
 | `APPLE_CLIENT_IDS` | 逗号分隔；默认 `com.yizhidao.app` |
 | `GOOGLE_CLIENT_IDS` | Google Cloud OAuth Client ID（iOS / Android / Web，逗号分隔） |
-| `EMAIL_PROVIDER` | `mock`（日志）或 `smtp` |
-| `EMAIL_TEST_ADDRESSES` | 白名单邮箱，可用 `DEV_EMAIL_FIXED_CODE` |
-| `SMTP_*` | 正式发信（Resend 等 SMTP 均可） |
+| `EMAIL_PROVIDER` | `mock`（终端 `[email:mock]`）或 `smtp`（Resend 等） |
+| `EMAIL_TEST_ADDRESSES` | 白名单：固定码且不发信；审核 / 生产公网应留空 |
+| `DEV_EMAIL_FIXED_CODE` | 测试固定码；生产应留空 |
+| `SMTP_*` | `smtp` 时必填；Resend：`smtp.resend.com:587`、`SMTP_USER=resend`、密码为 API Key、`SMTP_USE_TLS=true`（勿用 465） |
 
 控制台：
 
@@ -179,6 +193,8 @@ backend/
 │       ├── token.py         # token 校验
 │       ├── hexagram_store.py# 读 App 侧 Hexagrams.json
 │       ├── case_store.py    # 读 App 侧 cases.json
+│       ├── ima_store.py     # 读 App 侧 ImaExplanations.json
+│       ├── ima_format.py    # 讲解清洗（去思考过程／脚注）
 │       └── ai.py            # mock / openai 解读、追问与提示词
 │   ├── routes/
 │   │   ├── auth.py          # 登录、/v1/me、注销
@@ -194,7 +210,7 @@ backend/
 
 ## 接入真实模型
 
-App 端不用改，只改后端 `.env`：
+App 端不用改，只改后端 `.env`。`AI_MODE=openai` 表示走 **OpenAI 兼容** Chat Completions，不表示必须用 OpenAI；`OPENAI_BASE_URL` / `OPENAI_MODEL` 以 `.env` 为准（本机常用 DeepSeek）。
 
 ```bash
 AI_MODE=openai
@@ -212,30 +228,29 @@ OPENAI_BASE_URL=https://api.deepseek.com/v1
 OPENAI_MODEL=deepseek-chat
 ```
 
-`AI_MODE=mock` 时走规则解读（不耗 token）。
+`AI_MODE=mock` 时走规则解读（不耗 token）。解读机制见 [`docs/ai-reading.md`](../docs/ai-reading.md)；接口合同见 `docs/backend-min-spec.md`。单测：`.venv/bin/python -m unittest`。本机抽检：`.venv/bin/python scripts/eval_ai_reading.py`（`--dry-run` 不调模型）。AI 限流：登录用户、解读与追问合计自然日 40 次（UTC+8）、间隔 8 秒；`AI_RATE_*` 见 `.env.example`。
 
-解读框架（提示词）：**卦辞→事情背景；大象辞→宜努力方向；动爻爻辞/小象→当下情形**；并附该本卦初爻至上爻讲习案例作取象参照。实现见 `app/services/ai.py`。追问走 `POST /v1/ai/followup`。
-
-经文来源：`ios/Yizhidao/Resources/Hexagrams.json`。案例来源：`ios/Yizhidao/Resources/cases.json`。App 用 `GET /v1/cases` 热更新（2026-08-17 已部署）。镜像内 `/app/app/data/cases.json`；若 data 卷存在 `/app/data/cases.json` 则优先。
+经文来源：`ios/Yizhidao/Resources/Hexagrams.json`。讲解来源：同目录 `ImaExplanations.json`（镜像 `/app/app/data/`）。案例来源：`cases.json`。App 用 `GET /v1/cases` 热更新（2026-08-17 已部署）。镜像内 `/app/app/data/cases.json`；若 data 卷存在 `/app/data/cases.json` 则优先。
 
 ## 生产部署
 
 见仓库文档：[docs/deploy.md](../docs/deploy.md)
 
-简要（独占服务器）：
+简要（独占服务器，**新加坡现役**）：
 
 ```bash
 cd backend
 cp .env.example .env   # 改 JWT_SECRET 等
+cp Caddyfile.overseas Caddyfile   # 仓库根 Caddyfile 是国内 yzd，勿直接拿去起新加坡
 docker compose up -d --build
 ```
 
-与已有系统 Caddy 共用 80/443 时用 `docker compose -f docker-compose.prod.yml up -d --build`（详见 `docs/deploy.md`）。
+与已有**系统 Caddy** 共用 80/443 时（旧海外 / 国内遗留机）才用 `docker compose -f docker-compose.prod.yml`。详见 `docs/deploy.md`。
 
 **现役（App Release）**：`https://api.yiwanjia.work`（新加坡 `124.156.192.137`，SSH `yiwanjia`；仅海外上架）。国内 `yzd.codedance.work` 为遗留机，App 不连。运维见 `docs/deploy.md`。
 
 ## 下一步
 
 - App Store：Connect **排除中国大陆**；法律 URL → `https://api.yiwanjia.work/{privacy,terms,support}`；TestFlight → 截屏与元数据 → 提审；品牌名「易玩家」
-- 生产 `.env` 配齐 `GOOGLE_CLIENT_IDS`、SMTP（邮箱 OTP）；正式 `docker compose up -d --build` 固化新加坡机镜像
-- （可选）国内遗留机仅运维对照；不上中国区则无需 ICP / `yizhidao.work` 改 App 基址
+- 生产 `.env`：SMTP 已接 Resend（`EMAIL_PROVIDER=smtp`）；`GOOGLE_CLIENT_IDS` 与 App `GOOGLE_WEB_CLIENT_ID` 仍待填。新加坡现役是默认 `docker compose`（api + Caddy）；勿改成 `docker-compose.prod.yml`
+- （可选）国内遗留机仅运维对照；不上中国区则无需 ICP；App 基址保持 `api.yiwanjia.work`

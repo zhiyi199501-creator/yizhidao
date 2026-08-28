@@ -18,7 +18,7 @@ async def lifespan(_: FastAPI):
 
 
 app = FastAPI(
-    title="易知道 Backend",
+    title="易玩家 Backend",
     version="0.1.0",
     lifespan=lifespan,
 )

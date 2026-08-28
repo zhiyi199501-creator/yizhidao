@@ -58,11 +58,19 @@ object AuthApi {
             val summary: String,
             val focus: String,
             val advice: List<String>,
+            val direction: String = "",
+            val risks: List<String> = emptyList(),
+            val askNext: List<String> = emptyList(),
         )
     }
 
     @Serializable
-    data class AIFollowupResponse(val ok: Boolean, val reply: String)
+    data class AIFollowupResponse(
+        val ok: Boolean,
+        val reply: String,
+        val advice: List<String> = emptyList(),
+        val askNext: List<String> = emptyList(),
+    )
 
     @Serializable
     private data class ErrorEnvelope(val message: String? = null)
@@ -150,12 +158,16 @@ object AuthApi {
                     put("summary", analysis.summary)
                     put("focus", analysis.focus)
                     putJsonArray("advice") { analysis.advice.forEach { add(it) } }
+                    put("direction", analysis.direction)
+                    putJsonArray("risks") { analysis.risks.forEach { add(it) } }
+                    putJsonArray("askNext") { analysis.askNext.forEach { add(it) } }
                 }
                 putJsonArray("conversation") {
                     conversation.forEach { turn ->
                         addJsonObject {
                             put("user", turn.user)
                             put("assistant", turn.assistant)
+                            putJsonArray("advice") { turn.advice.forEach { add(it) } }
                         }
                     }
                 }

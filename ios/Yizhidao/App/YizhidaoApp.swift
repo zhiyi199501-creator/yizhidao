@@ -928,6 +928,72 @@ enum AuthAPI {
             let summary: String
             let focus: String
             let advice: [String]
+            let direction: String
+            let risks: [String]
+            let askNext: [String]
+
+            enum CodingKeys: String, CodingKey {
+                case summary, focus, advice, direction, risks, askNext
+            }
+
+            init(
+                summary: String,
+                focus: String,
+                advice: [String],
+                direction: String = "",
+                risks: [String] = [],
+                askNext: [String] = []
+            ) {
+                self.summary = summary
+                self.focus = focus
+                self.advice = advice
+                self.direction = direction
+                self.risks = risks
+                self.askNext = askNext
+            }
+
+            init(from decoder: Decoder) throws {
+                let container = try decoder.container(keyedBy: CodingKeys.self)
+                summary = try container.decode(String.self, forKey: .summary)
+                focus = try container.decode(String.self, forKey: .focus)
+                advice = try container.decode([String].self, forKey: .advice)
+                direction = try container.decodeIfPresent(String.self, forKey: .direction) ?? ""
+                risks = try container.decodeIfPresent([String].self, forKey: .risks) ?? []
+                askNext = try container.decodeIfPresent([String].self, forKey: .askNext) ?? []
+            }
+
+            init(saved: SavedAIContent) {
+                self.init(
+                    summary: saved.summary,
+                    focus: saved.focus,
+                    advice: saved.advice,
+                    direction: saved.direction,
+                    risks: saved.risks,
+                    askNext: saved.askNext
+                )
+            }
+
+            func savedContent() -> SavedAIContent {
+                SavedAIContent(
+                    summary: summary,
+                    focus: focus,
+                    advice: advice,
+                    direction: direction,
+                    risks: risks,
+                    askNext: askNext
+                )
+            }
+
+            func previousAnalysisPayload() -> [String: Any] {
+                [
+                    "summary": summary,
+                    "focus": focus,
+                    "advice": advice,
+                    "direction": direction,
+                    "risks": risks,
+                    "askNext": askNext,
+                ]
+            }
         }
 
         let ok: Bool
@@ -937,6 +1003,20 @@ enum AuthAPI {
     struct AIFollowupResponse: Decodable {
         let ok: Bool
         let reply: String
+        let advice: [String]
+        let askNext: [String]
+
+        enum CodingKeys: String, CodingKey {
+            case ok, reply, advice, askNext
+        }
+
+        init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            ok = try container.decode(Bool.self, forKey: .ok)
+            reply = try container.decode(String.self, forKey: .reply)
+            advice = try container.decodeIfPresent([String].self, forKey: .advice) ?? []
+            askNext = try container.decodeIfPresent([String].self, forKey: .askNext) ?? []
+        }
     }
 
     static func analyzeReading(result: CastResult, accessToken: String) async throws -> AIAnalyzeResponse {
@@ -979,13 +1059,13 @@ enum AuthAPI {
             "lines": result.lines.map(\.rawValue),
             "hexTextVersion": "yi-zhengshi-2026-08",
             "message": message,
-            "previousAnalysis": [
-                "summary": analysis.summary,
-                "focus": analysis.focus,
-                "advice": analysis.advice,
-            ],
+            "previousAnalysis": analysis.previousAnalysisPayload(),
             "conversation": conversation.map {
-                ["user": $0.user, "assistant": $0.assistant]
+                [
+                    "user": $0.user,
+                    "assistant": $0.assistant,
+                    "advice": $0.advice,
+                ]
             },
         ]
         if let question = result.question {

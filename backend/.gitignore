@@ -1,5 +1,6 @@
 .env
 .venv/
+.eval/
 __pycache__/
 *.py[cod]
 *.db

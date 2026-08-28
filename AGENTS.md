@@ -18,13 +18,15 @@ cd android && ./gradlew :engines:test
 ./gradlew :app:testDebugUnitTest
 ```
 
+后端 AI 单测：`cd backend && .venv/bin/python -m unittest`。本机抽检真实模型：`cd backend && .venv/bin/python scripts/eval_ai_reading.py`（需 `.env` 的 key；`--dry-run` 只看槽位）。
+
 用 Android Studio 打开 `android/` 跑 App。后端本地：`./start-backend.sh`。iOS 17+ / Xcode 15+。Bundle / applicationId：`com.yizhidao.app`。全 App **固定浅色**宣纸主题。
 
 ## 技术栈
 
 - **App（iOS）**：SwiftUI + SwiftData；无第三方依赖。经文 `Hexagrams.json`（卦爻辞取证释；文言／四传并入同文件）；案例 `cases.json`。繁简跟系统语言（台湾／香港／澳门为繁体），无应用内开关。
 - **App（Android）**：Kotlin + Jetpack Compose；生产 HTTPS 用 **Cronet**（`AppHttp`，勿改回 `HttpURLConnection`）。引擎在 `android/engines`（纯 JVM，与 iOS 单测对拍）。见 `android/README.md`
-- **后端**：`backend/` FastAPI + SQLite；短信登录（开发期固定码）与 AI（`AI_MODE=mock|openai`）
+- **后端**：`backend/` FastAPI + SQLite；登录为 Apple / Google / 邮箱 OTP（短信路由仍保留，App 不展示）；AI（`AI_MODE=mock|openai`）
 
 ## 目录与约定
 
@@ -47,24 +49,27 @@ cd android && ./gradlew :engines:test
 - 时间起卦默认十二时辰；「公历取数」→公历月日 + 1–24 时
 - 金钱卦：可摇 / 「选」手选四象；画面上爻在上、初爻在下；自下而上摇（先初后上）
 - 三数：一键随机；未满三正整数则「起卦」禁用；「清空」始终可点
-- 结果页悬浮 **AI**（需登录）：初次结构化解读，可追问/补背景；合适则 **保存** 到「我的 → 保存的AI解读」。**已保存**后追问成功自动更新；**重新解读**后右上角为「重新保存」。提示词见 `backend/app/services/ai.py`（含本卦初–上案例作参照）
-- Debug API：iOS 模拟器 `127.0.0.1:8080`，真机改 `AuthAPI` 局域网 IP；安卓 Debug 改 `android/app/build.gradle.kts`。**Release** 仅海外：`https://api.yiwanjia.work`（Connect / Google Play **排除中国大陆**；无需 ICP）。安卓须 Cronet + Build Variant = release。勿用已废的 `yizhidao.codedance.work` / `yzh.codedance.work` / 旧海外 `yd`
+- 结果页悬浮 **AI**（需登录）：可追问、保存。点「可以接着问」直接发出。机制见 `docs/ai-reading.md`；接口见 `docs/backend-min-spec.md`。已保存后追问成功自动更新；重新解读后「重新保存」。
+- Debug API：iOS 模拟器 `127.0.0.1:8080`，真机改 `AuthAPI` 局域网 IP；安卓 Debug 改 `android/app/build.gradle.kts`（明文 HTTP 靠 `android/app/src/debug/res/xml/network_security_config.xml`，主配置会覆盖 `usesCleartextTraffic`）。**Release** 仅海外：`https://api.yiwanjia.work`。安卓须 Cronet + Build Variant = release。国内 iPhone 11 蜂窝直连不稳，开代理可通，勿靠轮换子域救场
+- 登录页：iOS 主按钮 Apple、Android 主按钮 Google；邮箱在「其他登录方式」子页；点登录先检查协议。改 `.env` 后须重启后端；rsync 源若是 `backend/` 须 `--exclude '.env'`（排除 `backend/.env` 挡不住）
 - 生产 TLS/HTTP/3 避坑：`.cursor/rules/prod-tls-http3.mdc`、`docs/deploy.md`
 - **`main` 保护**：禁止直推，经 PR 合并（https://github.com/zhiyi199501-creator/yizhidao）
 - 勿提交 `.derivedData/`、`.firecrawl/`、`.workbuddy/`、`AppIcon-source.png`、`backend/.env`、`backend/*.db`、`案例编辑表.xlsx`、`易经正文编辑表.xlsx`、`张庆祥讲易经案例_txt/`、`Yizhidao.xcscheme` 里把 Run 改成 Release 的本机偏好
 
 ## 当前状态 / 下一步
 
-**App Release（仅海外）**：新加坡 `124.156.192.137`，`https://api.yiwanjia.work/health` 200（SSH `yiwanjia`）。iOS / Android Release 均指向该域；**不上架中国区**，无需 ICP。运维见 `docs/deploy.md`。
+**本分支未部署（2026-08-27）**：AI 扩卡、黄庭讲解进 prompt、追问带建议。生产 `api.yiwanjia.work` 仍是发版前的三字段解读；须重建镜像（含 `ImaExplanations.json`）并发 App 后才现役。
+
+**App Release（仅海外）**：新加坡 `124.156.192.137`，`https://api.yiwanjia.work/health` 200（SSH `yiwanjia`）。iOS / Android Release 均指向该域；**不上架中国区**，无需 ICP。现役栈是 `docker compose` + `Caddyfile.overseas`（拷成 `Caddyfile`），不是 `prod.yml`；解析 DNSPod，禁止橙云。运维见 `docs/deploy.md`。国内 iPhone 11 直连 443 不稳，开代理可通。
 
 **国内后端（遗留，App 不再使用）**：`119.91.239.58` / `yzd.codedance.work` 仍可用于本地对照或日后另做国内产品；现役 App 不连。
 
-**旧海外机（遗留）**：`43.128.104.104` / `yd.codedance.work` 仍开 h3，易知道 API 已迁出。
+**旧海外机（遗留）**：`43.128.104.104` / `yd.codedance.work`（2026-08-26 改为 H2-only），易知道 API 已迁出。
 
-**试用登录（Debug）**：邮箱白名单 `test@example.com` / `123456`（`EMAIL_PROVIDER=mock`）。Release 登录：iOS **Apple / 邮箱**，Android **Google / 邮箱**（见 `backend/README.md`）。短信接口仍保留在后端，App 登录页不再展示。
+**试用登录（Debug）**：`EMAIL_PROVIDER=mock`。有 `DEV_EMAIL_FIXED_CODE` 时任意合法邮箱用该码；为空则随机码，终端 `[email:mock] … code=`（须 `print`，`logger.info` 在 uvicorn 下看不见）。Release：iOS **Apple / 邮箱**，Android **Google / 邮箱**。短信接口仍保留，App 登录页不展示。审核包**不要**配 `EMAIL_TEST_ADDRESSES`（白名单不发真邮件）。
 
-**App Store（进行中）**：Connect 已有 App `com.yizhidao.app`（id `6804203617`）；品牌名 **易玩家**；**定价与可用性排除中国大陆**。法律 URL：`https://api.yiwanjia.work/{privacy,terms,support}`。待：TestFlight、IAP、提审。
+**App Store（进行中）**：Connect App `com.yizhidao.app`（id `6804203617`）；品牌名 **易玩家**；排除中国大陆。法律 URL：`https://api.yiwanjia.work/{privacy,terms,support}`。待：TestFlight、IAP、提审。
 
-未做：IAP 验单、正式 Android keystore、生产镜像 `docker compose build` 固化。
+未做：IAP 验单、正式 Android keystore、生产 `GOOGLE_CLIENT_IDS` / App `GOOGLE_WEB_CLIENT_ID`、把 `8e3bceb`（mock 邮箱 print）并进 `main`。
 
 **Android**：Compose 四 Tab 已对齐 iOS。Release 须 Cronet → `api.yiwanjia.work`（勿 `addQuicHint`）。见 `android/README.md`。

@@ -1,29 +1,28 @@
 ---
-description: 生产 TLS / HTTP/3 避坑（iPhone 11 缓存；安卓 HttpURLConnection 会被部分主机名 RST）
+description: 生产 TLS（国内直连 iPhone 11；安卓勿用 HttpURLConnection）
 alwaysApply: true
 ---
 
-# 生产 TLS / HTTP/3
+# 生产 TLS / 国内直连
 
-iOS / Android **Release 现役**：`https://api.yiwanjia.work`（新加坡 `124.156.192.137`，**H2-only**；App **仅海外上架**）。
+iOS / Android **Release 现役**：`https://api.yiwanjia.work`（新加坡 `124.156.192.137`，**H2-only**；App **仅海外上架**）。`v1.yiwanjia.work` 同机备用。
 
-`yizhidao.codedance.work` / `yzh.codedance.work` 在部分 iPhone 11 已废；旧海外 `yd.codedance.work`（`43.128.104.104`）仍开 h3——勿改 App 指回、勿在该名上关 HTTP/3。
+**2026-08-26 实测（纠正）**：iPhone 11 国内蜂窝直连失败（Safari「丢失网络连接」/ App `-1200`）、开代理即通。主因是 **国内到该 IP 的 443 被干扰**，不是证书、也不是「关 HTTP/3 后主机名永久报废」。`yd.codedance.work` 从 h3 改成 H2-only 后：关代理不通、开代理仍通。
 
 ## 禁止
 
-- 对已经发过 `Alt-Svc: h3` 的主机名关掉 UDP 443 / HTTP/3。手机会缓存约 30 天，关了之后 Safari 报「丢失网络连接」、App `-1200`，且**不一定**能靠清网站数据 / 还原网络设置恢复。
-- 在已经 TLS 失败的主机名上连着换 CA。换证清不掉坏掉的 origin。
-- 用 `:80` 通配反代抢走 ACME HTTP-01。公网 IP 的 HTTP 请写 `http://43.128.104.104`（videograb 遗留机）。
-- 只在 Mac / iPhone 17 上验收生产 HTTPS。
+- 用轮换子域 / 换证「救」国内 iPhone 11 直连。开代理就能通的名字没有废。
+- Cloudflare **橙云** / 任何 CDN 代理生产 API 域（边缘会再开 h3、发 `Alt-Svc`、换证书链）。解析只 DNS-only（灰云），A 直指源站。
+- 只在 Mac / iPhone 17 上验收国内蜂窝。
 - 让国内真机把 DNS 改成 `8.8.8.8`（常被墙，整网超时）。
 - 安卓禁止用 `HttpURLConnection` 打生产域名；禁止 `addQuicHint` 指生产域。现役走 Cronet。
+- 用 `:80` 通配反代抢走 ACME HTTP-01。公网 IP 的 HTTP 请写 `http://43.128.104.104`。
 
 ## 要做
 
-- **国内新服务器 / 新域名**：从第一天 **H2-only**（`protocols h1 h2` 或不发 `Alt-Svc`）。不要先开 h3 再关。
-- **旧海外 `yd`**：HTTP/3 一直开，不要开关切换。
-- 改 Caddy/证书后：用 **iPhone 11 Safari** 打开该域名 `/health`，确认 HTTP/2、无 `alt-svc`，再装 Release。
-- 某主机名救不回来：全新子域或新服务器 + 新证；不要继续折腾旧名。
+- 现役钉 `api.yiwanjia.work`，H2-only（`protocols h1 h2`，不发 `Alt-Svc`）。新名字也从第一天 H2-only，避免无意义开关 h3。
+- **国内 iPhone 11 测生产**：代理 / TUN 全局，并把该 API 域名设成走代理（不要智能分流直连）。
+- 海外用户、审核不走这条蜂窝，直连即可。
 - Debug 真机走局域网 IP；Release Build Variant 才会打到生产 HTTPS。
 
-细节见 `docs/deploy.md`「iPhone 11 / HTTP/3」和「Android / Cronet」。
+细节见 `docs/deploy.md`「DNS」「iPhone 11 / 国内直连」和「Android / Cronet」。
