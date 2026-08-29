@@ -186,6 +186,8 @@ final class YijingIntroStoreTests: XCTestCase {
         XCTAssertTrue(store.note.isEmpty)
         XCTAssertTrue(store.chapters[5].plainText.contains("观其象"))
         XCTAssertTrue(store.chapters[6].plainText.contains("数字起卦"))
+        XCTAssertTrue(store.chapters[6].plainText.contains("输入三数"))
+        XCTAssertTrue(store.chapters[6].plainText.contains("时间起卦"))
         XCTAssertTrue(store.chapters[6].plainText.contains("金钱起卦"))
         XCTAssertTrue(store.chapters[7].plainText.contains("主看"))
         XCTAssertTrue(store.chapters[2].blocks.contains { if case .figure(let kind, _) = $0 { return kind == "bagua" }; return false })

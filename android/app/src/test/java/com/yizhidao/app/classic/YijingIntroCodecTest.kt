@@ -24,6 +24,8 @@ class YijingIntroCodecTest {
         )
         assertTrue(book.chapters[5].plainText.contains("观其象"))
         assertTrue(book.chapters[6].plainText.contains("数字起卦"))
+        assertTrue(book.chapters[6].plainText.contains("输入三数"))
+        assertTrue(book.chapters[6].plainText.contains("时间起卦"))
         assertTrue(book.chapters[6].plainText.contains("金钱起卦"))
         assertTrue(book.chapters[7].plainText.contains("主看"))
         assertTrue(book.chapters[2].blocks.any { it.type == "figure" && it.kind == "bagua" })

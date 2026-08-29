@@ -1,5 +1,14 @@
 import Foundation
 
+/// 一掷三枚的落面。摇卦画面要把三枚分别画出来，光有 `LineValue` 不够。
+struct CoinToss: Hashable, Sendable {
+    /// 初 → 末三枚，`true` 为字面（阳）。
+    let faces: [Bool]
+
+    var yangCount: Int { faces.filter { $0 }.count }
+    var line: LineValue { CoinCastingEngine.line(fromYangCount: yangCount) }
+}
+
 enum CoinCastingEngine {
     /// Character side (字) = yang 3; Manchu/back (背) = yin 2.
     static func line(fromYangCount yangCount: Int) -> LineValue {
@@ -13,12 +22,17 @@ enum CoinCastingEngine {
         }
     }
 
+    static func toss(using rng: inout some RandomNumberGenerator) -> CoinToss {
+        CoinToss(faces: (0..<3).map { _ in Bool.random(using: &rng) })
+    }
+
+    static func toss() -> CoinToss {
+        var rng = SystemRandomNumberGenerator()
+        return toss(using: &rng)
+    }
+
     static func tossLine(using rng: inout some RandomNumberGenerator) -> LineValue {
-        var yang = 0
-        for _ in 0..<3 {
-            if Bool.random(using: &rng) { yang += 1 }
-        }
-        return line(fromYangCount: yang)
+        toss(using: &rng).line
     }
 
     /// Six tosses bottom → top.
