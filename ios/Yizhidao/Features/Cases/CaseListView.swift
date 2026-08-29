@@ -19,40 +19,32 @@ struct CaseListView: View {
     }
 
     var body: some View {
-        NavigationStack {
-            VStack(alignment: .leading, spacing: 0) {
-                VStack(alignment: .leading, spacing: 20) {
-                    Text("案例".zh)
-                        .font(.largeTitle.weight(.bold))
-                }
-                .padding()
-
-                if caseStore.cases.isEmpty {
-                    Spacer(minLength: 0)
-                    ContentUnavailableView(
-                        "暂无案例",
-                        systemImage: "books.vertical",
-                        description: Text("案例数据未加载".zh)
-                    )
-                    Spacer(minLength: 0)
-                } else {
-                    List(groups) { group in
-                        NavigationLink {
-                            CaseGroupDetailView(number: group.number, cases: group.cases)
-                        } label: {
-                            groupRow(group)
-                        }
-                    }
-                    .scrollContentBackground(.hidden)
-                    .refreshable {
-                        await caseStore.refresh()
+        Group {
+            if caseStore.cases.isEmpty {
+                ContentUnavailableView(
+                    "暂无案例",
+                    systemImage: "books.vertical",
+                    description: Text("案例数据未加载".zh)
+                )
+            } else {
+                List(groups) { group in
+                    NavigationLink {
+                        CaseGroupDetailView(number: group.number, cases: group.cases)
+                    } label: {
+                        groupRow(group)
                     }
                 }
+                .scrollContentBackground(.hidden)
+                .refreshable {
+                    await caseStore.refresh()
+                }
             }
-            .parchmentBackground()
-            .task {
-                await caseStore.refresh()
-            }
+        }
+        .navigationTitle("案例".zh)
+        .navigationBarTitleDisplayMode(.inline)
+        .parchmentBackground()
+        .task {
+            await caseStore.refresh()
         }
     }
 

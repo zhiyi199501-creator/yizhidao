@@ -94,7 +94,7 @@
 ```
 - resp: 同 §2
 
-### 8) AI 解读
+### 8) AI 问答
 - `POST /v1/ai/analyze`
 - req:
 ```json
@@ -173,7 +173,7 @@
 - `SMS_PROVIDER=tencent`：腾讯云短信 SendSms（代码保留）
 - 细节见 `backend/README.md` 与 `backend/app/services/sms.py`
 
-## AI 解读实现说明
+## AI 问答实现说明
 
 机制（框架、黄庭槽、案例筛选、出卡）见 [`ai-reading.md`](ai-reading.md)。提示词原文以 `backend/app/services/ai.py` 为准。本文件 §8 / §8b 只保留路径与 JSON 字段。
 

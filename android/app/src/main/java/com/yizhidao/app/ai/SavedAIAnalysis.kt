@@ -49,6 +49,7 @@ data class SavedAIAnalysis(
     val id: String = UUID.randomUUID().toString(),
     val createdAtEpochMs: Long,
     val updatedAtEpochMs: Long,
+    val readingRecordId: String? = null,
     val methodRaw: String,
     val question: String? = null,
     val primaryNumber: Int,
@@ -62,6 +63,8 @@ data class SavedAIAnalysis(
     val createdAt: Instant get() = Instant.ofEpochMilli(createdAtEpochMs)
     val updatedAt: Instant get() = Instant.ofEpochMilli(updatedAtEpochMs)
 
+    fun fingerprint(): String = fingerprint(methodRaw, createdAtEpochMs, primaryNumber, lines)
+
     fun toCastResult(): CastResult = CastResult(
         method = method,
         createdAt = createdAt,
@@ -74,15 +77,33 @@ data class SavedAIAnalysis(
     )
 
     companion object {
+        fun fingerprint(
+            methodRaw: String,
+            createdAtEpochMs: Long,
+            primaryNumber: Int,
+            lines: List<Int>,
+        ): String = "$methodRaw|$createdAtEpochMs|$primaryNumber|${lines.joinToString(",")}"
+
+        fun fingerprint(result: CastResult): String = fingerprint(
+            methodRaw = result.method.raw,
+            createdAtEpochMs = result.createdAt.toEpochMilli(),
+            primaryNumber = result.primaryNumber,
+            lines = result.lines.map { it.rawValue },
+        )
+
         fun make(
             result: CastResult,
             analysis: SavedAIContent,
             followUps: List<SavedAIFollowUp>,
+            readingRecordId: String? = null,
+            existingId: String? = null,
         ): SavedAIAnalysis {
             val now = System.currentTimeMillis()
             return SavedAIAnalysis(
-                createdAtEpochMs = now,
+                id = existingId ?: UUID.randomUUID().toString(),
+                createdAtEpochMs = result.createdAt.toEpochMilli(),
                 updatedAtEpochMs = now,
+                readingRecordId = readingRecordId,
                 methodRaw = result.method.raw,
                 question = result.question,
                 primaryNumber = result.primaryNumber,
@@ -111,9 +132,27 @@ class SavedAIAnalysisStore(context: Context) {
 
     fun upsert(item: SavedAIAnalysis) {
         val current = load().toMutableList()
-        val index = current.indexOfFirst { it.id == item.id }
-        if (index >= 0) current[index] = item else current.add(0, item)
+        val byRecord = item.readingRecordId
+            ?.takeIf { it.isNotBlank() }
+            ?.let { rid -> current.indexOfFirst { it.readingRecordId == rid } }
+            ?: -1
+        val index = if (byRecord >= 0) byRecord else current.indexOfFirst { it.id == item.id }
+        if (index >= 0) {
+            val keepId = current[index].id
+            current[index] = if (keepId == item.id) item else item.copy(id = keepId)
+        } else {
+            current.add(0, item)
+        }
         save(current)
+    }
+
+    fun find(recordId: String?, result: CastResult): SavedAIAnalysis? {
+        val items = load()
+        if (!recordId.isNullOrBlank()) {
+            items.firstOrNull { it.readingRecordId == recordId }?.let { return it }
+        }
+        val fp = SavedAIAnalysis.fingerprint(result)
+        return items.firstOrNull { it.fingerprint() == fp }
     }
 
     fun remove(id: String) {

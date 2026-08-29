@@ -32,6 +32,7 @@ import com.yizhidao.CastResult
 import com.yizhidao.ReadingRecord
 import com.yizhidao.VerificationStatus
 import com.yizhidao.app.AppContainer
+import com.yizhidao.app.ai.SavedAIAnalysis
 import androidx.compose.runtime.collectAsState
 import com.yizhidao.app.ui.me.LoginScreen
 import com.yizhidao.app.ui.theme.AIFloatingButton
@@ -66,6 +67,9 @@ fun ResultScreen(
     var note by remember { mutableStateOf(existing?.verificationNote ?: "") }
     var showAI by remember { mutableStateOf(false) }
     var showLoginForAI by remember { mutableStateOf(false) }
+    var aiSaved by remember { mutableStateOf<SavedAIAnalysis?>(null) }
+    var aiRecordId by remember { mutableStateOf<String?>(null) }
+    var didSave by remember { mutableStateOf(existing != null || !isNew) }
     val session by container.authStore.session.collectAsState()
 
     LaunchedEffect(showAI) {
@@ -82,6 +86,8 @@ fun ResultScreen(
     if (showAI) {
         AIAnalysisScreen(
             result = resultForAnalysis,
+            saved = aiSaved,
+            readingRecordId = aiRecordId,
             hexagramStore = container.hexagramStore,
             authStore = container.authStore,
             analysisStore = container.savedAIStore,
@@ -94,6 +100,16 @@ fun ResultScreen(
             authStore = container.authStore,
             onBack = { showLoginForAI = false },
             onSuccess = {
+                var rec = record
+                if (rec == null && isNew && !didSave) {
+                    didSave = true
+                    val inserted = ReadingRecord.from(result)
+                    scope.launch { container.readingRepository.insert(inserted) }
+                    record = inserted
+                    rec = inserted
+                }
+                aiRecordId = rec?.id
+                aiSaved = container.savedAIStore.find(rec?.id, resultForAnalysis)
                 showLoginForAI = false
                 showAI = true
             },
@@ -104,9 +120,11 @@ fun ResultScreen(
     LaunchedEffect(result.createdAt, existing?.id) {
         if (existing != null) {
             record = existing
+            didSave = true
             return@LaunchedEffect
         }
-        if (!isNew) return@LaunchedEffect
+        if (!isNew || didSave) return@LaunchedEffect
+        didSave = true
         val inserted = ReadingRecord.from(result)
         container.readingRepository.insert(inserted)
         record = inserted
@@ -260,7 +278,21 @@ fun ResultScreen(
 
         AIFloatingButton(
             onClick = {
-                if (session.isLoggedIn) showAI = true else showLoginForAI = true
+                var rec = record
+                if (rec == null && isNew && !didSave) {
+                    didSave = true
+                    val inserted = ReadingRecord.from(result)
+                    scope.launch { container.readingRepository.insert(inserted) }
+                    record = inserted
+                    rec = inserted
+                }
+                aiRecordId = rec?.id
+                aiSaved = container.savedAIStore.find(rec?.id, resultForAnalysis)
+                if (aiSaved != null || session.isLoggedIn) {
+                    showAI = true
+                } else {
+                    showLoginForAI = true
+                }
             },
             modifier = Modifier
                 .align(Alignment.BottomEnd)

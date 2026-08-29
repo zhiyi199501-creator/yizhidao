@@ -77,22 +77,20 @@ import com.yizhidao.app.ima.ImaExplanationEntry
 import com.yizhidao.app.ima.ImaExplanationId
 import com.yizhidao.app.ima.ImaExplanationStore
 import com.yizhidao.app.ui.reading.ImaExplanationSheet
+import com.yizhidao.app.ui.cases.CaseListScreen
 import com.yizhidao.app.ui.reading.TappableScripture
 import com.yizhidao.app.auth.LocalUserSession
 import com.yizhidao.app.auth.AuthApi
 import com.yizhidao.app.auth.LoginError
 import com.yizhidao.app.HistoryTrashEntry
-import com.yizhidao.app.ai.SavedAIAnalysis
 import com.yizhidao.app.classic.ClassicChapter
 import com.yizhidao.app.classic.ClassicWing
 import com.yizhidao.app.classic.YijingIntroBook
 import com.yizhidao.app.classic.YijingIntroChapter
-import com.yizhidao.app.ui.reading.AIAnalysisScreen
 import com.yizhidao.app.ui.reading.ScaledHexagramFigure
 import com.yizhidao.app.ui.theme.AppTheme
 import com.yizhidao.app.ui.theme.PaperBackHeader
 import com.yizhidao.app.ui.theme.PaperChevron
-import com.yizhidao.app.ui.theme.SwipeRevealDelete
 import com.yizhidao.app.ui.theme.SwipeRevealActions
 import com.yizhidao.app.ui.theme.SwipeAction
 import com.yizhidao.app.ui.theme.PaperTextField
@@ -127,8 +125,7 @@ private sealed interface MeRoute {
     data object Home : MeRoute
     data object Login : MeRoute
     data object Profile : MeRoute
-    data object AIHistory : MeRoute
-    data class AIHistoryItem(val item: SavedAIAnalysis) : MeRoute
+    data object Cases : MeRoute
     data object Settings : MeRoute
     data object TapSound : MeRoute
     data object Recycle : MeRoute
@@ -147,7 +144,6 @@ fun MeScreen(
     onTabBarVisible: (Boolean) -> Unit = {},
 ) {
     var route by remember { mutableStateOf<MeRoute>(MeRoute.Home) }
-    var pendingAfterLogin by remember { mutableStateOf<MeRoute?>(null) }
     val session by container.authStore.session.collectAsState()
     val book = container.classicBook
     val intro = container.introBook
@@ -172,8 +168,8 @@ fun MeScreen(
         }
     }
 
-    LaunchedEffect(route) {
-        onTabBarVisible(route !is MeRoute.AIHistoryItem)
+    LaunchedEffect(Unit) {
+        onTabBarVisible(true)
     }
     DisposableEffect(Unit) {
         onDispose { onTabBarVisible(true) }
@@ -184,13 +180,7 @@ fun MeScreen(
             session = session,
             onLogin = { route = MeRoute.Login },
             onEditProfile = { route = MeRoute.Profile },
-            onAIHistory = {
-                if (session.isLoggedIn) route = MeRoute.AIHistory
-                else {
-                    pendingAfterLogin = MeRoute.AIHistory
-                    route = MeRoute.Login
-                }
-            },
+            onCases = { route = MeRoute.Cases },
             onIntro = { route = MeRoute.Intro },
             onHexagrams = { route = MeRoute.Hexagrams },
             onWings = { route = MeRoute.Wings },
@@ -203,27 +193,12 @@ fun MeScreen(
         )
         MeRoute.Login -> LoginScreen(
             authStore = container.authStore,
-            onBack = {
-                pendingAfterLogin = null
-                route = MeRoute.Home
-            },
-            onSuccess = {
-                route = pendingAfterLogin ?: MeRoute.Home
-                pendingAfterLogin = null
-            },
+            onBack = { route = MeRoute.Home },
+            onSuccess = { route = MeRoute.Home },
         )
-        MeRoute.AIHistory -> AIHistoryPage(
+        MeRoute.Cases -> CaseListScreen(
             container = container,
             onBack = { route = MeRoute.Home },
-            onOpen = { route = MeRoute.AIHistoryItem(it) },
-        )
-        is MeRoute.AIHistoryItem -> AIAnalysisScreen(
-            result = page.item.toCastResult(),
-            saved = page.item,
-            hexagramStore = container.hexagramStore,
-            authStore = container.authStore,
-            analysisStore = container.savedAIStore,
-            onBack = { route = MeRoute.AIHistory },
         )
         MeRoute.Settings -> SettingsPage(
             container = container,
@@ -284,7 +259,7 @@ private fun MeHome(
     session: LocalUserSession,
     onLogin: () -> Unit,
     onEditProfile: () -> Unit,
-    onAIHistory: () -> Unit,
+    onCases: () -> Unit,
     onIntro: () -> Unit,
     onHexagrams: () -> Unit,
     onWings: () -> Unit,
@@ -364,32 +339,25 @@ private fun MeHome(
             MeCard {
                 MeRow(
                     icon = Icons.AutoMirrored.Outlined.MenuBook,
-                    title = "保存的AI解读",
-                    trailing = {
-                        if (!session.isLoggedIn) {
-                            Text("需登录", fontSize = 12.sp, color = AppTheme.secondaryText, style = AppTheme.compactText)
-                        }
-                    },
-                    showChevron = false,
-                    onClick = onAIHistory,
+                    title = "案例",
+                    onClick = onCases,
                 )
-            }
-            MeCard {
+                MeDivider()
                 MeRow(
                     icon = Icons.AutoMirrored.Outlined.MenuBook,
-                    title = "易经基础入门",
+                    title = "基础入门",
                     onClick = onIntro,
                 )
                 MeDivider()
                 MeRow(
                     icon = Icons.Outlined.AutoStories,
-                    title = "易经六十四卦",
+                    title = "六十四卦",
                     onClick = onHexagrams,
                 )
                 MeDivider()
                 MeRow(
                     icon = Icons.AutoMirrored.Outlined.ReceiptLong,
-                    title = "易经四传",
+                    title = "四传",
                     onClick = onWings,
                 )
             }
@@ -859,142 +827,6 @@ private fun RecycleRow(
 }
 
 @Composable
-private fun AIHistoryPage(
-    container: AppContainer,
-    onBack: () -> Unit,
-    onOpen: (SavedAIAnalysis) -> Unit,
-) {
-    val items by container.savedAIStore.items.collectAsState()
-    var revealedId by remember { mutableStateOf<String?>(null) }
-    Column(Modifier.fillMaxSize()) {
-        PaperBackHeader(title = "保存的AI解读", onBack = onBack)
-        if (items.isEmpty()) {
-            Column(
-                Modifier.fillMaxSize().padding(32.dp),
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                Text(
-                    "还没有保存的解读",
-                    fontSize = 17.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = AppTheme.ink,
-                    style = AppTheme.compactText,
-                )
-                Spacer(Modifier.height(8.dp))
-                Text(
-                    "觉得合适的 AI 解读，可在结果页点「保存」",
-                    fontSize = 13.sp,
-                    color = AppTheme.secondaryText,
-                    style = AppTheme.compactText,
-                )
-            }
-        } else {
-            LazyColumn(contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 24.dp)) {
-                item {
-                    MeCard {
-                        items.forEachIndexed { index, item ->
-                            SwipeRevealDelete(
-                                revealed = revealedId == item.id,
-                                onRevealedChange = { open ->
-                                    revealedId = if (open) {
-                                        item.id
-                                    } else if (revealedId == item.id) {
-                                        null
-                                    } else {
-                                        revealedId
-                                    }
-                                },
-                                onDelete = {
-                                    revealedId = null
-                                    container.savedAIStore.remove(item.id)
-                                },
-                                contentBackground = Color.White,
-                            ) {
-                                val hex = container.hexagramStore.hexagram(item.primaryNumber)
-                                SavedAIHistoryRow(
-                                    item = item,
-                                    title = hex?.let { "${it.symbol} ${it.name}" } ?: "第${item.primaryNumber}卦",
-                                    onClick = {
-                                        if (revealedId == item.id) {
-                                            revealedId = null
-                                        } else {
-                                            onOpen(item)
-                                        }
-                                    },
-                                )
-                            }
-                            if (index < items.lastIndex) {
-                                HorizontalDivider(
-                                    modifier = Modifier.padding(start = 16.dp),
-                                    color = AppTheme.fieldStroke,
-                                    thickness = 0.5.dp,
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun SavedAIHistoryRow(
-    item: SavedAIAnalysis,
-    title: String,
-    onClick: () -> Unit,
-) {
-    val question = item.question?.takeIf { it.isNotBlank() }
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(
-                title,
-                fontSize = 17.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = AppTheme.ink,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                style = AppTheme.compactText,
-            )
-            Text(
-                listTimeFmt.format(item.updatedAt),
-                fontSize = 12.sp,
-                color = AppTheme.secondaryText,
-                style = AppTheme.compactText,
-            )
-            if (question != null) {
-                Text(
-                    question,
-                    fontSize = 15.sp,
-                    color = AppTheme.ink,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    style = AppTheme.compactText,
-                )
-            } else {
-                Text(
-                    item.analysis.summary,
-                    fontSize = 15.sp,
-                    color = AppTheme.secondaryText,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    style = AppTheme.compactText,
-                )
-            }
-        }
-        Spacer(Modifier.width(8.dp))
-        PaperChevron()
-    }
-}
-
-@Composable
 private fun PlaceholderPage(title: String, message: String, onBack: () -> Unit) {
     Column(Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
         BackLabel("我的", onBack)
@@ -1072,7 +904,7 @@ private fun IntroListPage(
     onOpen: (YijingIntroChapter) -> Unit,
 ) {
     Column(Modifier.fillMaxSize()) {
-        PaperBackHeader(title = "易经基础入门", onBack = onBack)
+        PaperBackHeader(title = "基础入门", onBack = onBack)
         LazyColumn(contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 24.dp)) {
             if (book.note.isNotBlank()) {
                 item(key = "note") {
@@ -1120,7 +952,7 @@ private fun WingListPage(
     onOpen: (ClassicWing) -> Unit,
 ) {
     Column(Modifier.fillMaxSize()) {
-        PaperBackHeader(title = "易经四传", onBack = onBack)
+        PaperBackHeader(title = "四传", onBack = onBack)
         LazyColumn(contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 24.dp)) {
             item(key = "wings") {
                 MeCard {
@@ -1225,7 +1057,7 @@ private fun HexagramListPage(
     val upper = hexagrams.filter { it.part == "上经" }.ifEmpty { hexagrams.take(30) }
     val lower = hexagrams.filter { it.part == "下经" }.ifEmpty { hexagrams.drop(upper.size) }
     Column(Modifier.fillMaxSize()) {
-        PaperBackHeader(title = "易经六十四卦", onBack = onBack)
+        PaperBackHeader(title = "六十四卦", onBack = onBack)
         LazyColumn(contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 24.dp)) {
             hexagramSection("上经", upper, onOpen)
             hexagramSection("下经", lower, onOpen)

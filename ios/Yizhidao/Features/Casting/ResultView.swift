@@ -67,7 +67,12 @@ struct ResultView: View {
         }
         .overlay(alignment: .bottomTrailing) {
             AIFloatingButton {
-                if LocalAuthStore.load().isLoggedIn {
+                persistNewRecordIfNeeded()
+                let existing = SavedAIAnalysisStore.find(
+                    recordID: editableRecord?.id,
+                    result: resultForAnalysis
+                )
+                if existing != nil || LocalAuthStore.load().isLoggedIn {
                     showAIAnalysis = true
                 } else {
                     showLoginForAI = true
@@ -92,7 +97,7 @@ struct ResultView: View {
             }
         }
         .navigationDestination(isPresented: $showAIAnalysis) {
-            AIAnalysisView(result: resultForAnalysis)
+            AIAnalysisView(result: resultForAnalysis, readingRecordID: editableRecord?.id)
         }
         .sheet(isPresented: $showLoginForAI) {
             LoginSheetView { newSession in
@@ -102,16 +107,20 @@ struct ResultView: View {
             }
         }
         .onAppear {
-            guard isNew, !didSave else { return }
-            let inserted = ReadingRecord(from: result)
-            modelContext.insert(inserted)
-            try? modelContext.save()
-            savedRecord = inserted
-            questionText = inserted.question ?? ""
-            verificationStatus = inserted.verificationStatus
-            verificationNote = inserted.verificationNote ?? ""
-            didSave = true
+            persistNewRecordIfNeeded()
         }
+    }
+
+    private func persistNewRecordIfNeeded() {
+        guard isNew, !didSave else { return }
+        let inserted = ReadingRecord(from: result)
+        modelContext.insert(inserted)
+        try? modelContext.save()
+        savedRecord = inserted
+        questionText = inserted.question ?? ""
+        verificationStatus = inserted.verificationStatus
+        verificationNote = inserted.verificationNote ?? ""
+        didSave = true
     }
 
     private var metaSection: some View {
@@ -445,16 +454,15 @@ struct HexagramReadingBody: View {
 
 struct AIAnalysisView: View {
     let result: CastResult
-    private let initialSavedID: UUID?
+    private let readingRecordID: UUID?
 
-    @State private var isLoading = false
+    @State private var isLoading: Bool
     @State private var isFollowupLoading = false
     @State private var analysis: AuthAPI.AIAnalyzeResponse.Analysis?
-    @State private var followUps: [SavedAIFollowUp] = []
+    @State private var followUps: [SavedAIFollowUp]
     @State private var draft = ""
     @State private var errorMessage: String?
     @State private var savedID: UUID?
-    @State private var isDirty = false
 
     private var store: HexagramStore { .shared }
     private var canSendFollowup: Bool {
@@ -464,18 +472,29 @@ struct AIAnalysisView: View {
             && !isFollowupLoading
     }
 
-    init(result: CastResult) {
+    init(result: CastResult, readingRecordID: UUID? = nil) {
         self.result = result
-        self.initialSavedID = nil
+        self.readingRecordID = readingRecordID
+        if let saved = SavedAIAnalysisStore.find(recordID: readingRecordID, result: result) {
+            _analysis = State(initialValue: AuthAPI.AIAnalyzeResponse.Analysis(saved: saved.analysis))
+            _followUps = State(initialValue: saved.followUps)
+            _savedID = State(initialValue: saved.id)
+            _isLoading = State(initialValue: false)
+        } else {
+            _analysis = State(initialValue: nil)
+            _followUps = State(initialValue: [])
+            _savedID = State(initialValue: nil)
+            _isLoading = State(initialValue: true)
+        }
     }
 
     init(saved: SavedAIAnalysis) {
         self.result = saved.toCastResult()
-        self.initialSavedID = saved.id
+        self.readingRecordID = saved.readingRecordID
         _analysis = State(initialValue: AuthAPI.AIAnalyzeResponse.Analysis(saved: saved.analysis))
         _followUps = State(initialValue: saved.followUps)
         _savedID = State(initialValue: saved.id)
-        _isDirty = State(initialValue: false)
+        _isLoading = State(initialValue: false)
     }
 
     var body: some View {
@@ -526,22 +545,6 @@ struct AIAnalysisView: View {
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
-
-                    if analysis != nil, !isLoading {
-                        Button("重新解读".zh) {
-                            Task { await runAnalysis() }
-                        }
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .frame(maxWidth: .infinity)
-                    } else if !isLoading, analysis == nil {
-                        Button("开始解读".zh) {
-                            Task { await runAnalysis() }
-                        }
-                        .buttonStyle(.borderedProminent)
-                        .tint(AppTheme.accent)
-                        .frame(maxWidth: .infinity)
-                    }
                 }
                 .padding()
             }
@@ -551,30 +554,14 @@ struct AIAnalysisView: View {
                 composerBar
             }
         }
-        .navigationTitle("AI 解读".zh)
+        .navigationTitle("问答".zh)
         .navigationBarTitleDisplayMode(.inline)
         .parchmentBackground()
-        .toolbar {
-            if analysis != nil {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button(saveButtonTitle.zh) {
-                        saveCurrent()
-                    }
-                    .disabled(!isDirty && savedID != nil)
-                }
-            }
-        }
         .task {
-            if analysis == nil, !isLoading, initialSavedID == nil {
+            if analysis == nil {
                 await runAnalysis()
             }
         }
-    }
-
-    private var saveButtonTitle: String {
-        if savedID != nil, !isDirty { return "已保存" }
-        if savedID != nil { return "重新保存" }
-        return "保存"
     }
 
     private var composerBar: some View {
@@ -697,6 +684,7 @@ struct AIAnalysisView: View {
                             RoundedRectangle(cornerRadius: 10)
                                 .stroke(AppTheme.accent.opacity(0.35), lineWidth: 1)
                         )
+                        .contentShape(RoundedRectangle(cornerRadius: 10))
                 }
                 .buttonStyle(.plain)
                 .disabled(isFollowupLoading || isLoading)
@@ -707,27 +695,29 @@ struct AIAnalysisView: View {
         .background(RoundedRectangle(cornerRadius: 12).fill(AppTheme.cardFill))
     }
 
-    private func saveCurrent() {
-        guard let analysis else { return }
+    private func persistCurrent(
+        analysis: AuthAPI.AIAnalyzeResponse.Analysis,
+        followUps: [SavedAIFollowUp]
+    ) {
         let content = analysis.savedContent()
-        if var existing = SavedAIAnalysisStore.load().first(where: { $0.id == savedID }) {
-            existing.updatedAt = Date()
-            existing.analysis = content
-            existing.followUps = followUps
-            SavedAIAnalysisStore.upsert(existing)
-            savedID = existing.id
-        } else {
-            let item = SavedAIAnalysis.make(result: result, analysis: content, followUps: followUps)
-            SavedAIAnalysisStore.upsert(item)
-            savedID = item.id
-        }
-        isDirty = false
+        let existing = SavedAIAnalysisStore.find(recordID: readingRecordID, result: result)
+            ?? savedID.flatMap { id in SavedAIAnalysisStore.load().first { $0.id == id } }
+        let item = SavedAIAnalysis.make(
+            result: result,
+            analysis: content,
+            followUps: followUps,
+            readingRecordID: readingRecordID ?? existing?.readingRecordID,
+            existingID: existing?.id ?? savedID
+        )
+        SavedAIAnalysisStore.upsert(item)
+        savedID = item.id
     }
 
     @MainActor
     private func runAnalysis() async {
         guard let token = LocalAuthStore.load().accessToken else {
             errorMessage = "请先登录"
+            isLoading = false
             return
         }
         isLoading = true
@@ -737,7 +727,7 @@ struct AIAnalysisView: View {
             let response = try await AuthAPI.analyzeReading(result: result, accessToken: token)
             analysis = response.analysis
             followUps = []
-            isDirty = true
+            persistCurrent(analysis: response.analysis, followUps: [])
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -770,17 +760,16 @@ struct AIAnalysisView: View {
                 message: message,
                 accessToken: token
             )
-            followUps.append(SavedAIFollowUp(
-                user: message,
-                assistant: response.reply,
-                advice: response.advice,
-                askNext: response.askNext
-            ))
-            if savedID != nil {
-                saveCurrent()
-            } else {
-                isDirty = true
-            }
+            let nextFollowUps = followUps + [
+                SavedAIFollowUp(
+                    user: message,
+                    assistant: response.reply,
+                    advice: response.advice,
+                    askNext: response.askNext
+                )
+            ]
+            followUps = nextFollowUps
+            persistCurrent(analysis: analysis, followUps: nextFollowUps)
         } catch {
             draft = message
             errorMessage = error.localizedDescription

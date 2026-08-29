@@ -49,12 +49,14 @@ struct RootTabView: View {
                     Label("历史".zh, systemImage: "clock")
                 }
                 .tag(AppTab.history)
-            CaseListView()
-                .id(language)
-                .tabItem {
-                    Label("案例".zh, systemImage: "books.vertical")
-                }
-                .tag(AppTab.cases)
+            NavigationStack {
+                AIAnalysisHistoryView()
+            }
+            .id(language)
+            .tabItem {
+                Label("问答".zh, systemImage: "bubble.left.and.bubble.right")
+            }
+            .tag(AppTab.qa)
             MyMenuView()
                 .id(language)
                 .tabItem {
@@ -74,8 +76,6 @@ struct RootTabView: View {
 struct MyMenuView: View {
     @State private var session: LocalUserSession = LocalAuthStore.load()
     @State private var showLoginSheet = false
-    @State private var openAIAnalysisPage = false
-    @State private var pendingOpenAIAnalysis = false
 
     var body: some View {
         NavigationStack {
@@ -115,41 +115,25 @@ struct MyMenuView: View {
                 }
 
                 Section {
-                    Button {
-                        if session.isLoggedIn {
-                            openAIAnalysisPage = true
-                        } else {
-                            pendingOpenAIAnalysis = true
-                            showLoginSheet = true
-                        }
+                    NavigationLink {
+                        CaseListView()
                     } label: {
-                        HStack {
-                            Label("保存的AI解读".zh, systemImage: "text.book.closed")
-                            Spacer()
-                            if !session.isLoggedIn {
-                                Text("需登录".zh)
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
-                        }
+                        Label("案例".zh, systemImage: "books.vertical")
                     }
-                }
-
-                Section {
                     NavigationLink {
                         YijingIntroListView()
                     } label: {
-                        Label("易经基础入门".zh, systemImage: "text.book.closed")
+                        Label("基础入门".zh, systemImage: "text.book.closed")
                     }
                     NavigationLink {
                         ClassicHexagramListView()
                     } label: {
-                        Label("易经六十四卦".zh, systemImage: "book")
+                        Label("六十四卦".zh, systemImage: "book")
                     }
                     NavigationLink {
                         ClassicWingListView()
                     } label: {
-                        Label("易经四传".zh, systemImage: "scroll")
+                        Label("四传".zh, systemImage: "scroll")
                     }
                 }
 
@@ -164,9 +148,6 @@ struct MyMenuView: View {
             .navigationTitle("我的".zh)
             .navigationBarTitleDisplayMode(.inline)
             .parchmentBackground()
-            .navigationDestination(isPresented: $openAIAnalysisPage) {
-                AIAnalysisHistoryView()
-            }
             .onAppear {
                 session = LocalAuthStore.load()
                 Task { await refreshSessionIfNeeded() }
@@ -176,10 +157,6 @@ struct MyMenuView: View {
                     session = newSession
                     LocalAuthStore.save(newSession)
                     showLoginSheet = false
-                    if pendingOpenAIAnalysis {
-                        pendingOpenAIAnalysis = false
-                        openAIAnalysisPage = true
-                    }
                 }
             }
         }
@@ -1176,9 +1153,9 @@ private struct AIAnalysisHistoryView: View {
         Group {
             if items.isEmpty {
                 ContentUnavailableView(
-                    "还没有保存的解读",
-                    systemImage: "sparkles",
-                    description: Text("觉得合适的 AI 解读，可在结果页点「保存」".zh)
+                    "还没有解读",
+                    systemImage: "bubble.left.and.bubble.right",
+                    description: Text("起卦后点 AI，解读会自动出现在这里".zh)
                 )
             } else {
                 List {
@@ -1203,10 +1180,13 @@ private struct AIAnalysisHistoryView: View {
                 .scrollContentBackground(.hidden)
             }
         }
-        .navigationTitle("保存的AI解读".zh)
+        .navigationTitle("问答".zh)
         .navigationBarTitleDisplayMode(.inline)
         .parchmentBackground()
         .onAppear {
+            items = SavedAIAnalysisStore.load()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .savedAIAnalysesDidChange)) { _ in
             items = SavedAIAnalysisStore.load()
         }
     }
@@ -1408,7 +1388,7 @@ private struct SettingsView: View {
                 Task { await deleteAccount() }
             }
         } message: {
-            Text("注销后，服务器上的账号信息将被永久删除且不可恢复。设备本地的起卦记录与保存的 AI 解读不会自动清除。".zh)
+            Text("注销后，服务器上的账号信息将被永久删除且不可恢复。设备本地的起卦记录与保存的问答不会自动清除。".zh)
         }
         .alert("注销失败".zh, isPresented: Binding(
             get: { deleteErrorMessage != nil },

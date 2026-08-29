@@ -1,6 +1,6 @@
 # 易玩家 Backend
 
-FastAPI 最小后端：Apple / Google / 邮箱 OTP 登录 + AI 解读，接口对齐 `docs/backend-min-spec.md`。短信路由仍保留，现役 App 登录页不展示。
+FastAPI 最小后端：Apple / Google / 邮箱 OTP 登录 + AI 问答，接口对齐 `docs/backend-min-spec.md`。短信路由仍保留，现役 App 登录页不展示。
 
 ## 要求
 
@@ -125,7 +125,7 @@ ALIYUN_SMS_VALID_SEC=300
 | DELETE | `/v1/me` | 注销账号（需 Bearer token） |
 | GET | `/privacy` `/terms` `/support` | 法律与支持页（HTML） |
 | GET | `/v1/cases` | 案例列表（公开；支持 `If-None-Match`） |
-| POST | `/v1/ai/analyze` | AI 解读（需 Bearer token） |
+| POST | `/v1/ai/analyze` | AI 问答（需 Bearer token） |
 | POST | `/v1/ai/followup` | AI 追问 / 补充背景（需 Bearer token） |
 
 ## 与 App 联调
@@ -186,7 +186,7 @@ backend/
 │   ├── db.py / models.py    # SQLite 用户与验证码
 │   ├── schemas.py / errors.py / deps.py
 │   ├── routes/auth.py       # 登录
-│   ├── routes/ai.py         # AI 解读
+│   ├── routes/ai.py         # AI 问答
 │   ├── routes/cases.py      # 案例列表热更新
 │   └── services/
 │       ├── auth.py          # 验证码与 JWT

@@ -67,6 +67,8 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
@@ -616,13 +618,14 @@ fun AIFloatingButton(
             .shadow(4.dp, CircleShape, clip = false)
             .clip(CircleShape)
             .background(AppTheme.accent)
+            .semantics(mergeDescendants = true) { contentDescription = zh("问答") }
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
         Text(
-            "AI",
+            "问",
             color = Color.White,
-            fontSize = 20.sp,
+            fontSize = 22.sp,
             fontWeight = FontWeight.Bold,
             style = AppTheme.compactText,
         )

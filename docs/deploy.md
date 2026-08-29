@@ -97,7 +97,7 @@ curl https://yd.codedance.work/health   # 2026-08-26 起 H2-only；遗留对照�
 
 **国内遗留机**：`ssh yizhidao` + 同上（仅运维对照）。
 
-**更新案例**（App 下次打开「案例」即 `GET /v1/cases` 全量替换）：
+**更新案例**（App 下次打开「我的 → 案例」即 `GET /v1/cases` 全量替换）：
 
 - **现役生产（2026-08-28 实测 `/admin/` 与 `/v1/admin/cases` 均 404）**：镜像尚未含运营后台。在对应机 `backend/`：
 

@@ -41,11 +41,8 @@ struct HistoryListView: View {
     var body: some View {
         NavigationStack(path: $path) {
             VStack(alignment: .leading, spacing: 0) {
-                VStack(alignment: .leading, spacing: 20) {
-                    Text("历史".zh)
-                        .font(.largeTitle.weight(.bold))
-
-                    if !records.isEmpty {
+                if !records.isEmpty {
+                    VStack(alignment: .leading, spacing: 20) {
                         Picker("浏览".zh, selection: $browseMode) {
                             ForEach(BrowseMode.allCases) { mode in
                                 Text(mode.rawValue.zh).tag(mode)
@@ -80,8 +77,8 @@ struct HistoryListView: View {
                             }
                         }
                     }
+                    .padding()
                 }
-                .padding()
 
                 if records.isEmpty {
                     Spacer(minLength: 0)
@@ -101,6 +98,8 @@ struct HistoryListView: View {
                 }
             }
             .parchmentBackground()
+            .navigationTitle("历史".zh)
+            .navigationBarTitleDisplayMode(.inline)
             .navigationDestination(for: SimilarHexagramDestination.self) { destination in
                 HexagramGroupDetailView(destination: destination)
             }

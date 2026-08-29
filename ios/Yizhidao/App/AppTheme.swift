@@ -200,29 +200,18 @@ private struct DismissKeyboardTapInstaller: UIViewRepresentable {
 }
 #endif
 
-struct AIBadgeIcon: View {
-    var compact: Bool = false
-
-    var body: some View {
-        Text("AI".zh)
-            .font(.system(size: compact ? 13 : 15, weight: .bold, design: .rounded))
-            .foregroundStyle(AppTheme.accent)
-            .accessibilityLabel("AI")
-    }
-}
-
 struct AIFloatingButton: View {
     let action: () -> Void
 
     var body: some View {
         Button(action: action) {
-            Text("AI".zh)
-                .font(.system(size: 20, weight: .bold, design: .rounded))
+            Text("问".zh)
+                .font(.system(size: 22, weight: .bold))
                 .foregroundStyle(.white)
                 .frame(width: 50, height: 50)
                 .background(Circle().fill(AppTheme.accent))
         }
         .buttonStyle(.plain)
-        .accessibilityLabel("AI 解读".zh)
+        .accessibilityLabel("问答".zh)
     }
 }

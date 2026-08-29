@@ -32,7 +32,7 @@ struct YijingIntroListView: View {
             }
         }
         .scrollContentBackground(.hidden)
-        .navigationTitle("易经基础入门".zh)
+        .navigationTitle("基础入门".zh)
         .navigationBarTitleDisplayMode(.inline)
         .parchmentBackground()
     }
@@ -89,7 +89,7 @@ struct ClassicHexagramListView: View {
             }
         }
         .scrollContentBackground(.hidden)
-        .navigationTitle("易经六十四卦".zh)
+        .navigationTitle("六十四卦".zh)
         .navigationBarTitleDisplayMode(.inline)
         .parchmentBackground()
     }
@@ -217,7 +217,7 @@ struct ClassicWingListView: View {
             }
         }
         .scrollContentBackground(.hidden)
-        .navigationTitle("易经四传".zh)
+        .navigationTitle("四传".zh)
         .navigationBarTitleDisplayMode(.inline)
         .parchmentBackground()
     }

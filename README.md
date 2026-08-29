@@ -1,6 +1,6 @@
 # 易玩家
 
-原生 SwiftUI iOS + Compose Android：**易玩家**（Bundle / applicationId `com.yizhidao.app`）。数字起卦（三数 / 时间）与六爻金钱卦，记录占时并展示卦象与经文。界面固定浅色宣纸风格。可选 FastAPI 后端：登录与 AI 解读。**App Store / Google Play 仅海外**（排除中国大陆）；Release API：`https://api.yiwanjia.work`。
+原生 SwiftUI iOS + Compose Android：**易玩家**（Bundle / applicationId `com.yizhidao.app`）。数字起卦（三数 / 时间）与六爻金钱卦，记录占时并展示卦象与经文。界面固定浅色宣纸风格。可选 FastAPI 后端：登录与问答。**App Store / Google Play 仅海外**（排除中国大陆）；Release API：`https://api.yiwanjia.work`。
 
 ## 要求
 
@@ -28,10 +28,10 @@ xcodebuild test -project ios/Yizhidao.xcodeproj -scheme Yizhidao -destination 'p
 - **数字起卦 · 三数**：各框随机 + **一键随机** / 清空；三数未齐则「起卦」禁用
 - **数字起卦 · 时间**：默认农历年支、月、日 + **十二时辰**；可开「公历取数」（公历月日 + 1–24 时）；占问时刻 `yyyy-MM-dd HH:mm`，弹层中文日历
 - **金钱卦**：逐爻摇或「选」手选四象（少阳／少阴／阳动／阴动）；一键摇满；上爻在上、初爻在下
-- **结果**：本卦 / 之卦 tab；卦辞、彖曰、象曰、六爻；动爻红字；「主看」；可改所问与验证；右上角「同类」；右下角悬浮 **AI**（需登录；结构化解读可追问、保存；卡片为事情背景／当下／方向／建议（须防并入建议），追问后仍给建议）；卦辞／彖／大象／爻+小象可点开 **IMA 黄庭书院讲解**（包内 `ImaExplanations.json`）
+- **结果**：本卦 / 之卦 tab；卦辞、彖曰、象曰、六爻；动爻红字；「主看」；可改所问与验证；右上角「同类」；右下角悬浮 **问**（该占已有问答则打开，没有则自动生成且需登录；页标题「问答」；一占一条自动保存；卡片为事情背景／当下／方向／建议（须防并入建议），追问后仍给建议）；卦辞／彖／大象／爻+小象可点开 **IMA 黄庭书院讲解**（包内 `ImaExplanations.json`）
 - **历史**：SwiftData 本地；**时间** / **按卦**（文王序）；状态筛选；左滑删除进回收站；数字起卦单爻动在箭头上方标红字（初/二/三/四/五/上）
-- **案例**：按卦浏览（文王序）；打开页面向服务端拉取最新（可下拉刷新）；离线用 App 内底稿；卦内按爻位筛选、不分数字/金钱起卦；详情为背景、所问何事、验证结果、讲师解读，以及与历史相同的本卦/之卦（经文同样可点 IMA 讲解）
-- **我的**：登录为 iOS **Apple** / Android **Google**（主按钮）+ 邮箱验证码（子页）；无微信、登录页无短信。资料编辑、**保存的AI解读**（需登录；已保存后追问自动更新）、**易经基础入门**、可读《易经》六十四卦（详情卡片彖辞/大象；经文可点 IMA 讲解）、系辞/说卦/序卦/杂卦、设置（按键音效、回收站，清空需确认；退出登录；**注销账号**）。繁简跟系统语言，无应用内开关。
+- **问答**：列出全部本地问答（左滑删除）；起卦后点「问」会自动出现在这里
+- **我的**：登录为 iOS **Apple** / Android **Google**（主按钮）+ 邮箱验证码（子页）；无微信、登录页无短信。资料编辑、**案例**（按卦浏览，打开拉取 `GET /v1/cases`，离线用包内底稿）、**基础入门**、**六十四卦**（详情卡片彖辞/大象；经文可点 IMA 讲解）、**四传**（系辞/说卦/序卦/杂卦）、设置（按键音效、回收站，清空需确认；退出登录；**注销账号**）。繁简跟系统语言，无应用内开关。
 
 ## 协作
 
@@ -44,10 +44,10 @@ xcodebuild test -project ios/Yizhidao.xcodeproj -scheme Yizhidao -destination 'p
 |---|---|
 | `ios/` | SwiftUI App（`Yizhidao.xcodeproj`） |
 | `android/` | Kotlin 引擎 + Compose App（见 `android/README.md`） |
-| `ios/Yizhidao/App/` | 入口、`AppTheme`、`AppNavigation`、登录与「我的」 |
+| `ios/Yizhidao/App/` | 入口、`AppTheme`、`AppNavigation`、登录、「我的」、问答列表 |
 | `ios/Yizhidao/Engines/` | 数字 / 金钱起卦、京房卦序、农历／公历时辰 |
 | `ios/Yizhidao/Domain/` | 模型与 `ReadingGuide` 解卦焦点 |
-| `ios/Yizhidao/Features/` | 起卦 UI、结果（含 AI 追问/保存）、历史（含按卦）、案例 |
+| `ios/Yizhidao/Features/` | 起卦 UI、结果（含 AI 追问）、历史（含按卦）、案例（入口在「我的」） |
 | `ios/Yizhidao/Data/` | SwiftData `ReadingRecord`、回收站、`SavedAIAnalysis`、经文加载、`ImaExplanationStore` |
 | `ios/Yizhidao/Resources/Hexagrams.json` | 64 卦（卦辞／彖／象／爻／用九用六／文言）+ 系辞／说卦／序卦／杂卦。编辑根目录 `易经正文编辑表.xlsx` → `python3 scripts/import_jingwen.py` |
 | `ios/Yizhidao/Resources/Zhengshi.json` | 《易经证释》全册阅读稿；由 `scripts/import_zhengshi.py` 从全册 `.doc` 生成，暂未挂「我的」入口 |
@@ -56,9 +56,9 @@ xcodebuild test -project ios/Yizhidao.xcodeproj -scheme Yizhidao -destination 'p
 | `admin/` | 内部运营后台（用量 + 内容）。本地 `npm run dev`；生产须重建镜像。不上架 |
 | `ios/YizhidaoTests/` | 起卦、时辰、`ReadingGuide`、`ImaAnswerFormatter` 单测 |
 | `docs/backend-min-spec.md` | 登录、AI、案例热更新的接口合同 |
-| `docs/ai-reading.md` | AI 解读机制（prompt、黄庭槽、案例筛选、出卡） |
+| `docs/ai-reading.md` | AI 问答机制（prompt、黄庭槽、案例筛选、出卡） |
 | `docs/deploy.md` | 后端 Docker + Caddy 上线指南 |
-| `backend/` | FastAPI：Apple / Google / 邮箱 OTP + AI 解读 |
+| `backend/` | FastAPI：Apple / Google / 邮箱 OTP + AI 问答 |
 | `start-backend.sh` | 一键启动后端（本地开发） |
 
 ## 后端本地联调
