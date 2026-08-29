@@ -119,6 +119,11 @@ fun YizhidaoRoot(container: AppContainer) {
                 AppTab.QA -> QAListScreen(
                     container = container,
                     onTabBarVisible = { hideTabBar = !it },
+                    onOpenSimilar = { result ->
+                        similarJump = SimilarHexagramJump.from(result)
+                        similarJumpTick += 1
+                        tab = AppTab.History
+                    },
                 )
                 AppTab.Me -> MeScreen(
                     container = container,

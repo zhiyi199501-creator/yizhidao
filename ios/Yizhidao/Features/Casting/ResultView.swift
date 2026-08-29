@@ -97,7 +97,11 @@ struct ResultView: View {
             }
         }
         .navigationDestination(isPresented: $showAIAnalysis) {
-            AIAnalysisView(result: resultForAnalysis, readingRecordID: editableRecord?.id)
+            AIAnalysisView(
+                result: resultForAnalysis,
+                readingRecordID: editableRecord?.id,
+                showSimilarHexagramButton: showSimilarHexagramButton
+            )
         }
         .sheet(isPresented: $showLoginForAI) {
             LoginSheetView { newSession in
@@ -455,7 +459,9 @@ struct HexagramReadingBody: View {
 struct AIAnalysisView: View {
     let result: CastResult
     private let readingRecordID: UUID?
+    private let showSimilarHexagramButton: Bool
 
+    @Environment(AppNavigation.self) private var appNavigation
     @State private var isLoading: Bool
     @State private var isFollowupLoading = false
     @State private var analysis: AuthAPI.AIAnalyzeResponse.Analysis?
@@ -472,9 +478,10 @@ struct AIAnalysisView: View {
             && !isFollowupLoading
     }
 
-    init(result: CastResult, readingRecordID: UUID? = nil) {
+    init(result: CastResult, readingRecordID: UUID? = nil, showSimilarHexagramButton: Bool = true) {
         self.result = result
         self.readingRecordID = readingRecordID
+        self.showSimilarHexagramButton = showSimilarHexagramButton
         if let saved = SavedAIAnalysisStore.find(recordID: readingRecordID, result: result) {
             _analysis = State(initialValue: AuthAPI.AIAnalyzeResponse.Analysis(saved: saved.analysis))
             _followUps = State(initialValue: saved.followUps)
@@ -488,9 +495,10 @@ struct AIAnalysisView: View {
         }
     }
 
-    init(saved: SavedAIAnalysis) {
+    init(saved: SavedAIAnalysis, showSimilarHexagramButton: Bool = true) {
         self.result = saved.toCastResult()
         self.readingRecordID = saved.readingRecordID
+        self.showSimilarHexagramButton = showSimilarHexagramButton
         _analysis = State(initialValue: AuthAPI.AIAnalyzeResponse.Analysis(saved: saved.analysis))
         _followUps = State(initialValue: saved.followUps)
         _savedID = State(initialValue: saved.id)
@@ -557,6 +565,18 @@ struct AIAnalysisView: View {
         .navigationTitle("问答".zh)
         .navigationBarTitleDisplayMode(.inline)
         .parchmentBackground()
+        .toolbar {
+            if showSimilarHexagramButton {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        appNavigation.openSimilarHexagram(for: result)
+                    } label: {
+                        Label("同类".zh, systemImage: "rectangle.stack")
+                    }
+                    .accessibilityLabel("查看同类卦".zh)
+                }
+            }
+        }
         .task {
             if analysis == nil {
                 await runAnalysis()
@@ -627,13 +647,17 @@ struct AIAnalysisView: View {
     }
 
     private func analysisSection(title: String, text: String) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 10) {
             Text(title.zh)
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(AppTheme.accent)
-            Text(text.zh)
-                .font(.body)
-                .fixedSize(horizontal: false, vertical: true)
+            ForEach(Array(AIAnswerFormatter.paragraphs(in: text).enumerated()), id: \.offset) { _, paragraph in
+                Text(paragraph.zh)
+                    .font(.body)
+                    .lineSpacing(7)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding()
@@ -641,7 +665,7 @@ struct AIAnalysisView: View {
     }
 
     private func bulletSection(title: String, items: [String]) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 10) {
             Text(title.zh)
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(AppTheme.accent)
@@ -652,6 +676,7 @@ struct AIAnalysisView: View {
                         .foregroundStyle(AppTheme.accent)
                     Text(item.zh)
                         .font(.body)
+                        .lineSpacing(5)
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }

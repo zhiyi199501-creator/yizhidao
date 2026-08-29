@@ -82,14 +82,10 @@ struct DigitalCastView: View {
                 n3 = String(Int.random(in: 10...999))
             }
             HStack {
-                Button("一键随机".zh) {
-                    TapSoundPlayer.shared.play()
-                    n1 = String(Int.random(in: 10...999))
-                    n2 = String(Int.random(in: 10...999))
-                    n3 = String(Int.random(in: 10...999))
-                    errorMessage = nil
-                }
-                .buttonStyle(.bordered)
+                Text("从上往下输入3个数起卦".zh)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 Button("清空".zh) {
                     n1 = ""
                     n2 = ""
@@ -97,7 +93,6 @@ struct DigitalCastView: View {
                     errorMessage = nil
                 }
                 .buttonStyle(.bordered)
-                Spacer(minLength: 0)
             }
         }
     }
@@ -182,8 +177,8 @@ struct DigitalCastView: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
             }
-            Text("上卦=(年+月+日)÷8余；下卦与动爻=(年+月+日+时)分别÷8、÷6取余。".zh)
-                .font(.caption2)
+            Text("以当前时刻起卦，或者选择某个时刻起卦。".zh)
+                .font(.caption)
                 .foregroundStyle(.secondary)
         }
     }

@@ -53,13 +53,6 @@ fun CoinCastPanel(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        Text(
-            "三钱摇六次，自下而上成卦。字面为阳，背面为阴；也可点「选」手选四象。",
-            fontSize = 12.sp,
-            color = AppTheme.secondaryText,
-            lineHeight = 16.sp,
-            style = AppTheme.compactText,
-        )
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             (5 downTo 0).forEach { index ->
                 CoinYaoRow(
@@ -74,12 +67,18 @@ fun CoinCastPanel(
                 )
             }
         }
-        Row {
-            PaperOutlinedButton(onClick = {
-                TapSoundPlayer.play()
-                lines = List(6) { CoinCastingEngine.tossLine(rng) }
-            }, label = "一键摇满")
-            Spacer(Modifier.width(8.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                "用三枚铜钱摇六次，自下而上成卦",
+                fontSize = 12.sp,
+                lineHeight = 16.sp,
+                color = AppTheme.secondaryText,
+                modifier = Modifier.weight(1f),
+                style = AppTheme.compactText,
+            )
             PaperOutlinedButton(onClick = { lines = List(6) { null } }, label = "清空")
         }
         error?.let {

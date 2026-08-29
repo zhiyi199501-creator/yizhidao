@@ -168,8 +168,8 @@ fun MeScreen(
         }
     }
 
-    LaunchedEffect(Unit) {
-        onTabBarVisible(true)
+    LaunchedEffect(route) {
+        onTabBarVisible(route is MeRoute.Home)
     }
     DisposableEffect(Unit) {
         onDispose { onTabBarVisible(true) }
@@ -621,7 +621,7 @@ private fun TapSoundPage(onBack: () -> Unit) {
                 }
             }
             Text(
-                "点按「随机」「一键随机」「摇」「一键摇满」时播放。系统静音时不会出声。",
+                "点按「随机」「摇」时播放。系统静音时不会出声。",
                 fontSize = 13.sp,
                 color = AppTheme.secondaryText,
                 lineHeight = 18.sp,

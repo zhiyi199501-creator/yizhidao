@@ -96,15 +96,18 @@ fun DigitalCastPanel(
                 NumberRow("动爻数", n3, { n3 = it.filter(Char::isDigit) }) {
                     n3 = rng.nextInt(10..999).toString()
                 }
-                Row {
-                    PaperOutlinedButton(onClick = {
-                        TapSoundPlayer.play()
-                        n1 = rng.nextInt(10..999).toString()
-                        n2 = rng.nextInt(10..999).toString()
-                        n3 = rng.nextInt(10..999).toString()
-                        error = null
-                    }, label = "一键随机")
-                    Spacer(Modifier.width(10.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        "从上往下输入3个数起卦",
+                        fontSize = 12.sp,
+                        lineHeight = 17.sp,
+                        color = AppTheme.secondaryText,
+                        modifier = Modifier.weight(1f),
+                        style = AppTheme.compactText,
+                    )
                     PaperOutlinedButton(onClick = {
                         n1 = ""; n2 = ""; n3 = ""; error = null
                     }, label = "清空")
@@ -166,9 +169,9 @@ fun DigitalCastPanel(
                 style = AppTheme.compactText,
             )
             Text(
-                "上卦=(年+月+日)÷8余；下卦与动爻=(年+月+日+时)分别÷8、÷6取余。",
-                fontSize = 11.sp,
-                lineHeight = 15.sp,
+                "以当前时刻起卦，或者选择某个时刻起卦。",
+                fontSize = 12.sp,
+                lineHeight = 17.sp,
                 color = AppTheme.secondaryText,
                 style = AppTheme.compactText,
             )

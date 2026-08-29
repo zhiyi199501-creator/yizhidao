@@ -3,7 +3,7 @@ import SwiftUI
 struct CastingHomeView: View {
     enum MethodTab: String, CaseIterable, Identifiable {
         case digital = "数字起卦"
-        case coin = "金钱卦"
+        case coin = "金钱起卦"
         var id: String { rawValue }
     }
 
@@ -83,7 +83,7 @@ struct CastingHomeView: View {
                 .padding()
             }
             .scrollDismissesKeyboard(.interactively)
-            .parchmentBackground()
+            .parchmentBackground(hidesTabBar: false)
             .navigationDestination(isPresented: $showResult) {
                 if let latestResult {
                     ResultView(result: latestResult, isNew: true)

@@ -30,6 +30,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.yizhidao.CastResult
 import com.yizhidao.app.AppContainer
 import com.yizhidao.app.ai.SavedAIAnalysis
 import com.yizhidao.app.ui.reading.AIAnalysisScreen
@@ -46,6 +47,7 @@ private val listTimeFmt = DateTimeFormatter.ofPattern("yyyy/M/d HH:mm").withZone
 fun QAListScreen(
     container: AppContainer,
     onTabBarVisible: (Boolean) -> Unit = {},
+    onOpenSimilar: ((CastResult) -> Unit)? = null,
 ) {
     val items by container.savedAIStore.items.collectAsState()
     var opened by remember { mutableStateOf<SavedAIAnalysis?>(null) }
@@ -68,6 +70,7 @@ fun QAListScreen(
             authStore = container.authStore,
             analysisStore = container.savedAIStore,
             onBack = { opened = null },
+            onOpenSimilar = onOpenSimilar,
         )
         return
     }

@@ -10,11 +10,13 @@ open ios/Yizhidao.xcodeproj
 xcodebuild test -project ios/Yizhidao.xcodeproj -scheme Yizhidao -destination 'platform=iOS Simulator,name=iPhone 17' -derivedDataPath .derivedData -quiet
 ```
 
+`xcodebuild` 报需要完整 Xcode 时，把命令行指到 App（整机一次即可）：`sudo xcode-select -s /Applications/Xcode.app/Contents/Developer`。只装 Command Line Tools 编不了 iOS。
+
 安卓引擎单测（只需 JDK 17）：
 
 ```bash
 cd android && ./gradlew :engines:test
-# App 单测（含 IMA 格式化）需 Android SDK：
+# App 单测（含 IMA / AI 正文分段）需 Android SDK：
 ./gradlew :app:testDebugUnitTest
 ```
 
@@ -42,15 +44,17 @@ cd android && ./gradlew :engines:test
 - **IMA 黄庭书院讲解**：点经文可看知识库讲解。覆盖卦辞／彖／大象／爻辞+小象（成对）、用九／用六（成对）、文言（乾坤）。包内 `ios/Yizhidao/Resources/ImaExplanations.json`；源采集 gitignore `data/ima-explanations/`。后台「黄庭」可改 `answer`：**立刻影响服务端 AI**；App 弹层要下次发版。导出 `python3 scripts/export_ima_explanations.py` **会覆盖**手改，改过后别跑。Android `copyIosAssets` 拷同文件（**不含** `Zhengshi.json`）。ID：`{nn}-guaci|tuanci|daxiang|wenyan|yong`、`{nn}-yao-{0…5}`（初=0）。入口：结果／案例／六十四卦详情（文言与用九用六仅六十四卦详情有）
 - **IMA 展示**：清洗在运行时 `ImaAnswerFormatter`（iOS / Android），不是改 JSON。去掉整行「思考过程」、出处脚注数字；「表格」标记与 markdown 表画成表。安卓弹层用全屏 Popup（约 93% 高，盖住页头），下拉超过 **1/4** 收起，点遮罩不关。iOS 宣纸 `AppTheme` 已为 OLED 调淡；弹层 `.presentationBackground` 用同一渐变
 - `ios/Yizhidao/App/`：`AppNavigation`、`AppTheme`、登录与「我的」（多在 `YizhidaoApp.swift`）。「我的」：资料、**案例**、**基础入门** `YijingIntro.json`、**六十四卦 / 四传** 读 `Hexagrams.json`（详情卡片标题**彖辞** / **大象**，正文带「彖曰：」「象曰：」前缀）、设置（按键音效、回收站，清空需确认；退出登录；**注销账号**调 `DELETE /v1/me`）。「问答」Tab 列出全部本地问答（一占一条，自动保存）。包内与生产页：隐私政策 / 用户协议；公网 `https://api.yiwanjia.work/{privacy,terms,support}`
+- **二级页藏底栏**：结果、问答详情、历史同卦／记录、我的子页。iOS `parchmentBackground()` 默认藏 Tab，四个 Tab 根页和 IMA sheet 传 `hidesTabBar: false`。Android `onTabBarVisible`。登录 sheet 里的协议页不要藏 Tab
 - Android「问答」与回收站对齐 iOS 分组列表：白卡片竖排卦名／时间／所问；问答左滑删除，回收站左滑恢复＋彻底删除。勿改回设置项左右排布；删除钮未滑开不得透出
 - **经文勿换他本**；改解卦规则先改 `ReadingGuide` 并补测
 - 繁简只跟系统语言 + `.zh`。禁止 hook `UILabel` / `UIButton` / `Bundle.main`（iPhone 11 弹键盘会卡）。点空白收键盘须在手势 `shouldReceive` 跳过输入框；登录数字框用 `UITextField`，勿加 `textContentType` 自动填充
 - **主看 UI**：0 动→本卦卦辞；2 动→本卦上动爻；3 动→本卦卦辞；4 动→之卦下静爻；5 动→之卦静爻；6 动→之卦卦辞；1 动不标「主看」
-- 时间起卦默认十二时辰；「公历取数」→公历月日 + 1–24 时
-- 金钱卦：可摇 / 「选」手选四象；画面上爻在上、初爻在下；自下而上摇（先初后上）
+- 时间起卦默认十二时辰；「公历取数」→公历月日 + 1–24 时。UI 说明用「以当前时刻起卦，或者选择某个时刻起卦」，不要写 ÷8／÷6 公式
+- 金钱起卦：可摇 / 「选」手选四象；画面上爻在上、初爻在下；自下而上摇（先初后上）。无「一键摇满」；说明「用三枚铜钱摇六次，自下而上成卦」在清空左侧，清空靠右
 - 起卦页所问必填；空则「起卦」禁用
-- 三数：一键随机；未满三正整数则「起卦」禁用；「清空」始终可点
-- 结果页悬浮 **问**：该占已有问答则直接打开（不必登录）；没有则自动生成（需登录）。页标题 **问答**；一占一条、自动保存。点「可以接着问」直接发出。机制见 `docs/ai-reading.md`；接口见 `docs/backend-min-spec.md`。
+- 三数：各行「随机」；无「一键随机」；未满三正整数则「起卦」禁用。「清空」始终可点、靠右，左侧「从上往下输入3个数起卦」
+- 结果页与问答详情右上角 **同类**（同卦明细内已打开的结果不显示）。悬浮 **问**：该占已有问答则直接打开（不必登录）；没有则自动生成（需登录）。页标题 **问答**；一占一条、自动保存。点「可以接着问」直接发出。机制见 `docs/ai-reading.md`；接口见 `docs/backend-min-spec.md`
+- **AI 展示**：`AIAnswerFormatter`（iOS / Android）只在展示层按句分段，不改存盘原文
 - Debug API：iOS 模拟器 `127.0.0.1:8080`，真机改 `AuthAPI` 局域网 IP；安卓 Debug 改 `android/app/build.gradle.kts`（明文 HTTP 靠 `android/app/src/debug/res/xml/network_security_config.xml`，主配置会覆盖 `usesCleartextTraffic`）。**Release** 仅海外：`https://api.yiwanjia.work`。安卓须 Cronet + Build Variant = release。国内 iPhone 11 蜂窝直连不稳，开代理可通，勿靠轮换子域救场
 - 登录页：iOS 主按钮 Apple、Android 主按钮 Google；邮箱在「其他登录方式」子页；点登录先检查协议。改 `.env` 后须重启后端；rsync 源若是 `backend/` 须 `--exclude '.env'`（排除 `backend/.env` 挡不住）
 - 生产 TLS/HTTP/3 避坑：`.cursor/rules/prod-tls-http3.mdc`、`docs/deploy.md`
@@ -63,7 +67,7 @@ cd android && ./gradlew :engines:test
 
 **内容后台（未合 main、生产未发）**：`admin/` 第二版（案例发布 / 黄庭改 answer / 经文只读 / 夹具抽检）。生产 `/admin/` **404**。合入并重建镜像前，生产更新案例仍 `docker compose cp`（见 `docs/deploy.md`）。
 
-**App 信息架构（本分支未提交、未发）**：Tab **起卦 / 历史 / 问答 / 我的**；案例在「我的」；菜单 **基础入门 / 六十四卦 / 四传**；结果页悬浮 **问**，页标题「问答」，一占一条自动保存。商店 / TestFlight 现役包仍是旧 Tab（起卦 / 历史 / 案例 / 我的）与手动保存。
+**App 信息架构（本分支未提交、未发）**：Tab **起卦 / 历史 / 问答 / 我的**；案例在「我的」；菜单 **基础入门 / 六十四卦 / 四传**；结果页悬浮 **问**，页标题「问答」，一占一条自动保存。二级页藏底栏；起卦页无「一键随机／一键摇满」；问答详情右上角「同类」；AI 正文展示层分段。商店 / TestFlight 现役包仍是旧 Tab（起卦 / 历史 / 案例 / 我的）与手动保存。
 
 **App Release（仅海外）**：新加坡 `124.156.192.137`，`https://api.yiwanjia.work/health` 200（SSH `yiwanjia`）。iOS / Android Release 均指向该域；**不上架中国区**，无需 ICP。现役栈是 `docker compose` + `Caddyfile.overseas`（拷成 `Caddyfile`），不是 `prod.yml`；解析 DNSPod，禁止橙云。运维见 `docs/deploy.md`。国内 iPhone 11 直连 443 不稳，开代理可通。
 

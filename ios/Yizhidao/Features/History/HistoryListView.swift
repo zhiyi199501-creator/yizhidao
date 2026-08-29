@@ -97,7 +97,7 @@ struct HistoryListView: View {
                     }
                 }
             }
-            .parchmentBackground()
+            .parchmentBackground(hidesTabBar: false)
             .navigationTitle("历史".zh)
             .navigationBarTitleDisplayMode(.inline)
             .navigationDestination(for: SimilarHexagramDestination.self) { destination in

@@ -40,8 +40,15 @@ extension View {
             )
     }
 
-    func parchmentBackground() -> some View {
-        background(AppTheme.parchmentGradient.ignoresSafeArea())
+    /// 宣纸底。默认隐藏底部 Tab（二级页）；四个 Tab 根页传 `hidesTabBar: false`。
+    @ViewBuilder
+    func parchmentBackground(hidesTabBar: Bool = true) -> some View {
+        if hidesTabBar {
+            background(AppTheme.parchmentGradient.ignoresSafeArea())
+                .toolbar(.hidden, for: .tabBar)
+        } else {
+            background(AppTheme.parchmentGradient.ignoresSafeArea())
+        }
     }
 
     /// 点空白收键盘。手势在碰到输入框时直接不接收，避免和弹出键盘抢焦点。

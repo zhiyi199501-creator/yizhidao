@@ -15,10 +15,6 @@ struct CoinCastView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("三钱摇六次，自下而上成卦。字面为阳，背面为阴；也可点「选」手选四象。".zh)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-
             VStack(spacing: 8) {
                 // 视觉上自上而下：上爻 → 初爻（数组仍是初爻在 index 0）
                 ForEach((0..<6).reversed(), id: \.self) { index in
@@ -59,13 +55,10 @@ struct CoinCastView: View {
             }
 
             HStack {
-                Button("一键摇满".zh) {
-                    TapSoundPlayer.shared.play()
-                    var rng = SystemRandomNumberGenerator()
-                    lines = (0..<6).map { _ in CoinCastingEngine.tossLine(using: &rng) }
-                }
-                .buttonStyle(.bordered)
-
+                Text("用三枚铜钱摇六次，自下而上成卦".zh)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 Button("清空".zh) {
                     lines = Array(repeating: nil, count: 6)
                 }

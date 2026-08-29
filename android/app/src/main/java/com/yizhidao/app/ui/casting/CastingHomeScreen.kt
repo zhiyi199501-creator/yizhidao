@@ -149,7 +149,7 @@ fun CastingHomeScreen(
         )
 
         PaperSegmentedRow(
-            options = listOf("数字起卦", "金钱卦"),
+            options = listOf("数字起卦", "金钱起卦"),
             selectedIndex = if (methodIsDigital) 0 else 1,
             onSelect = { methodIsDigital = it == 0 },
         )

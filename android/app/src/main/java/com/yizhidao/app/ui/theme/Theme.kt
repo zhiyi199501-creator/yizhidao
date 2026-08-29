@@ -612,13 +612,14 @@ fun AIFloatingButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val qaLabel = zh("问答")
     Box(
         modifier
             .size(50.dp)
             .shadow(4.dp, CircleShape, clip = false)
             .clip(CircleShape)
             .background(AppTheme.accent)
-            .semantics(mergeDescendants = true) { contentDescription = zh("问答") }
+            .semantics(mergeDescendants = true) { contentDescription = qaLabel }
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {

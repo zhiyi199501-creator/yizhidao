@@ -72,8 +72,8 @@ fun ResultScreen(
     var didSave by remember { mutableStateOf(existing != null || !isNew) }
     val session by container.authStore.session.collectAsState()
 
-    LaunchedEffect(showAI) {
-        onTabBarVisible(!showAI)
+    LaunchedEffect(Unit) {
+        onTabBarVisible(false)
     }
     DisposableEffect(Unit) {
         onDispose { onTabBarVisible(true) }
@@ -92,6 +92,7 @@ fun ResultScreen(
             authStore = container.authStore,
             analysisStore = container.savedAIStore,
             onBack = { showAI = false },
+            onOpenSimilar = onOpenSimilar,
         )
         return
     }

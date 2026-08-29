@@ -38,6 +38,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.yizhidao.CastResult
 import com.yizhidao.HexagramStore
+import com.yizhidao.app.ai.AIAnswerFormatter
 import com.yizhidao.app.ai.SavedAIAnalysis
 import com.yizhidao.app.ai.SavedAIAnalysisStore
 import com.yizhidao.app.ai.SavedAIContent
@@ -47,8 +48,11 @@ import com.yizhidao.app.auth.AuthApi
 import com.yizhidao.app.auth.LocalAuthStore
 import com.yizhidao.app.ui.theme.AppTheme
 import com.yizhidao.app.ui.theme.PaperBackHeader
+import com.yizhidao.app.ui.theme.PaperHeaderButton
+import com.yizhidao.app.ui.theme.PaperStackIcon
 import com.yizhidao.app.ui.theme.PaperTextField
 import com.yizhidao.app.ui.theme.Text
+import com.yizhidao.app.ui.theme.zh
 import kotlinx.coroutines.launch
 
 @Composable
@@ -60,6 +64,7 @@ fun AIAnalysisScreen(
     authStore: LocalAuthStore,
     analysisStore: SavedAIAnalysisStore,
     onBack: () -> Unit,
+    onOpenSimilar: ((CastResult) -> Unit)? = null,
 ) {
     val scope = rememberCoroutineScope()
     var isLoading by remember { mutableStateOf(saved == null) }
@@ -184,6 +189,18 @@ fun AIAnalysisScreen(
         PaperBackHeader(
             title = "问答",
             onBack = onBack,
+            trailing = if (onOpenSimilar != null) {
+                {
+                    PaperHeaderButton(
+                        onClick = { onOpenSimilar(result) },
+                        contentDescription = zh("查看同类卦"),
+                    ) {
+                        PaperStackIcon()
+                    }
+                }
+            } else {
+                null
+            },
         )
 
         Column(
@@ -354,12 +371,13 @@ fun AIAnalysisScreen(
 
 @Composable
 private fun AnalysisCard(title: String, text: String) {
+    val paragraphs = remember(text) { AIAnswerFormatter.paragraphs(text) }
     Column(
         Modifier
             .fillMaxWidth()
             .background(AppTheme.cardFill, RoundedCornerShape(12.dp))
             .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Text(
             title,
@@ -368,7 +386,15 @@ private fun AnalysisCard(title: String, text: String) {
             color = AppTheme.accent,
             style = AppTheme.compactText,
         )
-        Text(text, fontSize = 16.sp, color = AppTheme.ink, style = AppTheme.compactText)
+        paragraphs.forEach { paragraph ->
+            Text(
+                paragraph,
+                fontSize = 16.sp,
+                lineHeight = 27.sp,
+                color = AppTheme.ink,
+                style = AppTheme.compactText,
+            )
+        }
     }
 }
 
@@ -379,7 +405,7 @@ private fun BulletCard(title: String, items: List<String>) {
             .fillMaxWidth()
             .background(AppTheme.cardFill, RoundedCornerShape(12.dp))
             .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Text(
             title,
@@ -393,11 +419,18 @@ private fun BulletCard(title: String, items: List<String>) {
                 Text(
                     "${index + 1}.",
                     fontSize = 15.sp,
+                    lineHeight = 25.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = AppTheme.accent,
                     style = AppTheme.compactText,
                 )
-                Text(item, fontSize = 16.sp, color = AppTheme.ink, style = AppTheme.compactText)
+                Text(
+                    item,
+                    fontSize = 16.sp,
+                    lineHeight = 25.sp,
+                    color = AppTheme.ink,
+                    style = AppTheme.compactText,
+                )
             }
         }
     }

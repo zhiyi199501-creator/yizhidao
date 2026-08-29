@@ -25,10 +25,10 @@ xcodebuild test -project ios/Yizhidao.xcodeproj -scheme Yizhidao -destination 'p
 ## 功能
 
 - **起卦页**：可折叠「起卦礼仪」；所问必填，空则「起卦」禁用
-- **数字起卦 · 三数**：各框随机 + **一键随机** / 清空；三数未齐则「起卦」禁用
-- **数字起卦 · 时间**：默认农历年支、月、日 + **十二时辰**；可开「公历取数」（公历月日 + 1–24 时）；占问时刻 `yyyy-MM-dd HH:mm`，弹层中文日历
-- **金钱卦**：逐爻摇或「选」手选四象（少阳／少阴／阳动／阴动）；一键摇满；上爻在上、初爻在下
-- **结果**：本卦 / 之卦 tab；卦辞、彖曰、象曰、六爻；动爻红字；「主看」；可改所问与验证；右上角「同类」；右下角悬浮 **问**（该占已有问答则打开，没有则自动生成且需登录；页标题「问答」；一占一条自动保存；卡片为事情背景／当下／方向／建议（须防并入建议），追问后仍给建议）；卦辞／彖／大象／爻+小象可点开 **IMA 黄庭书院讲解**（包内 `ImaExplanations.json`）
+- **数字起卦 · 三数**：各框「随机」；无「一键随机」；清空靠右，左侧「从上往下输入3个数起卦」；三数未齐则「起卦」禁用
+- **数字起卦 · 时间**：默认农历年支、月、日 + **十二时辰**；可开「公历取数」（公历月日 + 1–24 时）；占问时刻 `yyyy-MM-dd HH:mm`，弹层中文日历；说明「以当前时刻起卦，或者选择某个时刻起卦」
+- **金钱起卦**：逐爻摇或「选」手选四象（少阳／少阴／阳动／阴动）；无「一键摇满」；清空靠右，左侧「用三枚铜钱摇六次，自下而上成卦」；上爻在上、初爻在下
+- **结果**：本卦 / 之卦 tab；卦辞、彖曰、象曰、六爻；动爻红字；「主看」；可改所问与验证；右上角「同类」；右下角悬浮 **问**（该占已有问答则打开，没有则自动生成且需登录；页标题「问答」，详情亦可点「同类」；一占一条自动保存；卡片为事情背景／当下／方向／建议（须防并入建议），追问后仍给建议；长文由 `AIAnswerFormatter` 展示层分段）；卦辞／彖／大象／爻+小象可点开 **IMA 黄庭书院讲解**（包内 `ImaExplanations.json`）
 - **历史**：SwiftData 本地；**时间** / **按卦**（文王序）；状态筛选；左滑删除进回收站；数字起卦单爻动在箭头上方标红字（初/二/三/四/五/上）
 - **问答**：列出全部本地问答（左滑删除）；起卦后点「问」会自动出现在这里
 - **我的**：登录为 iOS **Apple** / Android **Google**（主按钮）+ 邮箱验证码（子页）；无微信、登录页无短信。资料编辑、**案例**（按卦浏览，打开拉取 `GET /v1/cases`，离线用包内底稿）、**基础入门**、**六十四卦**（详情卡片彖辞/大象；经文可点 IMA 讲解）、**四传**（系辞/说卦/序卦/杂卦）、设置（按键音效、回收站，清空需确认；退出登录；**注销账号**）。繁简跟系统语言，无应用内开关。
@@ -54,7 +54,7 @@ xcodebuild test -project ios/Yizhidao.xcodeproj -scheme Yizhidao -destination 'p
 | `ios/Yizhidao/Resources/cases.json` | 讲习案例包内底稿。日常在 `admin/`「案例」编辑并发布（立刻热更新 `GET /v1/cases`）；导出 JSON 再提交本文件。生产镜像未含后台前仍 `docker compose cp`，见 `docs/deploy.md` |
 | `ios/Yizhidao/Resources/ImaExplanations.json` | IMA 黄庭书院讲解。后台「黄庭」改 `answer` 立刻影响服务端 AI，App 弹层要发版。`scripts/export_ima_explanations.py` 会覆盖手改 |
 | `admin/` | 内部运营后台（用量 + 内容）。本地 `npm run dev`；生产须重建镜像。不上架 |
-| `ios/YizhidaoTests/` | 起卦、时辰、`ReadingGuide`、`ImaAnswerFormatter` 单测 |
+| `ios/YizhidaoTests/` | 起卦、时辰、`ReadingGuide`、`ImaAnswerFormatter`、`AIAnswerFormatter` 单测 |
 | `docs/backend-min-spec.md` | 登录、AI、案例热更新的接口合同 |
 | `docs/ai-reading.md` | AI 问答机制（prompt、黄庭槽、案例筛选、出卡） |
 | `docs/deploy.md` | 后端 Docker + Caddy 上线指南 |

@@ -147,7 +147,7 @@ struct MyMenuView: View {
             }
             .navigationTitle("我的".zh)
             .navigationBarTitleDisplayMode(.inline)
-            .parchmentBackground()
+            .parchmentBackground(hidesTabBar: false)
             .onAppear {
                 session = LocalAuthStore.load()
                 Task { await refreshSessionIfNeeded() }
@@ -304,7 +304,7 @@ struct LoginSheetView: View {
         }
         .sheet(item: $showLegal) { kind in
             NavigationStack {
-                LegalDocumentView(title: kind.title.zh, file: kind.file)
+                LegalDocumentView(title: kind.title.zh, file: kind.file, hidesTabBar: false)
                     .toolbar {
                         ToolbarItem(placement: .cancellationAction) {
                             Button("关闭".zh) { showLegal = nil }
@@ -449,7 +449,7 @@ private struct EmailLoginView: View {
         .navigationBarTitleDisplayMode(.inline)
         .sheet(item: $showLegal) { kind in
             NavigationStack {
-                LegalDocumentView(title: kind.title.zh, file: kind.file)
+                LegalDocumentView(title: kind.title.zh, file: kind.file, hidesTabBar: false)
                     .toolbar {
                         ToolbarItem(placement: .cancellationAction) {
                             Button("关闭".zh) { showLegal = nil }
@@ -1182,7 +1182,7 @@ private struct AIAnalysisHistoryView: View {
         }
         .navigationTitle("问答".zh)
         .navigationBarTitleDisplayMode(.inline)
-        .parchmentBackground()
+        .parchmentBackground(hidesTabBar: false)
         .onAppear {
             items = SavedAIAnalysisStore.load()
         }
@@ -1441,7 +1441,7 @@ private struct TapSoundSettingsView: View {
                     .buttonStyle(.plain)
                 }
             } footer: {
-                Text("点按「随机」「一键随机」「摇」「一键摇满」时播放。系统静音时不会出声。".zh)
+                Text("点按「随机」「摇」时播放。系统静音时不会出声。".zh)
             }
         }
         .scrollContentBackground(.hidden)
@@ -1587,11 +1587,13 @@ struct LegalWebView: UIViewRepresentable {
 struct LegalDocumentView: View {
     let title: String
     let file: String
+    var hidesTabBar: Bool = true
 
     var body: some View {
         LegalWebView(fileName: file)
             .ignoresSafeArea(edges: .bottom)
             .navigationTitle(title)
             .navigationBarTitleDisplayMode(.inline)
+            .toolbar(hidesTabBar ? .hidden : .automatic, for: .tabBar)
     }
 }
