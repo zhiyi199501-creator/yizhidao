@@ -131,7 +131,7 @@ private fun CoinYaoRow(
             style = AppTheme.compactText,
         )
         BoxWithConstraints(Modifier.weight(1f)) {
-            val barWidth = (maxWidth - 56.dp).coerceIn(72.dp, 110.dp)
+            val barWidth = maxWidth.coerceIn(72.dp, 110.dp)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
@@ -139,13 +139,6 @@ private fun CoinYaoRow(
             ) {
                 if (line != null) {
                     YaoBar(line = line, highlighted = line.isChanging, barWidth = barWidth)
-                    Text(
-                        line.displayLabel,
-                        fontSize = 12.sp,
-                        color = AppTheme.secondaryText,
-                        maxLines = 1,
-                        style = AppTheme.compactText,
-                    )
                 } else {
                     Text(
                         "未摇",
@@ -158,7 +151,12 @@ private fun CoinYaoRow(
             }
         }
         Box {
-            PaperOutlinedButton(onClick = { menu = true }, compact = true, label = "选")
+            PaperOutlinedButton(
+                onClick = { menu = true },
+                modifier = Modifier.width(44.dp),
+                compact = true,
+                label = "选",
+            )
             DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
                 manualOptions.forEach { option ->
                     DropdownMenuItem(
@@ -177,9 +175,14 @@ private fun CoinYaoRow(
                 }
             }
         }
-        PaperOutlinedButton(onClick = {
-            TapSoundPlayer.play()
-            onToss()
-        }, compact = true, label = "摇")
+        PaperOutlinedButton(
+            onClick = {
+                TapSoundPlayer.play()
+                onToss()
+            },
+            modifier = Modifier.width(44.dp),
+            compact = true,
+            label = "摇",
+        )
     }
 }

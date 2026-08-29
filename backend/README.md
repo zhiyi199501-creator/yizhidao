@@ -26,7 +26,7 @@ FastAPI 最小后端：Apple / Google / 邮箱 OTP 登录 + AI 问答，接口�
 - 根路径：`http://127.0.0.1:8080/` → 重定向到 `/docs`
 - 健康检查：`GET http://127.0.0.1:8080/health`
 - 接口文档：`http://127.0.0.1:8080/docs`
-- 运营后台（本地）：`.env` 设 `ADMIN_PASSWORD` 后，另开终端 `cd admin && npm run dev` → `http://127.0.0.1:5173/admin/`。已 `npm run build` 时也可开 `http://127.0.0.1:8080/admin/`。本仓库可管案例（工作副本 + 发布）、黄庭 `answer`、经文（只读）、夹具抽检。**生产 `/admin/` 尚未挂上**（2026-08-28 404），见 `docs/deploy.md`。
+- 运营后台（本地）：`.env` 设 `ADMIN_PASSWORD` 后，另开终端 `cd admin && npm run dev` → `http://127.0.0.1:5173/admin/`。已 `npm run build` 时也可开 `http://127.0.0.1:8080/admin/`。本仓库可管案例（工作副本 + 发布）、黄庭 `answer`、经文（只读）、夹具抽检、App 意见反馈。**生产 `/admin/` 尚未挂上**（2026-08-28 404），见 `docs/deploy.md`。
 
 ## 开发期邮箱验证码（mock）
 
@@ -195,7 +195,7 @@ backend/
 │       ├── hexagram_store.py# 读 App 侧 Hexagrams.json
 │       ├── case_store.py    # 读 App 侧 cases.json
 │       ├── ima_store.py     # 读 App 侧 ImaExplanations.json
-│       ├── ima_format.py    # 讲解清洗（去思考过程／脚注）
+│       ├── ima_format.py    # 讲解清洗（去思考过程／脚注；也可洗包内原稿）
 │       └── ai.py            # mock / openai 解读、追问与提示词
 │   ├── routes/
 │   │   ├── auth.py          # 登录、/v1/me、注销

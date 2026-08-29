@@ -9,6 +9,7 @@ import { ImaPage } from "./pages/ImaPage";
 import { JingwenPage } from "./pages/JingwenPage";
 import { LoginPage } from "./pages/LoginPage";
 import { OverviewPage } from "./pages/OverviewPage";
+import { FeedbackPage } from "./pages/FeedbackPage";
 import { SystemPage } from "./pages/SystemPage";
 import { UserDetailPage } from "./pages/UserDetailPage";
 import { UsersPageView } from "./pages/UsersPage";
@@ -24,6 +25,7 @@ export function App() {
             <Route path="users" element={<UsersPageView />} />
             <Route path="users/:userId" element={<UserDetailPage />} />
             <Route path="ai" element={<AiPage />} />
+            <Route path="feedback" element={<FeedbackPage />} />
             <Route path="cases" element={<CasesPage />} />
             <Route path="cases/new" element={<CaseEditPage />} />
             <Route path="cases/:id" element={<CaseEditPage />} />

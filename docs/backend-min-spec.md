@@ -150,6 +150,31 @@
 ```
 - 客户端以服务端列表全量替换本地缓存；离线时用 App 包内 `cases.json`
 
+### 10) 意见反馈
+- `POST /v1/feedback`
+- 登录可选：有 `Authorization: Bearer` 则记下用户；缺 token 或过期仍可提交
+- req:
+```json
+{ "body": "希望增加夜间模式", "contact": "me@example.com", "platform": "ios", "appVersion": "1.0" }
+```
+- `body` 必填，去掉首尾空白后至少 5 字、最多 2000 字；`contact` / `platform` / `appVersion` 选填（`platform` 仅 `ios` / `android` 会记下）
+- resp: `{ "ok": true }`
+- 运营后台 `GET /v1/admin/feedback` 查看，见 [`deploy.md`](deploy.md)
+
+### 11) 检查更新
+- `GET /v1/app/version`（无需登录）
+- resp:
+```json
+{
+  "ok": true,
+  "ios": "1.0",
+  "android": "0.1.1",
+  "iosStoreUrl": "https://apps.apple.com/app/id6804203617",
+  "androidStoreUrl": "https://play.google.com/store/apps/details?id=com.yizhidao.app"
+}
+```
+- App 对比本地版本；服务端版本用 `.env` 的 `APP_IOS_LATEST_VERSION` / `APP_ANDROID_LATEST_VERSION`，发版后改这里不必发 App
+
 ## 错误码（最小）
 - `4001` 参数错误
 - `4002` 验证码错误或过期

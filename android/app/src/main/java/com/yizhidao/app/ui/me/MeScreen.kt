@@ -1,5 +1,7 @@
 package com.yizhidao.app.ui.me
 
+import android.content.Intent
+import android.net.Uri
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.material.icons.outlined.Check
@@ -19,6 +21,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -29,6 +32,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.MenuBook
 import androidx.compose.material.icons.automirrored.outlined.ReceiptLong
@@ -37,12 +41,15 @@ import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.AutoStories
 import androidx.compose.material.icons.outlined.DarkMode
 import androidx.compose.material.icons.outlined.Eco
+import androidx.compose.material.icons.outlined.Email
 import androidx.compose.material.icons.outlined.LocalFireDepartment
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Star
+import androidx.compose.material.icons.outlined.SystemUpdate
 import androidx.compose.material.icons.outlined.WbSunny
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
@@ -64,7 +71,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -72,6 +81,7 @@ import kotlinx.coroutines.launch
 import com.yizhidao.Hexagram
 import com.yizhidao.HexagramText
 import com.yizhidao.app.AppContainer
+import com.yizhidao.app.BuildConfig
 import com.yizhidao.app.auth.LocalAuthStore
 import com.yizhidao.app.ima.ImaExplanationEntry
 import com.yizhidao.app.ima.ImaExplanationId
@@ -82,6 +92,7 @@ import com.yizhidao.app.ui.reading.TappableScripture
 import com.yizhidao.app.auth.LocalUserSession
 import com.yizhidao.app.auth.AuthApi
 import com.yizhidao.app.auth.LoginError
+import com.yizhidao.app.auth.isNewerAppVersion
 import com.yizhidao.app.HistoryTrashEntry
 import com.yizhidao.app.classic.ClassicChapter
 import com.yizhidao.app.classic.ClassicWing
@@ -125,6 +136,7 @@ private sealed interface MeRoute {
     data object Login : MeRoute
     data object Profile : MeRoute
     data object Cases : MeRoute
+    data object Feedback : MeRoute
     data object Settings : MeRoute
     data object TapSound : MeRoute
     data object Recycle : MeRoute
@@ -183,6 +195,7 @@ fun MeScreen(
             onIntro = { route = MeRoute.Intro },
             onHexagrams = { route = MeRoute.Hexagrams },
             onWings = { route = MeRoute.Wings },
+            onFeedback = { route = MeRoute.Feedback },
             onSettings = { route = MeRoute.Settings },
         )
         MeRoute.Profile -> ProfileEditPage(
@@ -197,6 +210,10 @@ fun MeScreen(
         )
         MeRoute.Cases -> CaseListScreen(
             container = container,
+            onBack = { route = MeRoute.Home },
+        )
+        MeRoute.Feedback -> FeedbackPage(
+            session = session,
             onBack = { route = MeRoute.Home },
         )
         MeRoute.Settings -> SettingsPage(
@@ -275,8 +292,43 @@ private fun MeHome(
     onIntro: () -> Unit,
     onHexagrams: () -> Unit,
     onWings: () -> Unit,
+    onFeedback: () -> Unit,
     onSettings: () -> Unit,
 ) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    var isCheckingUpdate by remember { mutableStateOf(false) }
+    var updateTitle by remember { mutableStateOf<String?>(null) }
+    var updateMessage by remember { mutableStateOf("") }
+    var updateStoreUrl by remember { mutableStateOf<String?>(null) }
+
+    fun checkForUpdate() {
+        if (isCheckingUpdate) return
+        isCheckingUpdate = true
+        scope.launch {
+            try {
+                val info = AuthApi.fetchAppVersion()
+                val latest = info.android.trim()
+                val current = BuildConfig.VERSION_NAME
+                if (isNewerAppVersion(latest, current) && info.androidStoreUrl.isNotBlank()) {
+                    updateTitle = "发现新版本"
+                    updateMessage = "最新版本 $latest，可前往商店更新。"
+                    updateStoreUrl = info.androidStoreUrl
+                } else {
+                    updateTitle = "已是最新版本"
+                    updateMessage = "当前版本 ${current.ifBlank { latest }}"
+                    updateStoreUrl = null
+                }
+            } catch (error: Exception) {
+                updateTitle = "检查失败"
+                updateMessage = AuthApi.describe(error)
+                updateStoreUrl = null
+            } finally {
+                isCheckingUpdate = false
+            }
+        }
+    }
+
     Column(Modifier.fillMaxSize()) {
         Box(
             Modifier.fillMaxWidth().padding(vertical = 12.dp),
@@ -375,12 +427,78 @@ private fun MeHome(
             }
             MeCard {
                 MeRow(
+                    icon = Icons.Outlined.Email,
+                    title = "意见反馈",
+                    onClick = onFeedback,
+                )
+                MeDivider()
+                MeRow(
+                    icon = Icons.Outlined.SystemUpdate,
+                    title = "检查更新",
+                    trailing = {
+                        if (isCheckingUpdate) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(18.dp),
+                                color = AppTheme.accent,
+                                strokeWidth = 2.dp,
+                            )
+                        } else {
+                            Text(
+                                BuildConfig.VERSION_NAME,
+                                fontSize = 15.sp,
+                                color = AppTheme.secondaryText,
+                                style = AppTheme.compactText,
+                            )
+                        }
+                    },
+                    showChevron = false,
+                    onClick = { checkForUpdate() },
+                )
+            }
+            MeCard {
+                MeRow(
                     icon = Icons.Outlined.Settings,
                     title = "设置",
                     onClick = onSettings,
                 )
             }
         }
+    }
+    updateTitle?.let { title ->
+        AlertDialog(
+            onDismissRequest = { updateTitle = null },
+            title = { Text(title, color = AppTheme.ink, style = AppTheme.compactText) },
+            text = { Text(updateMessage, color = AppTheme.ink, style = AppTheme.compactText) },
+            confirmButton = {
+                val storeUrl = updateStoreUrl
+                if (storeUrl != null) {
+                    TextButton(
+                        onClick = {
+                            updateTitle = null
+                            runCatching {
+                                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(storeUrl)))
+                            }
+                        },
+                    ) {
+                        Text("去更新", color = AppTheme.accent, style = AppTheme.compactText)
+                    }
+                } else {
+                    TextButton(onClick = { updateTitle = null }) {
+                        Text("好的", color = AppTheme.accent, style = AppTheme.compactText)
+                    }
+                }
+            },
+            dismissButton = if (updateStoreUrl != null) {
+                {
+                    TextButton(onClick = { updateTitle = null }) {
+                        Text("以后再说", color = AppTheme.accent, style = AppTheme.compactText)
+                    }
+                }
+            } else {
+                null
+            },
+            containerColor = AppTheme.cardFill,
+        )
     }
 }
 
@@ -497,6 +615,150 @@ private fun ProfileEditPage(
             text = { Text(message, color = AppTheme.ink, style = AppTheme.compactText) },
             confirmButton = {
                 TextButton(onClick = { validationMessage = null }) {
+                    Text("知道了", color = AppTheme.accent, style = AppTheme.compactText)
+                }
+            },
+            containerColor = AppTheme.cardFill,
+        )
+    }
+}
+
+@Composable
+private fun FeedbackPage(
+    session: LocalUserSession,
+    onBack: () -> Unit,
+) {
+    val scope = rememberCoroutineScope()
+    var bodyDraft by remember { mutableStateOf("") }
+    var contactDraft by remember { mutableStateOf(session.email ?: session.phone.orEmpty()) }
+    var isSubmitting by remember { mutableStateOf(false) }
+    var showSuccess by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+    val trimmed = bodyDraft.trim()
+    val canSubmit = trimmed.length >= 5 && !isSubmitting
+
+    fun submit() {
+        if (isSubmitting || trimmed.length < 5) return
+        isSubmitting = true
+        scope.launch {
+            try {
+                AuthApi.submitFeedback(
+                    body = trimmed.take(2000),
+                    contact = contactDraft.trim(),
+                    accessToken = session.accessToken,
+                )
+                showSuccess = true
+            } catch (error: Exception) {
+                errorMessage = AuthApi.describe(error)
+            } finally {
+                isSubmitting = false
+            }
+        }
+    }
+
+    Column(Modifier.fillMaxSize().imePadding()) {
+        PaperBackHeader(
+            title = "意见反馈",
+            onBack = onBack,
+            trailing = {
+                Text(
+                    if (isSubmitting) "提交中" else "提交",
+                    color = if (canSubmit) AppTheme.accent else AppTheme.secondaryText,
+                    fontSize = 17.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier
+                        .clip(AppTheme.controlShape)
+                        .then(if (canSubmit) Modifier.clickable(onClick = { submit() }) else Modifier)
+                        .padding(horizontal = 10.dp, vertical = 8.dp),
+                    style = AppTheme.compactText,
+                )
+            },
+        )
+        Column(
+            Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 16.dp)
+                .padding(bottom = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(18.dp),
+        ) {
+            MeCard {
+                Text(
+                    "意见",
+                    fontSize = 13.sp,
+                    color = AppTheme.secondaryText,
+                    modifier = Modifier.padding(start = 16.dp, top = 12.dp, bottom = 4.dp),
+                    style = AppTheme.compactText,
+                )
+                PaperTextField(
+                    value = bodyDraft,
+                    onValueChange = { bodyDraft = it.take(2000) },
+                    placeholder = "想说的话（至少 5 个字）",
+                    singleLine = false,
+                    minLines = 6,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp),
+                )
+                Text(
+                    "${trimmed.length}/2000",
+                    fontSize = 12.sp,
+                    color = AppTheme.secondaryText,
+                    modifier = Modifier.padding(start = 16.dp, top = 6.dp, bottom = 12.dp),
+                    style = AppTheme.compactText,
+                )
+            }
+            MeCard {
+                Text(
+                    "联系方式",
+                    fontSize = 13.sp,
+                    color = AppTheme.secondaryText,
+                    modifier = Modifier.padding(start = 16.dp, top = 12.dp, bottom = 4.dp),
+                    style = AppTheme.compactText,
+                )
+                PaperTextField(
+                    value = contactDraft,
+                    onValueChange = { contactDraft = it.take(120) },
+                    placeholder = "邮箱或其它联系方式（选填）",
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp),
+                )
+                Text(
+                    if (session.isLoggedIn) {
+                        "已登录时会带上账号，方便我们对照。"
+                    } else {
+                        "未登录也可以提交。留下联系方式，有进展时方便回你。"
+                    },
+                    fontSize = 12.sp,
+                    color = AppTheme.secondaryText,
+                    modifier = Modifier.padding(start = 16.dp, top = 6.dp, bottom = 14.dp),
+                    style = AppTheme.compactText,
+                )
+            }
+        }
+    }
+    if (showSuccess) {
+        AlertDialog(
+            onDismissRequest = onBack,
+            title = { Text("已收到", color = AppTheme.ink, style = AppTheme.compactText) },
+            text = { Text("感谢反馈，我们会尽快查看。", color = AppTheme.ink, style = AppTheme.compactText) },
+            confirmButton = {
+                TextButton(onClick = onBack) {
+                    Text("好的", color = AppTheme.accent, style = AppTheme.compactText)
+                }
+            },
+            containerColor = AppTheme.cardFill,
+        )
+    }
+    errorMessage?.let { message ->
+        AlertDialog(
+            onDismissRequest = { errorMessage = null },
+            title = { Text("提交失败", color = AppTheme.ink, style = AppTheme.compactText) },
+            text = { Text(message, color = AppTheme.ink, style = AppTheme.compactText) },
+            confirmButton = {
+                TextButton(onClick = { errorMessage = null }) {
                     Text("知道了", color = AppTheme.accent, style = AppTheme.compactText)
                 }
             },

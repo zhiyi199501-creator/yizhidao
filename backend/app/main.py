@@ -11,6 +11,7 @@ from app.routes.admin_content import router as admin_content_router
 from app.routes.ai import router as ai_router
 from app.routes.auth import router as auth_router
 from app.routes.cases import router as cases_router
+from app.routes.feedback import router as feedback_router
 from app.routes.legal import router as legal_router
 
 
@@ -30,6 +31,7 @@ app.add_exception_handler(AppError, app_error_handler)
 app.include_router(auth_router)
 app.include_router(ai_router)
 app.include_router(cases_router)
+app.include_router(feedback_router)
 app.include_router(legal_router)
 app.include_router(admin_router)
 app.include_router(admin_content_router)

@@ -14,6 +14,7 @@ from app.services.admin_auth import (
     verify_admin_token,
 )
 from app.services import admin_stats
+from app.services import feedback as feedback_store
 
 router = APIRouter()
 
@@ -98,3 +99,29 @@ def admin_ai_events(
 @router.get("/v1/admin/system")
 def admin_system(_: str = Depends(require_admin)) -> dict:
     return admin_stats.system_status()
+
+
+@router.get("/v1/admin/feedback")
+def admin_feedback(
+    q: str = "",
+    unreadOnly: bool = False,
+    page: int = Query(default=1, ge=1),
+    pageSize: int = Query(default=20, ge=1, le=100),
+    _: str = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> dict:
+    return feedback_store.list_feedback(db, q, unreadOnly, page, pageSize)
+
+
+class FeedbackReadBody(BaseModel):
+    read: bool = True
+
+
+@router.patch("/v1/admin/feedback/{feedback_id}")
+def admin_feedback_read(
+    feedback_id: int,
+    body: FeedbackReadBody,
+    _: str = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> dict:
+    return feedback_store.set_read(db, feedback_id, body.read)

@@ -117,6 +117,16 @@ class AdminAndUsageTests(unittest.TestCase):
         self.assertIn("health", body)
         self.assertIn("loginMix", body["users"])
 
+    def test_app_version_is_public(self):
+        resp = self.client.get("/v1/app/version")
+        self.assertEqual(resp.status_code, 200, resp.text)
+        body = resp.json()
+        self.assertTrue(body["ok"])
+        self.assertTrue(body["ios"])
+        self.assertTrue(body["android"])
+        self.assertIn("id6804203617", body["iosStoreUrl"])
+        self.assertIn("com.yizhidao.app", body["androidStoreUrl"])
+
     def test_app_token_cannot_access_admin(self):
         user = self._create_user()
         header = self._auth_header(user)

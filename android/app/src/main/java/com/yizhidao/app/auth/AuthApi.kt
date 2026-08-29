@@ -52,6 +52,9 @@ object AuthApi {
     data class MeResponse(val ok: Boolean, val user: LoginResponse.User)
 
     @Serializable
+    private data class OkResponse(val ok: Boolean)
+
+    @Serializable
     data class AIAnalyzeResponse(val ok: Boolean, val analysis: Analysis) {
         @Serializable
         data class Analysis(
@@ -129,6 +132,43 @@ object AuthApi {
         ) { json.decodeFromString<MeResponse>(it) }
         if (!decoded.ok) throw LoginError.Network("获取用户信息失败")
         return decoded
+    }
+
+    @Serializable
+    data class AppVersionResponse(
+        val ok: Boolean,
+        val ios: String,
+        val android: String,
+        val iosStoreUrl: String,
+        val androidStoreUrl: String,
+    )
+
+    suspend fun fetchAppVersion(): AppVersionResponse {
+        val decoded = get(
+            path = "/v1/app/version",
+            fallback = "检查更新失败",
+        ) { json.decodeFromString<AppVersionResponse>(it) }
+        if (!decoded.ok) throw LoginError.Network("检查更新失败")
+        return decoded
+    }
+
+    suspend fun submitFeedback(
+        body: String,
+        contact: String,
+        accessToken: String? = null,
+    ) {
+        val decoded = post(
+            path = "/v1/feedback",
+            body = buildJsonObject {
+                put("body", body)
+                put("contact", contact)
+                put("platform", "android")
+                put("appVersion", BuildConfig.VERSION_NAME)
+            }.toString(),
+            fallback = "提交失败",
+            accessToken = accessToken,
+        ) { json.decodeFromString<OkResponse>(it) }
+        if (!decoded.ok) throw LoginError.Network("提交失败")
     }
 
     suspend fun analyzeReading(result: CastResult, accessToken: String): AIAnalyzeResponse {
@@ -239,18 +279,19 @@ object AuthApi {
 
     private suspend inline fun <T> get(
         path: String,
-        accessToken: String,
+        accessToken: String? = null,
         fallback: String,
         timeoutMs: Int = 20_000,
         crossinline decode: (String) -> T,
     ): T {
+        val headers = buildMap {
+            put("Accept", "application/json")
+            if (accessToken != null) put("Authorization", "Bearer $accessToken")
+        }
         val (code, text) = AppHttp.request(
             url = "$baseUrl$path",
             method = "GET",
-            headers = mapOf(
-                "Accept" to "application/json",
-                "Authorization" to "Bearer $accessToken",
-            ),
+            headers = headers,
             timeoutMs = timeoutMs,
         )
         return interpret(code, text, fallback, decode)
@@ -275,3 +316,18 @@ object AuthApi {
         return LoginError.Network(message)
     }
 }
+
+internal fun isNewerAppVersion(latest: String, current: String): Boolean {
+    val newest = versionParts(latest)
+    val installed = versionParts(current)
+    val count = maxOf(newest.size, installed.size)
+    for (index in 0 until count) {
+        val left = newest.getOrElse(index) { 0 }
+        val right = installed.getOrElse(index) { 0 }
+        if (left != right) return left > right
+    }
+    return false
+}
+
+private fun versionParts(raw: String): List<Int> =
+    raw.split('.').map { segment -> segment.filter { it.isDigit() }.toIntOrNull() ?: 0 }
