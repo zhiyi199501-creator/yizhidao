@@ -116,11 +116,6 @@ struct MyMenuView: View {
 
                 Section {
                     NavigationLink {
-                        CaseListView()
-                    } label: {
-                        Label("案例".zh, systemImage: "books.vertical")
-                    }
-                    NavigationLink {
                         YijingIntroListView()
                     } label: {
                         Label("基础入门".zh, systemImage: "text.book.closed")
@@ -134,6 +129,11 @@ struct MyMenuView: View {
                         ClassicWingListView()
                     } label: {
                         Label("四传".zh, systemImage: "scroll")
+                    }
+                    NavigationLink {
+                        CaseListView()
+                    } label: {
+                        Label("案例".zh, systemImage: "books.vertical")
                     }
                 }
 

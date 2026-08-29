@@ -31,7 +31,8 @@ xcodebuild test -project ios/Yizhidao.xcodeproj -scheme Yizhidao -destination 'p
 - **结果**：本卦 / 之卦 tab；卦辞、彖曰、象曰、六爻；动爻红字；「主看」；可改所问与验证；右上角「同类」；右下角悬浮 **问**（该占已有问答则打开，没有则自动生成且需登录；页标题「问答」，详情亦可点「同类」；一占一条自动保存；卡片为事情背景／当下／方向／建议（须防并入建议），追问后仍给建议；长文由 `AIAnswerFormatter` 展示层分段）；卦辞／彖／大象／爻+小象可点开 **IMA 黄庭书院讲解**（包内 `ImaExplanations.json`）
 - **历史**：SwiftData 本地；**时间** / **按卦**（文王序）；状态筛选；左滑删除进回收站；数字起卦单爻动在箭头上方标红字（初/二/三/四/五/上）
 - **问答**：列出全部本地问答（左滑删除）；起卦后点「问」会自动出现在这里
-- **我的**：登录为 iOS **Apple** / Android **Google**（主按钮）+ 邮箱验证码（子页）；无微信、登录页无短信。资料编辑、**案例**（按卦浏览，打开拉取 `GET /v1/cases`，离线用包内底稿）、**基础入门**、**六十四卦**（详情卡片彖辞/大象；经文可点 IMA 讲解）、**四传**（系辞/说卦/序卦/杂卦）、设置（按键音效、回收站，清空需确认；退出登录；**注销账号**）。繁简跟系统语言，无应用内开关。
+- **基础入门**（「我的」）：九章册页，含怎样起卦；章末上一章／下一章并排
+- **我的**：登录为 iOS **Apple** / Android **Google**（主按钮）+ 邮箱验证码（子页）；无微信、登录页无短信。资料编辑、**基础入门**、**六十四卦**（详情卡片彖辞/大象；经文可点 IMA 讲解）、**四传**（系辞/说卦/序卦/杂卦）、**案例**（按卦浏览，打开拉取 `GET /v1/cases`，离线用包内底稿）、设置（按键音效、回收站，清空需确认；退出登录；**注销账号**）。繁简跟系统语言，无应用内开关。
 
 ## 协作
 
@@ -51,10 +52,11 @@ xcodebuild test -project ios/Yizhidao.xcodeproj -scheme Yizhidao -destination 'p
 | `ios/Yizhidao/Data/` | SwiftData `ReadingRecord`、回收站、`SavedAIAnalysis`、经文加载、`ImaExplanationStore` |
 | `ios/Yizhidao/Resources/Hexagrams.json` | 64 卦（卦辞／彖／象／爻／用九用六／文言）+ 系辞／说卦／序卦／杂卦。编辑根目录 `易经正文编辑表.xlsx` → `python3 scripts/import_jingwen.py` |
 | `ios/Yizhidao/Resources/Zhengshi.json` | 《易经证释》全册阅读稿；由 `scripts/import_zhengshi.py` 从全册 `.doc` 生成，暂未挂「我的」入口 |
+| `ios/Yizhidao/Resources/YijingIntro.json` | 基础入门九章（含怎样起卦）。块结构；Android `copyIosAssets` 拷同文件 |
 | `ios/Yizhidao/Resources/cases.json` | 讲习案例包内底稿。日常在 `admin/`「案例」编辑并发布（立刻热更新 `GET /v1/cases`）；导出 JSON 再提交本文件。生产镜像未含后台前仍 `docker compose cp`，见 `docs/deploy.md` |
-| `ios/Yizhidao/Resources/ImaExplanations.json` | IMA 黄庭书院讲解。后台「黄庭」改 `answer` 立刻影响服务端 AI，App 弹层要发版。`scripts/export_ima_explanations.py` 会覆盖手改 |
+| `ios/Yizhidao/Resources/ImaExplanations.json` | IMA 黄庭书院讲解（原稿已去出处后标）。后台「黄庭」改 `answer` 立刻影响服务端 AI，App 弹层要发版。`scripts/export_ima_explanations.py` 会覆盖手改 |
 | `admin/` | 内部运营后台（用量 + 内容）。本地 `npm run dev`；生产须重建镜像。不上架 |
-| `ios/YizhidaoTests/` | 起卦、时辰、`ReadingGuide`、`ImaAnswerFormatter`、`AIAnswerFormatter` 单测 |
+| `ios/YizhidaoTests/` | 起卦、时辰、`ReadingGuide`、基础入门、`ImaAnswerFormatter`、`AIAnswerFormatter` 单测 |
 | `docs/backend-min-spec.md` | 登录、AI、案例热更新的接口合同 |
 | `docs/ai-reading.md` | AI 问答机制（prompt、黄庭槽、案例筛选、出卡） |
 | `docs/deploy.md` | 后端 Docker + Caddy 上线指南 |

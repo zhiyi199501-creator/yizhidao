@@ -86,7 +86,6 @@ import com.yizhidao.app.HistoryTrashEntry
 import com.yizhidao.app.classic.ClassicChapter
 import com.yizhidao.app.classic.ClassicWing
 import com.yizhidao.app.classic.YijingIntroBook
-import com.yizhidao.app.classic.YijingIntroChapter
 import com.yizhidao.app.ui.reading.ScaledHexagramFigure
 import com.yizhidao.app.ui.theme.AppTheme
 import com.yizhidao.app.ui.theme.PaperBackHeader
@@ -130,7 +129,7 @@ private sealed interface MeRoute {
     data object TapSound : MeRoute
     data object Recycle : MeRoute
     data object Intro : MeRoute
-    data class IntroChapter(val item: YijingIntroChapter) : MeRoute
+    data class IntroChapter(val index: Int) : MeRoute
     data object Hexagrams : MeRoute
     data class HexagramDetail(val item: Hexagram) : MeRoute
     data object Wings : MeRoute
@@ -220,7 +219,20 @@ fun MeScreen(
             onBack = { route = MeRoute.Home },
             onOpen = { route = MeRoute.IntroChapter(it) },
         )
-        is MeRoute.IntroChapter -> IntroChapterReader(page.item) { route = MeRoute.Intro }
+        is MeRoute.IntroChapter -> IntroChapterReader(
+            book = intro,
+            index = page.index,
+            onBack = { route = MeRoute.Intro },
+            onOpenChapter = { route = MeRoute.IntroChapter(it) },
+            onOpenLink = { dest ->
+                route = when (dest) {
+                    "hexagrams" -> MeRoute.Hexagrams
+                    "cases" -> MeRoute.Cases
+                    "wings" -> MeRoute.Wings
+                    else -> route
+                }
+            },
+        )
         MeRoute.Hexagrams -> HexagramListPage(
             hexagrams = book.hexagrams,
             onBack = { route = MeRoute.Home },
@@ -339,12 +351,6 @@ private fun MeHome(
             MeCard {
                 MeRow(
                     icon = Icons.AutoMirrored.Outlined.MenuBook,
-                    title = "案例",
-                    onClick = onCases,
-                )
-                MeDivider()
-                MeRow(
-                    icon = Icons.AutoMirrored.Outlined.MenuBook,
                     title = "基础入门",
                     onClick = onIntro,
                 )
@@ -359,6 +365,12 @@ private fun MeHome(
                     icon = Icons.AutoMirrored.Outlined.ReceiptLong,
                     title = "四传",
                     onClick = onWings,
+                )
+                MeDivider()
+                MeRow(
+                    icon = Icons.AutoMirrored.Outlined.MenuBook,
+                    title = "案例",
+                    onClick = onCases,
                 )
             }
             MeCard {
@@ -901,7 +913,7 @@ private fun MeDivider() {
 private fun IntroListPage(
     book: YijingIntroBook,
     onBack: () -> Unit,
-    onOpen: (YijingIntroChapter) -> Unit,
+    onOpen: (Int) -> Unit,
 ) {
     Column(Modifier.fillMaxSize()) {
         PaperBackHeader(title = "基础入门", onBack = onBack)
@@ -921,12 +933,54 @@ private fun IntroListPage(
             item(key = "chapters") {
                 MeCard {
                     book.chapters.forEachIndexed { index, chapter ->
-                        PaperNavRow(
-                            title = chapter.title,
-                            subtitle = chapter.subtitle,
-                            showDivider = index < book.chapters.lastIndex,
-                            onClick = { onOpen(chapter) },
-                        )
+                        Column {
+                            Row(
+                                Modifier
+                                    .fillMaxWidth()
+                                    .clickable { onOpen(index) }
+                                    .padding(horizontal = 16.dp, vertical = 10.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Text(
+                                    introChapterMark(index),
+                                    fontSize = 15.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = AppTheme.accent,
+                                    modifier = Modifier.width(22.dp),
+                                    style = AppTheme.compactText,
+                                )
+                                Column(Modifier.weight(1f).padding(end = 8.dp)) {
+                                    Text(
+                                        chapter.title,
+                                        fontSize = 17.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = AppTheme.ink,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                        style = AppTheme.compactText,
+                                    )
+                                    if (chapter.subtitle.isNotBlank()) {
+                                        Text(
+                                            chapter.subtitle,
+                                            fontSize = 13.sp,
+                                            color = AppTheme.secondaryText,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis,
+                                            style = AppTheme.compactText,
+                                            modifier = Modifier.padding(top = 2.dp),
+                                        )
+                                    }
+                                }
+                                PaperChevron()
+                            }
+                            if (index < book.chapters.lastIndex) {
+                                HorizontalDivider(
+                                    modifier = Modifier.padding(start = 16.dp),
+                                    color = AppTheme.fieldStroke,
+                                    thickness = 0.5.dp,
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -1135,32 +1189,6 @@ private fun BackLabel(label: String, onClick: () -> Unit) {
         color = AppTheme.accent,
         modifier = Modifier.clickable(onClick = onClick).padding(bottom = 12.dp),
     )
-}
-
-@Composable
-private fun IntroChapterReader(chapter: YijingIntroChapter, onBack: () -> Unit) {
-    Column(Modifier.fillMaxSize()) {
-        PaperBackHeader(title = chapter.title, onBack = onBack)
-        Column(
-            Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(16.dp),
-        ) {
-            if (chapter.subtitle.isNotBlank()) {
-                Text(
-                    chapter.subtitle,
-                    fontSize = 15.sp,
-                    color = AppTheme.secondaryText,
-                    style = AppTheme.compactText,
-                    modifier = Modifier.padding(bottom = 16.dp),
-                )
-            }
-            chapter.paragraphs.forEach { paragraph ->
-                ScriptureCard(body = paragraph)
-            }
-        }
-    }
 }
 
 @Composable

@@ -34,7 +34,7 @@ cd android
 
 `applicationId`：`com.yizhidao.app`。Release API：`https://api.yiwanjia.work`（仅海外 Google Play；**不上架国内商店**）。生产 HTTPS 必须走 **Cronet**，不要 `addQuicHint`，不要改回 `HttpURLConnection`。
 
-经文／案例／入门／IMA 讲解 JSON 构建时从 `ios/Yizhidao/Resources/` 拷贝（`copyIosAssets`），勿在 `android/` 另维护一份。**不含** `Zhengshi.json`（安卓暂无证释入口）。服务端讲解走运营后台「黄庭」（立刻影响 AI）；App 弹层读包内 JSON，要发版。`python3 scripts/export_ima_explanations.py` 会覆盖手改，改过后别跑。脚注／「思考过程」／表格在 `ImaAnswerFormatter` 运行时清洗。App 单测：`./gradlew :app:testDebugUnitTest`。Release 侧载包：`arm64-v8a` + R8 minify（约 10MB）。
+经文／案例／入门／IMA 讲解 JSON 构建时从 `ios/Yizhidao/Resources/` 拷贝（`copyIosAssets`），勿在 `android/` 另维护一份。**不含** `Zhengshi.json`（安卓暂无证释入口）。服务端讲解走运营后台「黄庭」（立刻影响 AI）；App 弹层读包内 JSON，要发版。`python3 scripts/export_ima_explanations.py` 会覆盖手改，改过后别跑（导出会再洗后标／「思考过程」）。`ImaAnswerFormatter` 运行时仍洗一遍，表格画成表。App 单测：`./gradlew :app:testDebugUnitTest`。Release 侧载包：`arm64-v8a` + R8 minify（约 10MB）。
 
 ## 连生产
 
@@ -44,6 +44,6 @@ cd android
 
 ## 当前范围
 
-已实现：数字起卦（三数 / 时间）、金钱起卦、本卦之卦与主看、本地历史与回收站、**问答** Tab（全部问答，一占一条自动保存，左滑删除）、案例在「我的」（`GET /v1/cases` 热更新，失败用包内/缓存）、繁简跟系统语言、按键音效、我的页可读基础入门 / 六十四卦 / 四传（详情卡片标题彖辞/大象）、**Google（主）/ 邮箱（子页）登录**（Debug/Release 均无短信入口）、资料编辑、问答＋追问（事情背景／当下／方向／建议（须防并入建议），追问后仍给建议与可再问；结果页「问」：已有问答直接打开，没有则自动生成；页标题「问答」；详情右上角「同类」；分组列表竖排卦名／时间／所问）、设置（按键音效 / 回收站同结构，左滑恢复或彻底删除）、**IMA 黄庭书院讲解**（结果／案例／六十四卦详情点经文；弹层约 93% 高，下拉超 1/4 收起，点遮罩不关）。结果／问答详情／历史记录／我的子页隐藏底部 Tab；Manifest `adjustNothing` + 追问栏 `imePadding`（配合 `enableEdgeToEdge()` 贴键盘）。Debug 连局域网 `http://` 须 Debug 专用 `network_security_config`（`cleartextTrafficPermitted`）。连生产见上文。
+已实现：数字起卦（三数 / 时间）、金钱起卦、本卦之卦与主看、本地历史与回收站、**问答** Tab（全部问答，一占一条自动保存，左滑删除）、案例在「我的」（`GET /v1/cases` 热更新，失败用包内/缓存）、繁简跟系统语言、按键音效、我的页可读基础入门 / 六十四卦 / 四传 / 案例（详情卡片标题彖辞/大象）、**Google（主）/ 邮箱（子页）登录**（Debug/Release 均无短信入口）、资料编辑、问答＋追问（事情背景／当下／方向／建议（须防并入建议），追问后仍给建议与可再问；结果页「问」：已有问答直接打开，没有则自动生成；页标题「问答」；详情右上角「同类」；分组列表竖排卦名／时间／所问）、设置（按键音效 / 回收站同结构，左滑恢复或彻底删除）、**IMA 黄庭书院讲解**（结果／案例／六十四卦详情点经文；弹层约 93% 高，下拉超 1/4 收起，点遮罩不关）。结果／问答详情／历史记录／我的子页隐藏底部 Tab；Manifest `adjustNothing` + 追问栏 `imePadding`（配合 `enableEdgeToEdge()` 贴键盘）。Debug 连局域网 `http://` 须 Debug 专用 `network_security_config`（`cleartextTrafficPermitted`）。连生产见上文。
 
 Google 登录：在 `app/build.gradle.kts` 的 `GOOGLE_WEB_CLIENT_ID` 填入 Google Cloud **Web Client ID**（与后端 `GOOGLE_CLIENT_IDS` 一致）。详见 `backend/README.md`。

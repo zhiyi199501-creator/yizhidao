@@ -116,6 +116,28 @@ extension CaseStudy {
     }
 }
 
+extension YijingIntroBlock {
+    var zhDisplayed: YijingIntroBlock {
+        guard AppLanguage.current == .traditional else { return self }
+        switch self {
+        case .paragraph(let text):
+            return .paragraph(text.zh)
+        case .quote(let text, let cite):
+            return .quote(text: text.zh, cite: cite.zh)
+        case .list(let items):
+            return .list(items.map(\.zh))
+        case .table(let rows):
+            return .table(rows.map { $0.map(\.zh) })
+        case .figure(let kind, let caption):
+            return .figure(kind: kind, caption: caption.zh)
+        case .links(let links):
+            return .links(links.map {
+                YijingIntroLink(title: $0.title.zh, subtitle: $0.subtitle.zh, route: $0.route)
+            })
+        }
+    }
+}
+
 extension YijingIntroChapter {
     var zhDisplayed: YijingIntroChapter {
         guard AppLanguage.current == .traditional else { return self }
@@ -123,7 +145,7 @@ extension YijingIntroChapter {
             id: id,
             title: title.zh,
             subtitle: subtitle.zh,
-            paragraphs: paragraphs.map(\.zh)
+            blocks: blocks.map(\.zhDisplayed)
         )
     }
 }
