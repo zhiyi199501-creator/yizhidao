@@ -127,6 +127,7 @@ ALIYUN_SMS_VALID_SEC=300
 | GET | `/v1/cases` | 案例列表（公开；支持 `If-None-Match`） |
 | POST | `/v1/ai/analyze` | AI 问答（需 Bearer token） |
 | POST | `/v1/ai/followup` | AI 追问 / 补充背景（需 Bearer token） |
+| POST | `/v1/iap/verify` | iOS StoreKit 2 买断验单（需 Bearer token；本地已接，生产未发） |
 
 ## 与 App 联调
 
@@ -229,7 +230,7 @@ OPENAI_BASE_URL=https://api.deepseek.com/v1
 OPENAI_MODEL=deepseek-chat
 ```
 
-`AI_MODE=mock` 时走规则解读（不耗 token）。解读机制见 [`docs/ai-reading.md`](../docs/ai-reading.md)；App 接口合同见 `docs/backend-min-spec.md`（`/v1/admin/*` 不在该合同内）。单测：`.venv/bin/python -m unittest`。抽检同一套夹具：CLI `scripts/eval_ai_reading.py`（`--dry-run` 不调模型；live 写 `backend/.eval/`）或后台「抽检」页（不写用量事件）。AI 限流：登录用户、解读与追问合计自然日 40 次（UTC+8）、间隔 8 秒；`AI_RATE_*` 见 `.env.example`。
+`AI_MODE=mock` 时走规则解读（不耗 token）。解读机制见 [`docs/ai-reading.md`](../docs/ai-reading.md)；App 接口合同见 `docs/backend-min-spec.md`（`/v1/admin/*` 不在该合同内）。单测：`.venv/bin/python -m unittest`。抽检同一套夹具：CLI `scripts/eval_ai_reading.py`（`--dry-run` 不调模型；live 写 `backend/.eval/`）或后台「抽检」页（不写用量事件）。AI 限流：登录用户、解读与追问合计自然日未购 3 次 / 买断 30 次（UTC+8）、间隔 8 秒；`AI_RATE_*` / `IAP_*` 见 `.env.example`。
 
 经文来源：`ios/Yizhidao/Resources/Hexagrams.json`。讲解来源：同目录 `ImaExplanations.json`（镜像 `/app/app/data/`）。案例来源：`cases.json`。App 用 `GET /v1/cases` 热更新（2026-08-17 已部署）。镜像内 `/app/app/data/cases.json`；若 data 卷存在 `/app/data/cases.json` 则优先。
 

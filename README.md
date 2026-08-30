@@ -31,7 +31,7 @@ xcodebuild test -project ios/Yizhidao.xcodeproj -scheme Yizhidao -destination 'p
 - **历史**：SwiftData 本地；**时间** / **按卦**（文王序）；状态筛选；左滑删除进回收站；数字起卦单爻动在箭头上方标红字（初/二/三/四/五/上）
 - **问答**：列出全部本地问答（左滑删除）；起卦后点「问」会自动出现在这里
 - **基础入门**（「我的」）：九章册页，含怎样起卦；章末上一章／下一章并排。英文界面读 `YijingIntro.en.json`（引文仍中文）
-- **我的**：登录为 iOS **Apple** / Android **Google**（主按钮）+ 邮箱验证码（子页）；无微信、登录页无短信。资料编辑、**基础入门**、**六十四卦**（详情卡片彖辞/大象；经文可点 IMA 讲解；页底证释来源）、**四传**（系辞/说卦/序卦/杂卦；页底证释来源）、**案例**（按卦浏览，打开拉取 `GET /v1/cases`，离线用包内底稿）、**意见反馈**、**检查更新**、设置（回收站，清空需确认；退出登录；**注销账号**）。语言只跟系统：中文简繁，非中文界面壳英文；无应用内开关。无按键音效。
+- **我的**：登录为 iOS **Apple** / Android **Google**（主按钮）+ 邮箱验证码（子页）；无微信、登录页无短信。资料编辑、**解锁问答**（iOS 本地已接、未发；设置里不放恢复购买）、**基础入门**、**六十四卦**（详情卡片彖辞/大象；经文可点 IMA 讲解；页底证释来源）、**四传**（系辞/说卦/序卦/杂卦；页底证释来源）、**案例**（按卦浏览，打开拉取 `GET /v1/cases`，离线用包内底稿）、**意见反馈**、**检查更新**、设置（回收站，清空需确认；退出登录；**注销账号**）。语言只跟系统：中文简繁，非中文界面壳英文；无应用内开关。无按键音效。
 
 ## 协作
 
@@ -47,8 +47,8 @@ xcodebuild test -project ios/Yizhidao.xcodeproj -scheme Yizhidao -destination 'p
 | `ios/Yizhidao/App/` | 入口、`AppTheme`、`AppNavigation`、登录、「我的」、问答列表 |
 | `ios/Yizhidao/Engines/` | 数字 / 金钱起卦、京房卦序、农历／公历时辰 |
 | `ios/Yizhidao/Domain/` | 模型与 `ReadingGuide` 解卦焦点 |
-| `ios/Yizhidao/Features/` | 起卦 UI、结果（含 AI 追问）、历史（含按卦）、案例（入口在「我的」） |
-| `ios/Yizhidao/Data/` | SwiftData `ReadingRecord`、回收站、`SavedAIAnalysis`、经文加载、`ImaExplanationStore` |
+| `ios/Yizhidao/Features/` | 起卦 UI、结果（含 AI 追问）、历史（含按卦）、案例（入口在「我的」）、`Reading/UnlockReadingsView`（iOS 买断页，未发） |
+| `ios/Yizhidao/Data/` | SwiftData `ReadingRecord`、回收站、`SavedAIAnalysis`、经文加载、`ImaExplanationStore`、`UnlockStore`（iOS 买断问答，未发） |
 | `ios/Yizhidao/Resources/Hexagrams.json` | 64 卦（卦辞／彖／象／爻／用九用六／文言）+ 系辞／说卦／序卦／杂卦。编辑根目录 `易经正文编辑表.xlsx` → `python3 scripts/import_jingwen.py` |
 | `ios/Yizhidao/Resources/Zhengshi.json` | 《易经证释》全册阅读稿；由 `scripts/import_zhengshi.py` 从全册 `.doc` 生成，暂未挂「我的」入口 |
 | `ios/Yizhidao/Resources/YijingIntro.json` | 基础入门九章（含怎样起卦）。英文界面另读 `YijingIntro.en.json`。Android `copyIosAssets` 拷这两份 |
@@ -56,7 +56,7 @@ xcodebuild test -project ios/Yizhidao.xcodeproj -scheme Yizhidao -destination 'p
 | `ios/Yizhidao/Resources/ImaExplanations.json` | IMA 黄庭书院讲解（原稿已去出处后标）。后台「黄庭」改 `answer` 立刻影响服务端 AI，App 弹层要发版。`scripts/export_ima_explanations.py` 会覆盖手改 |
 | `admin/` | 内部运营后台（用量 + 内容）。本地 `npm run dev`；生产须重建镜像。不上架 |
 | `ios/YizhidaoTests/` | 起卦、时辰、`ReadingGuide`、基础入门、`ImaAnswerFormatter`、`AIAnswerFormatter` 单测 |
-| `docs/backend-min-spec.md` | 登录、AI、案例热更新的接口合同 |
+| `docs/backend-min-spec.md` | 登录、AI、IAP 验单、案例热更新的接口合同 |
 | `docs/ai-reading.md` | AI 问答机制（prompt、黄庭槽、案例筛选、出卡） |
 | `docs/deploy.md` | 后端 Docker + Caddy 上线指南 |
 | `backend/` | FastAPI：Apple / Google / 邮箱 OTP + AI 问答 |

@@ -55,7 +55,7 @@ rsync -az --exclude '.git' --exclude '.derivedData' --exclude 'backend/.env' \
 ssh yiwanjia 'cd ~/yizhidao/backend && sudo cp Caddyfile.overseas Caddyfile && sudo docker compose up -d --build'
 ```
 
-现役新加坡是 **`docker compose`（api + Caddy 同项目，80/443 仅 tcp）**。`docker-compose.prod.yml` 只给与**系统 Caddy** 共用端口的遗留机用；在新加坡上切过去会丢掉 443。改 `.env` 后须 `--force-recreate`，否则容器仍是旧环境变量。
+现役新加坡是 **`docker compose`（api + Caddy 同项目，80/443 仅 tcp）**。`docker-compose.prod.yml` 只给与**系统 Caddy** 共用端口的遗留机用；在新加坡上切过去会丢掉 443。改 `.env` 后须 `--force-recreate`，否则容器仍是旧环境变量。IAP 上线时生产 `.env` 设 `IAP_VERIFY_MODE=apple`（不要开 `ALLOW_INSECURE_MOCK_IAP`）。
 
 ## 国内新服务器（遗留，方式 A）
 
@@ -168,4 +168,4 @@ sudo docker compose up -d --build --force-recreate
 - [x] Apple / 邮箱登录（客户端 + 后端）；生产邮箱 SMTP（Resend，2026-08-24 已 live：`email_provider=smtp`）
 - [ ] Android Google：生产 `GOOGLE_CLIENT_IDS` 与 `GOOGLE_WEB_CLIENT_ID`
 - [ ] 正式固化新加坡机镜像（避免只热更代码）
-- [ ] IAP 验单
+- [ ] IAP 验单：代码仍在本地工作区；上线前生产 `.env` 设 `IAP_VERIFY_MODE=apple`，重建镜像；`POST /v1/iap/verify` 现役 2026-08-30 仍 404。勿把内购挂进正在审的 1.0

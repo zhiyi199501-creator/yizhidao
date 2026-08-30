@@ -72,11 +72,20 @@ def _finish_login(db: Session, user: User) -> Tuple[User, str]:
 
 
 def user_to_out(user: User) -> dict:
+    from app.services.ai_rate_limit import limiter
+    from app.services.iap import daily_limit_for_user
+
+    limit = daily_limit_for_user(user)
+    used, remaining = limiter.snapshot(user.id, limit)
     return {
         "id": user.id,
         "nickname": user.nickname,
         "phone": user.phone,
         "email": user.email,
+        "iapUnlocked": bool(user.iap_unlocked),
+        "aiDailyLimit": limit,
+        "aiDailyUsed": used,
+        "aiDailyRemaining": remaining,
     }
 
 

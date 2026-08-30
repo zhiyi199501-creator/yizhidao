@@ -87,6 +87,26 @@ class AIRateLimitTests(unittest.TestCase):
         self._acquire("a")
         self._acquire("b")
 
+    def test_snapshot_does_not_consume_and_tracks_remaining(self):
+        settings.ai_rate_interval_sec = 0
+        used, remaining = limiter.snapshot("u1", 3)
+        self.assertEqual((used, remaining), (0, 3))
+        self._acquire()
+        used, remaining = limiter.snapshot("u1", 3)
+        self.assertEqual((used, remaining), (1, 2))
+        used_again, _ = limiter.snapshot("u1", 3)
+        self.assertEqual(used_again, 1)
+
+    def test_acquire_honors_explicit_daily_limit(self):
+        settings.ai_rate_interval_sec = 0
+        settings.ai_rate_daily_limit = 40
+        with acquire_ai_call("u1", daily_limit=1):
+            pass
+        with self.assertRaises(AppError) as ctx:
+            with acquire_ai_call("u1", daily_limit=1):
+                pass
+        self.assertEqual(ctx.exception.message, MSG_DAILY_DONE)
+
 
 if __name__ == "__main__":
     unittest.main()

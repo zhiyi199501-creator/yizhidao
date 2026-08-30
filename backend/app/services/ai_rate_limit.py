@@ -29,11 +29,11 @@ class AIRateLimiter:
     def _day(self, ts: float) -> str:
         return datetime.fromtimestamp(ts, tz=_TZ).date().isoformat()
 
-    def acquire(self, user_id: str) -> None:
+    def acquire(self, user_id: str, daily_limit: Optional[int] = None) -> None:
         ts = self._now()
         day = self._day(ts)
         interval = float(settings.ai_rate_interval_sec)
-        daily = int(settings.ai_rate_daily_limit)
+        daily = int(settings.ai_rate_daily_limit if daily_limit is None else daily_limit)
         with self._lock:
             state = self._users.setdefault(
                 user_id,
@@ -53,6 +53,20 @@ class AIRateLimiter:
             state["last_start"] = ts
             state["count"] = int(state["count"]) + 1
 
+    def snapshot(self, user_id: str, daily_limit: int) -> tuple[int, int]:
+        """当日已用 / 剩余。不占额度。自然日 UTC+8；重启后进程内计数清零。"""
+        ts = self._now()
+        day = self._day(ts)
+        daily = max(0, int(daily_limit))
+        with self._lock:
+            state = self._users.get(user_id)
+            if not state or state["day"] != day:
+                used = 0
+            else:
+                used = int(state["count"])
+        remaining = max(0, daily - used) if daily > 0 else 0
+        return used, remaining
+
     def release(self, user_id: str) -> None:
         with self._lock:
             state = self._users.get(user_id)
@@ -65,8 +79,8 @@ limiter = AIRateLimiter()
 
 
 @contextmanager
-def acquire_ai_call(user_id: str) -> Iterator[None]:
-    limiter.acquire(user_id)
+def acquire_ai_call(user_id: str, daily_limit: Optional[int] = None) -> Iterator[None]:
+    limiter.acquire(user_id, daily_limit=daily_limit)
     try:
         yield
     finally:

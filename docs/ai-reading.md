@@ -2,7 +2,7 @@
 
 本文件说明结果页「问答」怎么拼材料、出卡、App 怎么用。接口路径与 JSON 字段以 `[backend-min-spec.md](backend-min-spec.md)` 为准；提示词原文以 `backend/app/services/ai.py` 为准。改解卦通则先改 App 的 `ReadingGuide` 并补测，再对这里的焦点表。
 
-**状态（2026-08-28）**：扩卡、黄庭进 prompt、按爻裁案例、主看卦辞时附彖辞已合 `main`（[PR #12](https://github.com/zhiyi199501-creator/yizhidao/pull/12)）。生产 `api.yiwanjia.work` 仍是发版前的三字段解读（`summary` / `focus` / `advice` + 追问单段 `reply`）；须重建镜像（含 `ImaExplanations.json`）并发 App 后才现役。
+**状态（2026-08-30）**：扩卡、黄庭进 prompt、按爻裁案例、主看卦辞时附彖辞已合 `main`（[PR #12](https://github.com/zhiyi199501-creator/yizhidao/pull/12)）。生产 `api.yiwanjia.work` 仍是发版前的三字段解读（`summary` / `focus` / `advice` + 追问单段 `reply`）；须重建镜像（含 `ImaExplanations.json`）并发 App 后才现役。买断额度（未购 3 / 买断 30）只在本地工作区，未提交、未合 main；生产 `POST /v1/iap/verify` 2026-08-30 仍 404。
 
 这不是对话 agent，也不是多跳 RAG：本地起卦算完卦象，后端一次 Chat Completions，强制 JSON。密钥只在服务端。
 
@@ -98,7 +98,7 @@
 
 ## 限流与失败
 
-按登录用户，进程内计数（单容器；重启清零）。`analyze` 与 `followup` 共用：两次最短间隔 8 秒；同一用户同时只跑 1 个；自然日 UTC+8 合计 40 次。超限 HTTP 429、`code` 4290。间隔/并发文案「请稍后再试」；当天次数用尽「今天的解读次数用完了，明天再来」。界面不展示剩余次数。`AI_RATE_INTERVAL_SEC` / `AI_RATE_DAILY_LIMIT` 可改。模型失败对外只说「解读没有完成，请稍后重试」或「模型服务暂时不可用，请稍后重试」，不回上游原文。不自动重试、不降级 mock。App 已有错误行。
+按登录用户，进程内计数（单容器；重启清零）。`analyze` 与 `followup` 共用：两次最短间隔 8 秒；同一用户同时只跑 1 个；自然日 UTC+8 合计未购 **3** 次、买断 **30** 次（`AI_RATE_DAILY_LIMIT` / `AI_RATE_DAILY_LIMIT_UNLOCK`）。超限 HTTP 429、`code` 4290。间隔/并发文案「请稍后再试」；当天次数用尽「今天的解读次数用完了，明天再来」。解锁问答页展示当日剩余次数；问答结果页不展示。未购用尽时 iOS 出「解锁问答」。模型失败对外只说「解读没有完成，请稍后重试」或「模型服务暂时不可用，请稍后重试」，不回上游原文。不自动重试、不降级 mock。App 已有错误行。
 
 
 
@@ -113,6 +113,8 @@
 | `backend/app/services/hexagram_store.py`                                                                 | 经文                      |
 | `backend/app/routes/ai.py`                                                                               | 需登录的 analyze / followup；限流 |
 | `backend/app/services/ai_rate_limit.py`                                                                  | 按用户间隔 / 当日次数 / 并发       |
+| `backend/app/services/iap.py` / `routes/iap.py`                                                          | StoreKit 2 验单与买断额度（本地未发） |
+| `backend/tests/test_iap.py`                                                                              | 验单、同用户恢复、跨用户 409、额度快照 |
 | `backend/tests/test_ai_content.py` / `test_ima_prompt.py` / `test_ai_cases.py` / `test_eval_fixtures.py` | 字段、槽位、案例筛选、抽检样本         |
 
 

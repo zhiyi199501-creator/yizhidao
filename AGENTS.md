@@ -44,7 +44,7 @@ cd android && ./gradlew :engines:test
 - **基础入门**：`ios/Yizhidao/Resources/YijingIntro.json` 九章（含「怎样起卦」：按仪式写静心／告神／选法门／取数，不写 ÷8／÷6）。英文界面读 `YijingIntro.en.json`（同 id／块型，引文仍中文，不机翻经文）。块 `p`／`quote`／`list`／`table`／`figure`／`links`；册页阅读，章末上一章／下一章同一行。勿再按经文卡片切段。Android `copyIosAssets` 拷 `YijingIntro.json` 与 `YijingIntro.en.json`
 - **IMA 黄庭书院讲解**：点经文可看知识库讲解。覆盖卦辞／彖／大象／爻辞+小象（成对）、用九／用六（成对）、文言（乾坤）。包内 `ios/Yizhidao/Resources/ImaExplanations.json`；源采集 gitignore `data/ima-explanations/`。后台「黄庭」可改 `answer`：**立刻影响服务端 AI**；App 弹层要下次发版。导出 `python3 scripts/export_ima_explanations.py` **会覆盖**手改，改过后别跑。Android `copyIosAssets` 拷同文件（**不含** `Zhengshi.json`）。ID：`{nn}-guaci|tuanci|daxiang|wenyan|yong`、`{nn}-yao-{0…5}`（初=0）。入口：结果／案例／六十四卦详情（文言与用九用六仅六十四卦详情有）
 - **IMA 展示**：包内 `ImaExplanations.json` 原稿已去掉出处后标／整行「思考过程」；App `ImaAnswerFormatter` 与后台读取仍再洗一遍。「表格」标记与 markdown 表画成表。安卓弹层用全屏 Popup（约 93% 高，盖住页头），下拉超过 **1/4** 收起，点遮罩不关。iOS 宣纸 `AppTheme` 已为 OLED 调淡；弹层 `.presentationBackground` 用同一渐变
-- `ios/Yizhidao/App/`：`AppNavigation`、`AppTheme`、登录与「我的」（多在 `YizhidaoApp.swift`）。「我的」：资料、**基础入门**、**六十四卦 / 四传**、**案例**、**意见反馈**（`POST /v1/feedback`，可匿名；后台「反馈」查看）、**检查更新**（`GET /v1/app/version`）、设置（回收站，清空需确认；退出登录；**注销账号**调 `DELETE /v1/me`）。经文详情卡片标题**彖辞** / **大象**，正文带「彖曰：」「象曰：」前缀。六十四卦详情与四传正文最下标「经文版本：《易经证释》所引」（与结果页同一句）。「问答」Tab 列出全部本地问答（一占一条，自动保存）。包内与生产页：隐私政策 / 用户协议；公网 `https://api.yiwanjia.work/{privacy,terms,support}`
+- `ios/Yizhidao/App/`：`AppNavigation`、`AppTheme`、登录与「我的」（多在 `YizhidaoApp.swift`）。「我的」：资料、**解锁问答**（与资料同一 Section，标准行，不是促销卡）、**基础入门**、**六十四卦 / 四传**、**案例**、**意见反馈**（`POST /v1/feedback`，可匿名；后台「反馈」查看）、**检查更新**（`GET /v1/app/version`）、设置（回收站，清空需确认；退出登录；**注销账号**调 `DELETE /v1/me`；**不要**再挂解锁或恢复购买）。经文详情卡片标题**彖辞** / **大象**，正文带「彖曰：」「象曰：」前缀。六十四卦详情与四传正文最下标「经文版本：《易经证释》所引」（与结果页同一句）。「问答」Tab 列出全部本地问答（一占一条，自动保存）。包内与生产页：隐私政策 / 用户协议；公网 `https://api.yiwanjia.work/{privacy,terms,support}`
 - **二级页藏底栏**：结果、问答详情、历史同卦／记录、我的子页。iOS `parchmentBackground()` 默认藏 Tab，四个 Tab 根页和 IMA sheet 传 `hidesTabBar: false`。Android `onTabBarVisible`。登录 sheet 里的协议页不要藏 Tab
 - Android「问答」与回收站对齐 iOS 分组列表：白卡片竖排卦名／时间／所问；问答左滑删除，回收站左滑恢复＋彻底删除。勿改回设置项左右排布；删除钮未滑开不得透出
 - **经文勿换他本**；改解卦规则先改 `ReadingGuide` 并补测
@@ -70,7 +70,7 @@ cd android && ./gradlew :engines:test
 
 **内容后台（未合 main、生产未发）**：`admin/` 第二版（案例发布 / 黄庭改 answer / 经文只读 / 夹具抽检 / App 意见反馈）。生产 `/admin/` **404**。合入并重建镜像前，生产更新案例仍 `docker compose cp`（见 `docs/deploy.md`）。
 
-**App 信息架构（未发，2026-08-30）**：Tab **起卦 / 历史 / 问答 / 我的**；案例在「我的」；菜单 **基础入门 / 六十四卦 / 四传 / 案例 / 意见反馈 / 检查更新**；基础入门九章册页（含怎样起卦）。起卦页系辞竖排 + 空心朱印，全屏仪式静心→告神→选法门→取数→揭卦；时间卦只占此刻。结果页所问只读可改、不展示取数；刚起完约 2 秒自动开问答一次，再进复用已存。二级页藏底栏。商店 / TestFlight 现役包仍是旧 Tab（起卦 / 历史 / 案例 / 我的）与页内取数。
+**App 信息架构（未发，2026-08-30）**：Tab **起卦 / 历史 / 问答 / 我的**；案例在「我的」；菜单 **解锁问答 / 基础入门 / 六十四卦 / 四传 / 案例 / 意见反馈 / 检查更新**；基础入门九章册页（含怎样起卦）。起卦页系辞竖排 + 空心朱印，全屏仪式静心→告神→选法门→取数→揭卦；时间卦只占此刻。结果页所问只读可改、不展示取数；刚起完约 2 秒自动开问答一次，再进复用已存。二级页藏底栏。商店 / TestFlight 现役包仍是旧 Tab（起卦 / 历史 / 案例 / 我的）与页内取数。
 
 **英文化（未合、未发，2026-08-30）**：本地未提交改动（现挂在 `feature/admin-ops-cms`）。界面壳英文、卦名拼音／短别称、入门 `YijingIntro.en.json`、法律英文本、问答 `uiLanguage=en`。经文／礼文／黄庭／案例不英译。商店 listing 英文未做。生产 `https://api.yiwanjia.work/privacy?lang=en` 2026-08-30 仍出中文。
 
@@ -82,8 +82,10 @@ cd android && ./gradlew :engines:test
 
 **试用登录（Debug）**：`EMAIL_PROVIDER=mock`。有 `DEV_EMAIL_FIXED_CODE` 时任意合法邮箱用该码；为空则随机码，终端 `[email:mock] … code=`（须 `print`，`logger.info` 在 uvicorn 下看不见）。Release：iOS **Apple / 邮箱**，Android **Google / 邮箱**。短信接口仍保留，App 登录页不展示。审核包**不要**配 `EMAIL_TEST_ADDRESSES`（白名单不发真邮件）。
 
-**App Store（进行中）**：Connect App `com.yizhidao.app`（id `6804203617`）；品牌名 **易玩家**；排除中国大陆。法律 URL：`https://api.yiwanjia.work/{privacy,terms,support}`。待：TestFlight、IAP、提审。
+**App Store（进行中）**：Connect App `com.yizhidao.app`（id `6804203617`）；品牌名 **易玩家**；排除中国大陆。法律 URL：`https://api.yiwanjia.work/{privacy,terms,support}`。待：TestFlight、提审。IAP 勿挂正在审的 1.0。
 
-未做：IAP 验单、正式 Android keystore、生产 `GOOGLE_CLIENT_IDS` / App `GOOGLE_WEB_CLIENT_ID`。mock 邮箱 `print`（`8e3bceb`）已随 PR #12 进 `main`。
+**IAP（本地已接、未提交、未合 main、未发；2026-08-30）**：海外 **非消耗型买断** 解锁问答。产品 ID `com.yizhidao.app.ai.unlock`；美区 **$9.99**。iOS StoreKit 2 + `POST /v1/iap/verify`；未购每天 **3** 次，买断每天 **30** 次。入口在「我的」标准行；恢复购买只在解锁页页脚（设置里不要再放）。恢复先读本机 `Transaction.currentEntitlements`，没有才 `AppStore.sync()`。Xcode StoreKit Configuration 可能弹出 `[Environment: Xcode]` 模拟登录，**生产不会出现该窗**（最多是系统 App Store / Sandbox 登录）。本机验单 `IAP_VERIFY_MODE=mock`，生产 `apple`。Xcode 方案选 `ios/UnlockReadings.storekit`。生产 `POST /v1/iap/verify` 2026-08-30 仍 **404**。1.0 过后再跟 **1.1** 一起交。安卓可后做。
+
+未做：正式 Android keystore、生产 `GOOGLE_CLIENT_IDS` / App `GOOGLE_WEB_CLIENT_ID`。mock 邮箱 `print`（`8e3bceb`）已随 PR #12 进 `main`。
 
 **Android**：Compose 四 Tab 已对齐 iOS。Release 须 Cronet → `api.yiwanjia.work`（勿 `addQuicHint`）。见 `android/README.md`。

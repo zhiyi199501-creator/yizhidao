@@ -103,6 +103,7 @@ struct ResultView: View {
                 LocalAuthStore.save(newSession)
                 showLoginForAI = false
                 showAIAnalysis = true
+                Task { await UnlockStore.shared.refreshFromServer() }
             }
         }
         .onAppear {
@@ -547,6 +548,7 @@ struct AIAnalysisView: View {
     @State private var draft = ""
     @State private var errorMessage: String?
     @State private var savedID: UUID?
+    @State private var showUnlock = false
 
     private var store: HexagramStore { .shared }
     private var canSendFollowup: Bool {
@@ -643,6 +645,15 @@ struct AIAnalysisView: View {
         .navigationTitle("问答".ui("Readings"))
         .navigationBarTitleDisplayMode(.inline)
         .parchmentBackground()
+        .sheet(isPresented: $showUnlock) {
+            NavigationStack {
+                UnlockReadingsView {
+                    if analysis == nil {
+                        Task { await runAnalysis() }
+                    }
+                }
+            }
+        }
         .toolbar {
             if showSimilarHexagramButton {
                 ToolbarItem(placement: .topBarTrailing) {
@@ -851,6 +862,9 @@ struct AIAnalysisView: View {
             persistCurrent(analysis: response.analysis, followUps: [])
         } catch {
             errorMessage = error.localizedDescription
+            if LoginError.isDailyQuotaExhausted(error), !UnlockStore.shared.isUnlocked {
+                showUnlock = true
+            }
         }
     }
 
@@ -894,6 +908,9 @@ struct AIAnalysisView: View {
         } catch {
             draft = message
             errorMessage = error.localizedDescription
+            if LoginError.isDailyQuotaExhausted(error), !UnlockStore.shared.isUnlocked {
+                showUnlock = true
+            }
         }
     }
 }

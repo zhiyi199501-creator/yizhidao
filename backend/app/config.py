@@ -42,7 +42,13 @@ class Settings(BaseSettings):
     openai_timeout_sec: float = 90.0
     # AI 限流：按登录用户；自然日 UTC+8；解读与追问共用次数
     ai_rate_interval_sec: float = 8.0
-    ai_rate_daily_limit: int = 40
+    ai_rate_daily_limit: int = 3
+    ai_rate_daily_limit_unlock: int = 30
+    iap_product_id: str = "com.yizhidao.app.ai.unlock"
+    iap_bundle_id: str = "com.yizhidao.app"
+    # mock：测试/本机解码凭证；apple：验 StoreKit 2 JWS。生产无 ALLOW_INSECURE_MOCK_IAP 时强制 apple
+    iap_verify_mode: str = "mock"
+    allow_insecure_mock_iap: bool = False
     # 经文 JSON；默认读仓库内 App 资源，Docker 部署可指向 /app/data/Hexagrams.json
     hexagrams_path: str = ""
     # 案例 JSON。未设时：/app/data/cases.json（data 卷热更新）→ 镜像内 /app/app/data/cases.json → 仓库 App 资源

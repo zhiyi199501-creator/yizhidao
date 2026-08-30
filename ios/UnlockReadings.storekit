@@ -1,0 +1,43 @@
+{
+  "identifier" : "A11C1A551C1A551C1A551SK1",
+  "nonRenewingSubscriptions" : [
+
+  ],
+  "products" : [
+    {
+      "displayPrice" : "9.99",
+      "familyShareable" : false,
+      "internalID" : "A11C1A551C1A551C1A551SK2",
+      "localizations" : [
+        {
+          "description" : "One purchase unlocks cloud readings. Casting, classic texts, and commentaries stay free. For cultural study and reflection only.",
+          "displayName" : "Unlock Readings",
+          "locale" : "en_US"
+        },
+        {
+          "description" : "一次购买，解锁云端问答。起卦、经文与讲解仍可免费使用。内容仅供文化学习与参考。",
+          "displayName" : "解锁问答",
+          "locale" : "zh_Hans"
+        }
+      ],
+      "productID" : "com.yizhidao.app.ai.unlock",
+      "referenceName" : "AI 问答买断",
+      "type" : "NonConsumable"
+    }
+  ],
+  "settings" : {
+    "_askToBuyEnabled" : false,
+    "_billingIssuesEnabled" : false,
+    "_failTransactionsEnabled" : false,
+    "_locale" : "en_US",
+    "_storefront" : "USA",
+    "_timeRate" : 0
+  },
+  "subscriptionGroups" : [
+
+  ],
+  "version" : {
+    "major" : 3,
+    "minor" : 0
+  }
+}

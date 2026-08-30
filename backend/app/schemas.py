@@ -22,6 +22,22 @@ class UserOut(BaseModel):
     nickname: str
     phone: Optional[str] = None
     email: Optional[str] = None
+    iapUnlocked: bool = False
+    aiDailyLimit: int = 3
+    aiDailyUsed: int = 0
+    aiDailyRemaining: int = 3
+
+
+class IAPVerifyRequest(BaseModel):
+    platform: str = "ios"
+    signedTransaction: str = Field(min_length=8)
+
+
+class IAPVerifyResponse(BaseModel):
+    ok: bool = True
+    unlocked: bool = True
+    productId: str
+    aiDailyLimit: int
 
 
 class AuthLoginResponse(BaseModel):

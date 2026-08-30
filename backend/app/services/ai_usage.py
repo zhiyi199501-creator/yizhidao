@@ -6,13 +6,15 @@ import time
 from datetime import datetime, timezone
 from typing import Any, Callable, Optional, Tuple
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.errors import AppError
-from app.models import AIUsageEvent
+from app.models import AIUsageEvent, User
 from app.schemas import AIUsage
 from app.services.ai_rate_limit import acquire_ai_call
+from app.services.iap import daily_limit_for_user
 
 _FORBIDDEN_EVENT_FIELDS = frozenset(
     {
@@ -86,7 +88,8 @@ def run_logged_ai(
     ok = False
     error_code: Optional[int] = None
     try:
-        with acquire_ai_call(user_id):
+        user = db.scalar(select(User).where(User.id == user_id))
+        with acquire_ai_call(user_id, daily_limit=daily_limit_for_user(user)):
             out, usage = fn()
         ok = True
         return out, usage

@@ -18,6 +18,7 @@ struct YizhidaoApp: App {
         UserDefaults.standard.set(false, forKey: "NSURLSessionHTTP3Enabled")
         _ = HexagramStore.shared
         _ = ImaExplanationStore.shared
+        UnlockStore.shared.start()
     }
 
     var body: some Scene {
@@ -64,6 +65,7 @@ struct RootTabView: View {
         .preferredColorScheme(.light)
         .environment(\.locale, language.locale)
         .environment(appNavigation)
+        .environment(UnlockStore.shared)
         .animation(nil, value: appNavigation.selectedTab)
         .dismissKeyboardOnBlankTap()
     }
@@ -71,6 +73,7 @@ struct RootTabView: View {
 
 struct MyMenuView: View {
     @Environment(\.openURL) private var openURL
+    @Environment(UnlockStore.self) private var unlock
     @State private var session: LocalUserSession = LocalAuthStore.load()
     @State private var showLoginSheet = false
     @State private var isCheckingUpdate = false
@@ -95,6 +98,11 @@ struct MyMenuView: View {
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text(session.displayName.zh)
                                         .foregroundStyle(.primary)
+                                    if let email = session.email, !email.isEmpty {
+                                        Text(email.zh)
+                                            .font(.footnote)
+                                            .foregroundStyle(.secondary)
+                                    }
                                 }
                                 Spacer()
                             }
@@ -114,6 +122,15 @@ struct MyMenuView: View {
                                 showLoginSheet = true
                             }
                         }
+                    }
+
+                    NavigationLink {
+                        UnlockReadingsView()
+                    } label: {
+                        Label(
+                            unlock.isUnlocked ? "已解锁问答".ui("Readings unlocked") : "解锁问答".ui("Unlock Readings"),
+                            systemImage: unlock.isUnlocked ? "checkmark.seal" : "lock.open"
+                        )
                     }
                 }
 
@@ -185,6 +202,7 @@ struct MyMenuView: View {
                     session = newSession
                     LocalAuthStore.save(newSession)
                     showLoginSheet = false
+                    Task { await UnlockStore.shared.refreshFromServer() }
                 }
             }
             .alert(item: $updateResult) { result in
@@ -242,9 +260,16 @@ struct MyMenuView: View {
             session.email = me.user.email
             session.isLoggedIn = true
             LocalAuthStore.save(session)
+            UnlockStore.shared.applyQuota(
+                unlocked: me.user.iapUnlocked,
+                limit: me.user.aiDailyLimit,
+                used: me.user.aiDailyUsed,
+                remaining: me.user.aiDailyRemaining
+            )
         } catch LoginError.unauthorized {
             session = .guest
             LocalAuthStore.save(session)
+            UnlockStore.shared.clearLocal()
         } catch {
             // 网络异常时保留本地会话，下次再校验
         }
@@ -846,8 +871,15 @@ private struct LoginConsentRow: View {
     }
 }
 
+@MainActor
 private func makeSession(from resp: AuthAPI.LoginResponse, email: String? = nil) -> LocalUserSession {
-    LocalUserSession(
+    UnlockStore.shared.applyQuota(
+        unlocked: resp.user.iapUnlocked,
+        limit: resp.user.aiDailyLimit,
+        used: resp.user.aiDailyUsed,
+        remaining: resp.user.aiDailyRemaining
+    )
+    return LocalUserSession(
         isLoggedIn: true,
         displayName: resp.user.nickname,
         phone: resp.user.phone,
@@ -896,6 +928,10 @@ enum AuthAPI {
             let nickname: String
             let phone: String?
             let email: String?
+            let iapUnlocked: Bool?
+            let aiDailyLimit: Int?
+            let aiDailyUsed: Int?
+            let aiDailyRemaining: Int?
         }
         let ok: Bool
         let accessToken: String
@@ -966,9 +1002,36 @@ enum AuthAPI {
             let nickname: String
             let phone: String?
             let email: String?
+            let iapUnlocked: Bool?
+            let aiDailyLimit: Int?
+            let aiDailyUsed: Int?
+            let aiDailyRemaining: Int?
         }
         let ok: Bool
         let user: User
+    }
+
+    struct IAPVerifyResponse: Decodable {
+        let ok: Bool
+        let unlocked: Bool
+        let productId: String
+        let aiDailyLimit: Int
+    }
+
+    static func verifyIAP(signedTransaction: String, accessToken: String) async throws -> IAPVerifyResponse {
+        var req = jsonRequest(path: "v1/iap/verify", method: "POST")
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        req.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+        req.httpBody = try JSONSerialization.data(withJSONObject: [
+            "platform": "ios",
+            "signedTransaction": signedTransaction,
+        ])
+        let data = try await perform(req, fallback: "无法验证购买".ui("Couldn’t verify the purchase"))
+        let decoded = try JSONDecoder().decode(IAPVerifyResponse.self, from: data)
+        guard decoded.ok, decoded.unlocked else {
+            throw LoginError.network("无法验证购买".ui("Couldn’t verify the purchase"))
+        }
+        return decoded
     }
 
     static func fetchMe(accessToken: String) async throws -> MeResponse {
@@ -1251,9 +1314,14 @@ enum AuthAPI {
     }
 
     private static func decodeError(_ data: Data, fallback: String) -> LoginError {
-        if let envelope = try? JSONDecoder().decode(ErrorEnvelope.self, from: data),
-           let message = envelope.message, !message.isEmpty {
-            return .network(message)
+        if let envelope = try? JSONDecoder().decode(ErrorEnvelope.self, from: data) {
+            let message = (envelope.message?.isEmpty == false) ? envelope.message! : fallback
+            if envelope.code == 4290 {
+                return .rateLimited(message: message, dailyDone: message.contains("明天再来"))
+            }
+            if envelope.message?.isEmpty == false {
+                return .network(message)
+            }
         }
         return .network(fallback)
     }
@@ -1262,12 +1330,21 @@ enum AuthAPI {
 enum LoginError: LocalizedError {
     case network(String)
     case unauthorized
+    case rateLimited(message: String, dailyDone: Bool)
 
     var errorDescription: String? {
         switch self {
         case .network(let message): return message
+        case .rateLimited(let message, _): return message
         case .unauthorized: return "登录已过期，请重新登录".ui("Session expired. Please sign in again.")
         }
+    }
+
+    static func isDailyQuotaExhausted(_ error: Error) -> Bool {
+        if case .rateLimited(_, true) = error as? LoginError {
+            return true
+        }
+        return false
     }
 
     static func describe(_ error: Error) -> String {
@@ -1603,6 +1680,7 @@ private struct SettingsView: View {
             Button("退出登录".ui("Sign Out")) {
                 session = .guest
                 LocalAuthStore.save(session)
+                UnlockStore.shared.clearLocal()
                 dismiss()
             }
         }
@@ -1635,6 +1713,7 @@ private struct SettingsView: View {
             try await AuthAPI.deleteAccount(accessToken: token)
             session = .guest
             LocalAuthStore.save(session)
+            UnlockStore.shared.clearLocal()
             dismiss()
         } catch {
             deleteErrorMessage = LoginError.describe(error)
