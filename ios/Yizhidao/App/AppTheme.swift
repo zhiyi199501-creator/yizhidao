@@ -207,18 +207,31 @@ private struct DismissKeyboardTapInstaller: UIViewRepresentable {
 }
 #endif
 
+struct RitualEnglishCaption: View {
+    let text: String
+
+    var body: some View {
+        if AppLanguage.current.isEnglish {
+            Text(text)
+                .font(.caption)
+                .foregroundStyle(.tertiary)
+                .multilineTextAlignment(.center)
+        }
+    }
+}
+
 struct AIFloatingButton: View {
     let action: () -> Void
 
     var body: some View {
         Button(action: action) {
-            Text("问".zh)
+            Text("问".ui("Ask"))
                 .font(.system(size: 22, weight: .bold))
                 .foregroundStyle(.white)
                 .frame(width: 50, height: 50)
                 .background(Circle().fill(AppTheme.accent))
         }
         .buttonStyle(.plain)
-        .accessibilityLabel("问答".zh)
+        .accessibilityLabel("问答".ui("Readings"))
     }
 }

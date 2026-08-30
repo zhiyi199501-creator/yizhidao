@@ -39,11 +39,13 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.yizhidao.SecureRandomSource
+import com.yizhidao.app.lang.LocalAppLanguage
 import com.yizhidao.app.ui.theme.AppTheme
 import com.yizhidao.app.ui.theme.PaperOutlinedButton
 import com.yizhidao.app.ui.theme.PaperPrimaryButton
 import com.yizhidao.app.ui.theme.PaperTextField
 import com.yizhidao.app.ui.theme.Text
+import com.yizhidao.app.ui.theme.ui
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -65,9 +67,15 @@ fun NumberDrawAct(
     var showReset by remember { mutableStateOf(false) }
     var sequence by remember { mutableStateOf<Job?>(null) }
     val focus = remember { FocusRequester() }
+    val language = LocalAppLanguage.current
     val complete = drawn.size == 3
     val value = entry.toIntOrNull()?.takeIf { it > 0 }
     val canSettle = !isSettling && !complete && value != null
+    val slotLabels = listOf(
+        ui("上卦数", "Upper"),
+        ui("下卦数", "Lower"),
+        ui("动爻数", "Changing"),
+    )
 
     fun settle() {
         val number = value ?: return
@@ -113,6 +121,7 @@ fun NumberDrawAct(
                         color = AppTheme.accent.copy(alpha = if (isSettling) 0.4f else 1f),
                         modifier = Modifier.clickable(enabled = !isSettling) { showReset = true },
                         style = AppTheme.compactText,
+                        en = "Again",
                     )
                 }
             } else {
@@ -131,7 +140,11 @@ fun NumberDrawAct(
             style = AppTheme.compactText,
         )
         Text(
-            if (complete) "三数已取" else "${slotNames[drawn.size]} · 共三数",
+            if (complete) {
+                ui("三数已取", "Three numbers taken")
+            } else {
+                language.ui("${slotNames[drawn.size]} · 共三数", "${slotLabels[drawn.size]} · of 3")
+            },
             fontSize = 15.sp,
             fontWeight = FontWeight.SemiBold,
             color = AppTheme.accent,
@@ -145,7 +158,7 @@ fun NumberDrawAct(
                 .animateContentSize(),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            slotNames.forEachIndexed { index, name ->
+            slotLabels.forEachIndexed { index, name ->
             DrawAlignRow(
                 leading = {
                     Text(
@@ -208,6 +221,7 @@ fun NumberDrawAct(
                         .fillMaxWidth()
                         .focusRequester(focus),
                     placeholder = "输入数字",
+                    placeholderEn = "Number",
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     textAlign = TextAlign.Center,
                 )
@@ -224,16 +238,17 @@ fun NumberDrawAct(
                     onClick = { settle() },
                     enabled = canSettle,
                     label = if (drawn.size == 2) "成卦" else "落定",
+                    en = if (drawn.size == 2) "Cast" else "Settle",
                 )
             }
         }
         Spacer(Modifier.weight(1f))
         Text(
             when {
-                complete -> "三数已取，正在成卦"
-                isSettling -> "静候落定"
-                drawn.isEmpty() -> "心中默一个数写下，或点「随机」随手取一个"
-                else -> "再默一个数"
+                complete -> ui("三数已取，正在成卦", "Forming the hexagram")
+                isSettling -> ui("静候落定", "Settling")
+                drawn.isEmpty() -> ui("心中默一个数写下，或点「随机」随手取一个", "Hold a number in mind, or tap Random")
+                else -> ui("再默一个数", "Another number")
             },
             fontSize = 12.sp,
             color = AppTheme.secondaryText,
@@ -248,16 +263,21 @@ fun NumberDrawAct(
     if (showReset) {
         AlertDialog(
             onDismissRequest = { showReset = false },
-            title = { Text("重新取这一卦？") },
-            text = { Text("已取的 ${drawn.size} 个数会作废。") },
+            title = { Text("重新取这一卦？", en = "Take this hexagram again?") },
+            text = {
+                Text(
+                    "已取的 ${drawn.size} 个数会作废。",
+                    en = "The ${drawn.size} numbers already taken will be discarded.",
+                )
+            },
             confirmButton = {
                 TextButton(onClick = {
                     showReset = false
                     reset()
-                }) { Text("重新取") }
+                }) { Text("重新取", en = "Start over") }
             },
             dismissButton = {
-                TextButton(onClick = { showReset = false }) { Text("继续") }
+                TextButton(onClick = { showReset = false }) { Text("继续", en = "Continue") }
             },
         )
     }
@@ -295,6 +315,7 @@ private fun DrawAlignRow(
             onClick = onRandom,
             enabled = randomEnabled && trailingVisible,
             label = "随机",
+            en = "Random",
             modifier = Modifier.alpha(if (trailingVisible) 1f else 0f),
         )
     }

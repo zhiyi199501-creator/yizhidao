@@ -32,4 +32,27 @@ class YijingIntroCodecTest {
         assertTrue(book.chapters[7].blocks.any { it.type == "table" })
         assertTrue(book.chapters[8].blocks.any { it.type == "links" })
     }
+
+    @Test
+    fun decodesEnglishBooklet() {
+        val file = listOf(
+            File("../../ios/Yizhidao/Resources/YijingIntro.en.json"),
+            File("../ios/Yizhidao/Resources/YijingIntro.en.json"),
+            File("ios/Yizhidao/Resources/YijingIntro.en.json"),
+        ).first { it.exists() }
+        val book = YijingIntroCodec.decode(file.readText())
+        assertEquals(9, book.chapters.size)
+        assertEquals(
+            listOf(
+                "what", "purpose", "yin-yang-bagua", "hexagrams-lines",
+                "how-to-read", "play-the-text", "how-to-cast", "changing-lines", "path",
+            ),
+            book.chapters.map { it.id },
+        )
+        assertTrue(book.chapters[5].plainText.contains("观其象"))
+        assertTrue(book.chapters[5].title.contains("Watch the image"))
+        assertTrue(book.chapters[6].plainText.contains("Three numbers"))
+        assertTrue(book.chapters[6].plainText.contains("爻变开化之神"))
+        assertTrue(book.chapters[7].blocks.any { it.type == "table" })
+    }
 }

@@ -28,44 +28,20 @@ class AnalysisStructureTests(unittest.TestCase):
         self.assertTrue(any("换岗" in q for q in analysis.askNext))
         self.assertTrue(all(q.startswith("我") for q in analysis.askNext))
 
-    def test_empty_question_ask_next_is_career_and_relationship(self):
-        from app.services.ai import EMPTY_QUESTION_ASK_NEXT
-
+    def test_english_mock_quotes_question_and_sets_ask_next(self):
         body = AIAnalysisBody(
-            question="",
+            question="Should I change jobs",
             method="coin",
-            primaryNumber=58,
-            movingPositions=[],
+            primaryNumber=1,
+            movingPositions=[2],
+            lines=[7, 8, 7, 8, 8, 8],
+            uiLanguage="en",
         )
         analysis, _ = _analyze_mock(body)
-        self.assertEqual(analysis.askNext, EMPTY_QUESTION_ASK_NEXT)
-        self.assertEqual(analysis.askNext, ["我的事业会如何？", "我的感情会如何？"])
-        self.assertTrue(any("事业" in a or "感情" in a for a in analysis.advice))
-
-        model_ask = _analysis_from_parsed(
-            {
-                "summary": "背景",
-                "focus": "当下",
-                "direction": "方向",
-                "risks": ["须防"],
-                "advice": ["可做"],
-                "askNext": ["模型自拟的问"],
-            }
-        )
-        from app.services.ai import _apply_empty_question_ask_next
-
-        self.assertEqual(_apply_empty_question_ask_next("", model_ask).askNext, ["我的事业会如何？", "我的感情会如何？"])
-        with_q = _analysis_from_parsed(
-            {
-                "summary": "背景",
-                "focus": "当下",
-                "direction": "方向",
-                "risks": ["须防"],
-                "advice": ["可做"],
-                "askNext": ["模型自拟的问"],
-            }
-        )
-        self.assertEqual(_apply_empty_question_ask_next("换岗", with_q).askNext, ["模型自拟的问"])
+        self.assertIn("Should I change jobs", analysis.summary)
+        self.assertIn("Attend to", analysis.focus)
+        self.assertTrue(any("What happens next" in q for q in analysis.askNext))
+        self.assertTrue(all("我" not in q for q in analysis.askNext))
 
     def test_mock_followup_includes_advice(self):
         from app.schemas import AIAnalysisContent, AIFollowupBody
@@ -160,6 +136,38 @@ class AnalysisStructureTests(unittest.TestCase):
         self.assertIn("事情背景：背景", slim)
         self.assertIn("本卦", slim)
         self.assertLess(len(slim) * 2, len(full))
+        self.assertLess(len(slim), 2000)
+
+    def test_english_prompts_lock_output_language(self):
+        from app.schemas import AIAnalysisContent, AIFollowupBody
+        from app.services.ai import EN_OUTPUT_LOCK, _build_prompt, _followup_prompt
+
+        prev = AIAnalysisContent(
+            summary="Background",
+            focus="Present",
+            advice=["Do one thing"],
+            direction="Direction",
+            risks=["Haste"],
+            askNext=["What next?"],
+        )
+        body = AIFollowupBody(
+            question="Should I leave",
+            method="coin",
+            primaryNumber=49,
+            resultingNumber=55,
+            movingPositions=[5],
+            previousAnalysis=prev,
+            message="What am I afraid to let go of?",
+            uiLanguage="en",
+        )
+        slim = _followup_prompt(body)
+        full = _build_prompt(body)
+        self.assertTrue(slim.startswith(EN_OUTPUT_LOCK))
+        self.assertTrue(full.startswith(EN_OUTPUT_LOCK))
+        self.assertIn("Earlier reading:", slim)
+        self.assertIn("Latest follow-up:", slim)
+        self.assertNotIn("此前解读", slim)
+        self.assertNotIn("请针对这条追问", slim)
         self.assertLess(len(slim), 2000)
 
     def test_followup_zero_moving_skips_other_yao_ci(self):

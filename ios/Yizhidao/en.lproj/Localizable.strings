@@ -1,0 +1,1 @@
+/* Marks English as a real localization so iOS does not fall back to zh-Hans. */

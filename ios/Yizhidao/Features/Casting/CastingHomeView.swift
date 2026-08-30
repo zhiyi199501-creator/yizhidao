@@ -43,6 +43,8 @@ struct CastingHomeView: View {
                             showResult = false
                             request = CastingRequest()
                         }
+                        RitualEnglishCaption(text: "Cast")
+                            .padding(.top, 10)
                         Spacer(minLength: 20)
                     }
                     .padding(.bottom, 8)
@@ -216,7 +218,7 @@ struct StartCastButton: View {
                 breathes = true
             }
         }
-        .accessibilityLabel("起卦".zh)
+        .accessibilityLabel("起卦".ui("Cast"))
     }
 
     private var inkHalo: some View {

@@ -51,8 +51,12 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.TextButton
+import com.yizhidao.app.lang.AppLanguage
+import com.yizhidao.app.lang.LocalAppLanguage
+import com.yizhidao.app.lang.listLabel
+import com.yizhidao.app.lang.numberLabel
 import com.yizhidao.app.ui.theme.Text
-import com.yizhidao.app.ui.theme.zh
+import com.yizhidao.app.ui.theme.ui
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -153,7 +157,8 @@ fun MeScreen(
     var route by remember { mutableStateOf<MeRoute>(MeRoute.Home) }
     val session by container.authStore.session.collectAsState()
     val book = container.classicBook
-    val intro = container.introBook
+    val language = LocalAppLanguage.current
+    val intro = if (language.isEnglish) container.introBookEn else container.introBook
 
     LaunchedEffect(Unit) {
         val current = container.authStore.load()
@@ -289,6 +294,7 @@ private fun MeHome(
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    val language = LocalAppLanguage.current
     var isCheckingUpdate by remember { mutableStateOf(false) }
     var updateTitle by remember { mutableStateOf<String?>(null) }
     var updateMessage by remember { mutableStateOf("") }
@@ -303,16 +309,16 @@ private fun MeHome(
                 val latest = info.android.trim()
                 val current = BuildConfig.VERSION_NAME
                 if (isNewerAppVersion(latest, current) && info.androidStoreUrl.isNotBlank()) {
-                    updateTitle = "发现新版本"
-                    updateMessage = "最新版本 $latest，可前往商店更新。"
+                    updateTitle = language.ui("发现新版本", "Update available")
+                    updateMessage = language.ui("最新版本 $latest，可前往商店更新。", "Version $latest is available.")
                     updateStoreUrl = info.androidStoreUrl
                 } else {
-                    updateTitle = "已是最新版本"
-                    updateMessage = "当前版本 ${current.ifBlank { latest }}"
+                    updateTitle = language.ui("已是最新版本", "You're up to date")
+                    updateMessage = language.ui("当前版本 ${current.ifBlank { latest }}", "Version ${current.ifBlank { latest }}")
                     updateStoreUrl = null
                 }
             } catch (error: Exception) {
-                updateTitle = "检查失败"
+                updateTitle = language.ui("检查失败", "Couldn't check")
                 updateMessage = AuthApi.describe(error)
                 updateStoreUrl = null
             } finally {
@@ -332,6 +338,7 @@ private fun MeHome(
                 fontWeight = FontWeight.SemiBold,
                 color = AppTheme.ink,
                 style = AppTheme.compactText,
+                en = "Me",
             )
         }
         Column(
@@ -361,18 +368,29 @@ private fun MeHome(
                     )
                     Spacer(Modifier.width(10.dp))
                     Column(Modifier.weight(1f)) {
-                        Text(
-                            if (session.isLoggedIn) session.displayName else "未登录",
-                            fontSize = 17.sp,
-                            color = AppTheme.ink,
-                            style = AppTheme.compactText,
-                        )
+                        if (session.isLoggedIn) {
+                            Text(
+                                session.displayName,
+                                fontSize = 17.sp,
+                                color = AppTheme.ink,
+                                style = AppTheme.compactText,
+                            )
+                        } else {
+                            Text(
+                                "未登录",
+                                fontSize = 17.sp,
+                                color = AppTheme.ink,
+                                style = AppTheme.compactText,
+                                en = "Not signed in",
+                            )
+                        }
                         if (!session.isLoggedIn) {
                             Text(
                                 "支持 Google / 邮箱登录",
                                 fontSize = 12.sp,
                                 color = AppTheme.secondaryText,
                                 style = AppTheme.compactText,
+                                en = "Google or email",
                             )
                         }
                     }
@@ -388,6 +406,7 @@ private fun MeHome(
                                 .clickable(onClick = onLogin)
                                 .padding(horizontal = 10.dp, vertical = 6.dp),
                             style = AppTheme.compactText,
+                            en = "Sign In",
                         )
                     }
                 }
@@ -396,24 +415,28 @@ private fun MeHome(
                 MeRow(
                     icon = Icons.AutoMirrored.Outlined.MenuBook,
                     title = "基础入门",
+                    titleEn = "Primer",
                     onClick = onIntro,
                 )
                 MeDivider()
                 MeRow(
                     icon = Icons.Outlined.AutoStories,
                     title = "六十四卦",
+                    titleEn = "64 Hexagrams",
                     onClick = onHexagrams,
                 )
                 MeDivider()
                 MeRow(
                     icon = Icons.AutoMirrored.Outlined.ReceiptLong,
                     title = "四传",
+                    titleEn = "The Wings",
                     onClick = onWings,
                 )
                 MeDivider()
                 MeRow(
                     icon = Icons.AutoMirrored.Outlined.MenuBook,
                     title = "案例",
+                    titleEn = "Cases",
                     onClick = onCases,
                 )
             }
@@ -421,12 +444,14 @@ private fun MeHome(
                 MeRow(
                     icon = Icons.Outlined.Email,
                     title = "意见反馈",
+                    titleEn = "Feedback",
                     onClick = onFeedback,
                 )
                 MeDivider()
                 MeRow(
                     icon = Icons.Outlined.SystemUpdate,
                     title = "检查更新",
+                    titleEn = "Check for Update",
                     trailing = {
                         if (isCheckingUpdate) {
                             CircularProgressIndicator(
@@ -451,6 +476,7 @@ private fun MeHome(
                 MeRow(
                     icon = Icons.Outlined.Settings,
                     title = "设置",
+                    titleEn = "Settings",
                     onClick = onSettings,
                 )
             }
@@ -472,18 +498,18 @@ private fun MeHome(
                             }
                         },
                     ) {
-                        Text("去更新", color = AppTheme.accent, style = AppTheme.compactText)
+                        Text("去更新", color = AppTheme.accent, style = AppTheme.compactText, en = "Update")
                     }
                 } else {
                     TextButton(onClick = { updateTitle = null }) {
-                        Text("好的", color = AppTheme.accent, style = AppTheme.compactText)
+                        Text("好的", color = AppTheme.accent, style = AppTheme.compactText, en = "OK")
                     }
                 }
             },
             dismissButton = if (updateStoreUrl != null) {
                 {
                     TextButton(onClick = { updateTitle = null }) {
-                        Text("以后再说", color = AppTheme.accent, style = AppTheme.compactText)
+                        Text("以后再说", color = AppTheme.accent, style = AppTheme.compactText, en = "Later")
                     }
                 }
             } else {
@@ -500,6 +526,7 @@ private fun ProfileEditPage(
     authStore: LocalAuthStore,
     onBack: () -> Unit,
 ) {
+    val language = LocalAppLanguage.current
     var nicknameDraft by remember { mutableStateOf(session.displayName) }
     var avatarDraft by remember { mutableStateOf(session.avatarSymbol) }
     var validationMessage by remember { mutableStateOf<String?>(null) }
@@ -507,7 +534,7 @@ private fun ProfileEditPage(
     fun save() {
         val limited = nicknameDraft.trim().take(20)
         if (limited.length !in 2..20) {
-            validationMessage = "昵称需为 2-20 个字符"
+            validationMessage = language.ui("昵称需为 2-20 个字符", "Name must be 2–20 characters")
             return
         }
         authStore.save(
@@ -522,6 +549,7 @@ private fun ProfileEditPage(
     Column(Modifier.fillMaxSize()) {
         PaperBackHeader(
             title = "编辑资料",
+            titleEn = "Profile",
             onBack = onBack,
             trailing = {
                 Text(
@@ -534,6 +562,7 @@ private fun ProfileEditPage(
                         .clickable(onClick = { save() })
                         .padding(horizontal = 10.dp, vertical = 8.dp),
                     style = AppTheme.compactText,
+                    en = "Save",
                 )
             },
         )
@@ -552,6 +581,7 @@ private fun ProfileEditPage(
                     color = AppTheme.secondaryText,
                     modifier = Modifier.padding(start = 16.dp, top = 12.dp, bottom = 4.dp),
                     style = AppTheme.compactText,
+                    en = "Photo",
                 )
                 Row(
                     Modifier
@@ -587,11 +617,13 @@ private fun ProfileEditPage(
                     color = AppTheme.secondaryText,
                     modifier = Modifier.padding(start = 16.dp, top = 12.dp, bottom = 4.dp),
                     style = AppTheme.compactText,
+                    en = "Name",
                 )
                 PaperTextField(
                     value = nicknameDraft,
                     onValueChange = { nicknameDraft = it.take(20) },
                     placeholder = "输入昵称",
+                    placeholderEn = "Your name",
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp)
@@ -603,11 +635,11 @@ private fun ProfileEditPage(
     validationMessage?.let { message ->
         AlertDialog(
             onDismissRequest = { validationMessage = null },
-            title = { Text("保存失败", color = AppTheme.ink, style = AppTheme.compactText) },
+            title = { Text("保存失败", color = AppTheme.ink, style = AppTheme.compactText, en = "Couldn't save") },
             text = { Text(message, color = AppTheme.ink, style = AppTheme.compactText) },
             confirmButton = {
                 TextButton(onClick = { validationMessage = null }) {
-                    Text("知道了", color = AppTheme.accent, style = AppTheme.compactText)
+                    Text("知道了", color = AppTheme.accent, style = AppTheme.compactText, en = "OK")
                 }
             },
             containerColor = AppTheme.cardFill,
@@ -651,10 +683,11 @@ private fun FeedbackPage(
     Column(Modifier.fillMaxSize().imePadding()) {
         PaperBackHeader(
             title = "意见反馈",
+            titleEn = "Feedback",
             onBack = onBack,
             trailing = {
                 Text(
-                    if (isSubmitting) "提交中" else "提交",
+                    if (isSubmitting) ui("提交中", "Sending") else ui("提交", "Send"),
                     color = if (canSubmit) AppTheme.accent else AppTheme.secondaryText,
                     fontSize = 17.sp,
                     fontWeight = FontWeight.SemiBold,
@@ -681,11 +714,13 @@ private fun FeedbackPage(
                     color = AppTheme.secondaryText,
                     modifier = Modifier.padding(start = 16.dp, top = 12.dp, bottom = 4.dp),
                     style = AppTheme.compactText,
+                    en = "Feedback",
                 )
                 PaperTextField(
                     value = bodyDraft,
                     onValueChange = { bodyDraft = it.take(2000) },
                     placeholder = "想说的话（至少 5 个字）",
+                    placeholderEn = "What you’d like to say (at least 5 characters)",
                     singleLine = false,
                     minLines = 6,
                     modifier = Modifier
@@ -707,11 +742,13 @@ private fun FeedbackPage(
                     color = AppTheme.secondaryText,
                     modifier = Modifier.padding(start = 16.dp, top = 12.dp, bottom = 4.dp),
                     style = AppTheme.compactText,
+                    en = "Contact (optional)",
                 )
                 PaperTextField(
                     value = contactDraft,
                     onValueChange = { contactDraft = it.take(120) },
                     placeholder = "邮箱或其它联系方式（选填）",
+                    placeholderEn = "Email or other contact (optional)",
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                     modifier = Modifier
                         .fillMaxWidth()
@@ -719,9 +756,9 @@ private fun FeedbackPage(
                 )
                 Text(
                     if (session.isLoggedIn) {
-                        "已登录时会带上账号，方便我们对照。"
+                        ui("已登录时会带上账号，方便我们对照。", "We’ll include your account so we can follow up.")
                     } else {
-                        "未登录也可以提交。留下联系方式，有进展时方便回你。"
+                        ui("未登录也可以提交。留下联系方式，有进展时方便回你。", "You can send this without signing in. Leave a contact if you’d like a reply.")
                     },
                     fontSize = 12.sp,
                     color = AppTheme.secondaryText,
@@ -734,11 +771,11 @@ private fun FeedbackPage(
     if (showSuccess) {
         AlertDialog(
             onDismissRequest = onBack,
-            title = { Text("已收到", color = AppTheme.ink, style = AppTheme.compactText) },
-            text = { Text("感谢反馈，我们会尽快查看。", color = AppTheme.ink, style = AppTheme.compactText) },
+            title = { Text("已收到", color = AppTheme.ink, style = AppTheme.compactText, en = "Received") },
+            text = { Text("感谢反馈，我们会尽快查看。", color = AppTheme.ink, style = AppTheme.compactText, en = "Thank you. We’ll look at this soon.") },
             confirmButton = {
                 TextButton(onClick = onBack) {
-                    Text("好的", color = AppTheme.accent, style = AppTheme.compactText)
+                    Text("好的", color = AppTheme.accent, style = AppTheme.compactText, en = "OK")
                 }
             },
             containerColor = AppTheme.cardFill,
@@ -747,11 +784,11 @@ private fun FeedbackPage(
     errorMessage?.let { message ->
         AlertDialog(
             onDismissRequest = { errorMessage = null },
-            title = { Text("提交失败", color = AppTheme.ink, style = AppTheme.compactText) },
+            title = { Text("提交失败", color = AppTheme.ink, style = AppTheme.compactText, en = "Couldn't send") },
             text = { Text(message, color = AppTheme.ink, style = AppTheme.compactText) },
             confirmButton = {
                 TextButton(onClick = { errorMessage = null }) {
-                    Text("知道了", color = AppTheme.accent, style = AppTheme.compactText)
+                    Text("知道了", color = AppTheme.accent, style = AppTheme.compactText, en = "OK")
                 }
             },
             containerColor = AppTheme.cardFill,
@@ -770,7 +807,7 @@ private fun SettingsPage(
     val trash by container.readingRepository.trash.collectAsState()
     var showLogoutConfirm by remember { mutableStateOf(false) }
     Column(Modifier.fillMaxSize()) {
-        PaperBackHeader(title = "设置", onBack = onBack)
+        PaperBackHeader(title = "设置", titleEn = "Settings", onBack = onBack)
         Column(
             Modifier
                 .fillMaxSize()
@@ -782,6 +819,7 @@ private fun SettingsPage(
                 MeRow(
                     icon = Icons.Outlined.Delete,
                     title = "回收站",
+                    titleEn = "Trash",
                     trailing = {
                         Text(
                             "${trash.size}",
@@ -799,6 +837,7 @@ private fun SettingsPage(
                     MeRow(
                         icon = null,
                         title = "退出登录",
+                        titleEn = "Sign Out",
                         showChevron = false,
                         onClick = { showLogoutConfirm = true },
                     )
@@ -810,18 +849,18 @@ private fun SettingsPage(
     if (showLogoutConfirm) {
         AlertDialog(
             onDismissRequest = { showLogoutConfirm = false },
-            title = { Text("确认退出登录？") },
+            title = { Text("确认退出登录？", en = "Sign out?") },
             confirmButton = {
                 TextButton(onClick = {
                     onLogout()
                     showLogoutConfirm = false
                 }) {
-                    Text("退出登录", color = AppTheme.ink)
+                    Text("退出登录", color = AppTheme.ink, en = "Sign Out")
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showLogoutConfirm = false }) {
-                    Text("取消", color = AppTheme.accent)
+                    Text("取消", color = AppTheme.accent, en = "Cancel")
                 }
             },
             containerColor = AppTheme.parchmentTop,
@@ -836,12 +875,14 @@ private fun RecycleBinPage(
 ) {
     val entries by container.readingRepository.trash.collectAsState()
     val scope = rememberCoroutineScope()
+    val language = LocalAppLanguage.current
     var showClearConfirm by remember { mutableStateOf(false) }
     val store = container.hexagramStore
 
     Column(Modifier.fillMaxSize()) {
         PaperBackHeader(
             title = "回收站",
+            titleEn = "Trash",
             onBack = onBack,
             trailing = if (entries.isNotEmpty()) {
                 {
@@ -851,6 +892,7 @@ private fun RecycleBinPage(
                         fontSize = 16.sp,
                         modifier = Modifier.clickable { showClearConfirm = true },
                         style = AppTheme.compactText,
+                        en = "Empty",
                     )
                 }
             } else {
@@ -860,12 +902,13 @@ private fun RecycleBinPage(
         if (entries.isEmpty()) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("回收站为空", fontSize = 17.sp, fontWeight = FontWeight.SemiBold, color = AppTheme.ink)
+                    Text("回收站为空", fontSize = 17.sp, fontWeight = FontWeight.SemiBold, color = AppTheme.ink, en = "Trash is empty")
                     Spacer(Modifier.height(6.dp))
                     Text(
                         "删除的记录会先放在这里，可恢复",
                         fontSize = 13.sp,
                         color = AppTheme.secondaryText,
+                        en = "Deleted records stay here until you restore or remove them",
                     )
                 }
             }
@@ -890,7 +933,7 @@ private fun RecycleBinPage(
                                 },
                                 actions = listOf(
                                     SwipeAction(
-                                        label = "恢复",
+                                        label = ui("恢复", "Restore"),
                                         background = Color(0xFF34C759),
                                         onClick = {
                                             revealedId = null
@@ -898,7 +941,7 @@ private fun RecycleBinPage(
                                         },
                                     ),
                                     SwipeAction(
-                                        label = "彻底删除",
+                                        label = ui("彻底删除", "Delete"),
                                         background = Color(0xFFFF3B30),
                                         onClick = {
                                             revealedId = null
@@ -912,7 +955,7 @@ private fun RecycleBinPage(
                                     entry = entry,
                                     hexTitle = { n ->
                                         val hex = store.hexagram(n)
-                                        if (hex != null) "${hex.symbol} ${hex.name}" else "第${n}卦"
+                                        if (hex != null) hex.listLabel(language) else numberLabel(language, n)
                                     },
                                     onClick = {
                                         if (revealedId == entry.id) revealedId = null
@@ -936,19 +979,19 @@ private fun RecycleBinPage(
     if (showClearConfirm) {
         AlertDialog(
             onDismissRequest = { showClearConfirm = false },
-            title = { Text("确认清空？") },
-            text = { Text("回收站中的记录将被彻底删除，无法恢复。") },
+            title = { Text("确认清空？", en = "Empty trash?") },
+            text = { Text("回收站中的记录将被彻底删除，无法恢复。", en = "These records will be permanently deleted.") },
             confirmButton = {
                 TextButton(onClick = {
                     showClearConfirm = false
                     scope.launch { container.readingRepository.clearTrash() }
                 }) {
-                    Text("确定", color = Color(0xFFA64040))
+                    Text("确定", color = Color(0xFFA64040), en = "OK")
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showClearConfirm = false }) {
-                    Text("取消", color = AppTheme.accent)
+                    Text("取消", color = AppTheme.accent, en = "Cancel")
                 }
             },
             containerColor = AppTheme.parchmentTop,
@@ -1053,6 +1096,7 @@ private fun MeCard(modifier: Modifier = Modifier, content: @Composable () -> Uni
 private fun MeRow(
     icon: ImageVector?,
     title: String,
+    titleEn: String? = null,
     trailing: @Composable (() -> Unit)? = null,
     showChevron: Boolean = true,
     onClick: () -> Unit,
@@ -1076,6 +1120,7 @@ private fun MeRow(
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f),
             style = AppTheme.compactText,
+            en = titleEn,
         )
         trailing?.invoke()
         if (showChevron) {
@@ -1101,7 +1146,7 @@ private fun IntroListPage(
     onOpen: (Int) -> Unit,
 ) {
     Column(Modifier.fillMaxSize()) {
-        PaperBackHeader(title = "基础入门", onBack = onBack)
+        PaperBackHeader(title = "基础入门", titleEn = "Primer", onBack = onBack)
         LazyColumn(contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 24.dp)) {
             if (book.note.isNotBlank()) {
                 item(key = "note") {
@@ -1191,7 +1236,7 @@ private fun WingListPage(
     onOpen: (ClassicWing) -> Unit,
 ) {
     Column(Modifier.fillMaxSize()) {
-        PaperBackHeader(title = "四传", onBack = onBack)
+        PaperBackHeader(title = "四传", titleEn = "The Wings", onBack = onBack)
         LazyColumn(contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 24.dp)) {
             item(key = "wings") {
                 MeCard {
@@ -1199,9 +1244,9 @@ private fun WingListPage(
                         PaperNavRow(
                             title = wing.title,
                             subtitle = if (wing.chapters.size == 1) {
-                                "${wing.chapters[0].paragraphs.size} 节"
+                                ui("${wing.chapters[0].paragraphs.size} 节", "${wing.chapters[0].paragraphs.size} sections")
                             } else {
-                                "${wing.chapters.size} 章"
+                                ui("${wing.chapters.size} 章", "${wing.chapters.size} chapters")
                             },
                             showDivider = index < wings.lastIndex,
                             onClick = { onOpen(wing) },
@@ -1293,20 +1338,23 @@ private fun HexagramListPage(
     onBack: () -> Unit,
     onOpen: (Hexagram) -> Unit,
 ) {
+    val language = LocalAppLanguage.current
     val upper = hexagrams.filter { it.part == "上经" }.ifEmpty { hexagrams.take(30) }
     val lower = hexagrams.filter { it.part == "下经" }.ifEmpty { hexagrams.drop(upper.size) }
     Column(Modifier.fillMaxSize()) {
-        PaperBackHeader(title = "六十四卦", onBack = onBack)
+        PaperBackHeader(title = "六十四卦", titleEn = "64 Hexagrams", onBack = onBack)
         LazyColumn(contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 24.dp)) {
-            hexagramSection("上经", upper, onOpen)
-            hexagramSection("下经", lower, onOpen)
+            hexagramSection("上经", "Upper Canon", upper, language, onOpen)
+            hexagramSection("下经", "Lower Canon", lower, language, onOpen)
         }
     }
 }
 
 private fun LazyListScope.hexagramSection(
     title: String,
+    titleEn: String,
     hexagrams: List<Hexagram>,
+    language: AppLanguage,
     onOpen: (Hexagram) -> Unit,
 ) {
     if (hexagrams.isEmpty()) return
@@ -1317,6 +1365,7 @@ private fun LazyListScope.hexagramSection(
             color = AppTheme.secondaryText,
             style = AppTheme.compactText,
             modifier = Modifier.padding(start = 4.dp, top = 8.dp, bottom = 6.dp),
+            en = titleEn,
         )
     }
     item(key = "card-$title") {
@@ -1335,7 +1384,7 @@ private fun LazyListScope.hexagramSection(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Text(
-                        "${hex.symbol} ${hex.name}",
+                        hex.listLabel(language),
                         fontSize = 17.sp,
                         fontWeight = FontWeight.SemiBold,
                         color = AppTheme.ink,
@@ -1380,7 +1429,7 @@ private fun BackLabel(label: String, onClick: () -> Unit) {
 private fun HexagramReader(hex: Hexagram, imaStore: ImaExplanationStore, onBack: () -> Unit) {
     var selectedEntry by remember { mutableStateOf<ImaExplanationEntry?>(null) }
     Column(Modifier.fillMaxSize()) {
-        PaperBackHeader(title = hex.name, onBack = onBack)
+        PaperBackHeader(title = hex.listLabel(LocalAppLanguage.current), onBack = onBack)
         Column(
             Modifier
                 .fillMaxSize()

@@ -13,6 +13,7 @@ class SavedAIAnalysisTest {
         val items = aiAdviceDisplayItems(
             advice = listOf("先明确边界"),
             risks = listOf("起步过急易失节奏", "须防：已带前缀", "  "),
+            english = false,
         )
         assertEquals(
             listOf("先明确边界", "须防：起步过急易失节奏；已带前缀"),

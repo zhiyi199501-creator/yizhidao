@@ -123,7 +123,7 @@ ALIYUN_SMS_VALID_SEC=300
 | POST | `/v1/auth/google` | Google 登录 |
 | GET | `/v1/me` | 当前用户（需 Bearer token） |
 | DELETE | `/v1/me` | 注销账号（需 Bearer token） |
-| GET | `/privacy` `/terms` `/support` | 法律与支持页（HTML） |
+| GET | `/privacy` `/terms` `/support` | 法律与支持页（HTML；`?lang=en` / `Accept-Language: en*` 出英文本，生产镜像未发前仍中文） |
 | GET | `/v1/cases` | 案例列表（公开；支持 `If-None-Match`） |
 | POST | `/v1/ai/analyze` | AI 问答（需 Bearer token） |
 | POST | `/v1/ai/followup` | AI 追问 / 补充背景（需 Bearer token） |

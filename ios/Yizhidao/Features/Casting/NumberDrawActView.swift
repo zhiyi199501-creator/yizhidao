@@ -54,11 +54,11 @@ struct NumberDrawActView: View {
             sequence?.cancel()
             sequence = nil
         }
-        .confirmationDialog("重新取这一卦？".zh, isPresented: $showsResetConfirm, titleVisibility: .visible) {
-            Button("重新取".zh, role: .destructive) { reset() }
-            Button("继续".zh, role: .cancel) {}
+        .confirmationDialog("重新取这一卦？".ui("Cast this hexagram again?"), isPresented: $showsResetConfirm, titleVisibility: .visible) {
+            Button("重新取".ui("Start over"), role: .destructive) { reset() }
+            Button("继续".ui("Keep going"), role: .cancel) {}
         } message: {
-            Text("已取的 \(drawn.count) 个数会作废。".zh)
+            Text("已取的 \(drawn.count) 个数会作废。".ui("The \(drawn.count) numbers already drawn will be discarded."))
         }
     }
 
@@ -74,10 +74,10 @@ struct NumberDrawActView: View {
                     .foregroundStyle(.secondary)
             }
             .buttonStyle(.plain)
-            .accessibilityLabel("退出取数".zh)
+            .accessibilityLabel("退出取数".ui("Leave"))
             Spacer()
             if !drawn.isEmpty {
-                Button("重来".zh) { showsResetConfirm = true }
+                Button("重来".ui("Start over")) { showsResetConfirm = true }
                     .font(.subheadline)
                     .tint(AppTheme.accent)
                     .disabled(isSettling)
@@ -128,13 +128,13 @@ struct NumberDrawActView: View {
                 GridRow {
                     Color.clear
                         .frame(width: 56, height: 1)
-                    TextField("输入数字".zh, text: $entry)
+                    TextField("输入数字".ui("Number"), text: $entry)
                         .keyboardType(.numberPad)
                         .multilineTextAlignment(.center)
                         .focused($focused)
                         .appTextFieldStyle()
                         .frame(maxWidth: .infinity)
-                    Button("随机".zh) {
+                    Button("随机".ui("Random")) {
                         entry = String(Int.random(in: 10...999))
                     }
                     .buttonStyle(.bordered)

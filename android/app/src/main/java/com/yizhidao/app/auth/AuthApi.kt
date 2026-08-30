@@ -4,6 +4,7 @@ import com.yizhidao.app.BuildConfig
 import kotlinx.serialization.Serializable
 import com.yizhidao.CastResult
 import com.yizhidao.app.ai.SavedAIFollowUp
+import com.yizhidao.app.lang.AppLanguage
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.add
 import kotlinx.serialization.json.addJsonObject
@@ -229,6 +230,7 @@ object AuthApi {
         putJsonArray("movingPositions") { result.movingPositions.forEach { add(it) } }
         putJsonArray("lines") { result.lines.forEach { add(it.rawValue) } }
         put("hexTextVersion", HEX_TEXT_VERSION)
+        put("uiLanguage", if (AppLanguage.current().isEnglish) "en" else "zh")
         result.question?.takeIf { it.isNotBlank() }?.let { put("question", it) }
         result.resultingNumber?.let { put("resultingNumber", it) }
         extra()

@@ -65,8 +65,10 @@ import com.yizhidao.app.ima.ImaAnswerBlock
 import com.yizhidao.app.ima.ImaAnswerFormatter
 import com.yizhidao.app.ima.ImaExplanationEntry
 import com.yizhidao.app.ima.ImaExplanationStore
+import com.yizhidao.app.lang.LocalAppLanguage
 import com.yizhidao.app.ui.theme.AppTheme
 import com.yizhidao.app.ui.theme.Text
+import com.yizhidao.app.ui.theme.ui
 import kotlin.math.roundToInt
 import kotlinx.coroutines.launch
 
@@ -101,7 +103,7 @@ fun TappableScripture(
             }
             Icon(
                 Icons.AutoMirrored.Outlined.MenuBook,
-                contentDescription = "查看讲解",
+                contentDescription = ui("查看讲解", "View commentary"),
                 tint = AppTheme.accent.copy(alpha = 0.75f),
                 modifier = Modifier
                     .align(Alignment.TopEnd)
@@ -245,6 +247,7 @@ fun ImaExplanationSheet(
                                 .align(Alignment.CenterStart)
                                 .clickable(onClick = onDismiss)
                                 .padding(horizontal = 10.dp, vertical = 8.dp),
+                            en = "Close",
                         )
                         Text(
                             entry.title,
@@ -276,6 +279,14 @@ fun ImaExplanationSheet(
                             .padding(top = 8.dp, bottom = 52.dp),
                         verticalArrangement = Arrangement.spacedBy(16.dp),
                     ) {
+                        if (LocalAppLanguage.current.isEnglish) {
+                            Text(
+                                "Commentary is in Chinese",
+                                fontSize = 12.sp,
+                                color = AppTheme.secondaryText,
+                                style = AppTheme.compactText,
+                            )
+                        }
                         Text(
                             entry.scripture,
                             fontSize = 14.sp,

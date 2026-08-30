@@ -49,14 +49,18 @@ import com.yizhidao.app.ui.theme.PaperHeaderButton
 import com.yizhidao.app.ui.theme.PaperStackIcon
 import com.yizhidao.app.ui.theme.PaperSegmentedRow
 import com.yizhidao.app.ui.theme.PaperTextField
+import com.yizhidao.app.lang.LocalAppLanguage
+import com.yizhidao.app.lang.localizedName
 import com.yizhidao.app.ui.theme.Text
-import com.yizhidao.app.ui.theme.zh
+import com.yizhidao.app.ui.theme.ui
+import java.time.format.FormatStyle
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
-private val timeFmt = DateTimeFormatter.ofPattern("yyyy年M月d日 HH:mm:ss").withZone(ZoneId.systemDefault())
+private val timeFmtZh = DateTimeFormatter.ofPattern("yyyy年M月d日 HH:mm:ss").withZone(ZoneId.systemDefault())
+private val timeFmtEn = DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM, FormatStyle.MEDIUM).withZone(ZoneId.systemDefault())
 
 @Composable
 fun ResultScreen(
@@ -82,6 +86,7 @@ fun ResultScreen(
     var aiRecordId by remember { mutableStateOf<String?>(null) }
     var didSave by remember { mutableStateOf(existing != null || !isNew) }
     val session by container.authStore.session.collectAsState()
+    val language = LocalAppLanguage.current
 
     LaunchedEffect(Unit) {
         onTabBarVisible(false)
@@ -175,12 +180,13 @@ fun ResultScreen(
         Column(Modifier.fillMaxSize()) {
             PaperBackHeader(
                 title = "卦象结果",
+                titleEn = "Result",
                 onBack = onBack,
                 trailing = if (onOpenSimilar != null) {
                     {
                         PaperHeaderButton(
                             onClick = { onOpenSimilar(result) },
-                            contentDescription = zh("查看同类卦"),
+                            contentDescription = ui("同类", "Similar"),
                         ) {
                             PaperStackIcon()
                         }
@@ -215,7 +221,7 @@ fun ResultScreen(
                             modifier = Modifier.size(16.dp),
                         )
                         Text(
-                            result.method.displayName,
+                            result.method.localizedName(language),
                             fontSize = 15.sp,
                             fontWeight = FontWeight.SemiBold,
                             color = AppTheme.ink,
@@ -223,7 +229,10 @@ fun ResultScreen(
                         )
                     }
                     Text(
-                        "占卦时间：${timeFmt.format(result.createdAt)}",
+                        language.ui(
+                            "占卦时间：${timeFmtZh.format(result.createdAt)}",
+                            "Cast at: ${timeFmtEn.format(result.createdAt)}",
+                        ),
                         fontSize = 13.sp,
                         color = AppTheme.secondaryText,
                         style = AppTheme.compactText,
@@ -248,7 +257,7 @@ fun ResultScreen(
                         )
                     } else if (!result.question.isNullOrBlank()) {
                         Text(
-                            "所问：${result.question}",
+                            language.ui("所问：${result.question}", "What you ask: ${result.question}"),
                             fontSize = 16.sp,
                             color = AppTheme.ink,
                         )
@@ -264,7 +273,7 @@ fun ResultScreen(
                         verticalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
                         PaperSegmentedRow(
-                            options = VerificationStatus.entries.map { it.displayName },
+                            options = VerificationStatus.entries.map { it.localizedName(language) },
                             selectedIndex = VerificationStatus.entries.indexOf(status),
                             onSelect = { index ->
                                 val item = VerificationStatus.entries[index]
@@ -296,6 +305,7 @@ fun ResultScreen(
                             },
                             modifier = Modifier.fillMaxWidth(),
                             placeholder = "验证结果",
+                            placeholderEn = "Outcome",
                             singleLine = false,
                             minLines = 2,
                             maxLines = 5,
@@ -337,8 +347,8 @@ private fun QuestionRow(
     onBeginEdit: () -> Unit,
     onCommit: () -> Unit,
 ) {
-    val editLabel = zh("编辑所问")
-    val doneLabel = zh("完成编辑所问")
+    val editLabel = ui("编辑所问", "Edit question")
+    val doneLabel = ui("完成编辑所问", "Save question")
     Row(
         Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.Top,
@@ -352,6 +362,7 @@ private fun QuestionRow(
                     .weight(1f)
                     .focusRequester(focus),
                 placeholder = "所问何事",
+                placeholderEn = "What you ask",
                 singleLine = false,
                 minLines = 2,
                 maxLines = 5,
@@ -367,13 +378,24 @@ private fun QuestionRow(
                     .clickable(enabled = canCommit, onClick = onCommit),
             )
         } else {
-            Text(
-                question.ifBlank { "所问何事" },
-                fontSize = 16.sp,
-                color = if (question.isBlank()) AppTheme.secondaryText else AppTheme.ink,
-                modifier = Modifier.weight(1f),
-                style = AppTheme.compactText,
-            )
+            if (question.isBlank()) {
+                Text(
+                    "所问何事",
+                    fontSize = 16.sp,
+                    color = AppTheme.secondaryText,
+                    modifier = Modifier.weight(1f),
+                    style = AppTheme.compactText,
+                    en = "What you ask",
+                )
+            } else {
+                Text(
+                    question,
+                    fontSize = 16.sp,
+                    color = AppTheme.ink,
+                    modifier = Modifier.weight(1f),
+                    style = AppTheme.compactText,
+                )
+            }
             Icon(
                 Icons.Outlined.Edit,
                 contentDescription = editLabel,

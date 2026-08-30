@@ -104,6 +104,12 @@ fun zh(text: String): String {
 }
 
 @Composable
+fun ui(zh: String, en: String): String {
+    val language = LocalAppLanguage.current
+    return remember(zh, en, language) { language.ui(zh, en) }
+}
+
+@Composable
 fun Text(
     text: String,
     modifier: Modifier = Modifier,
@@ -121,9 +127,12 @@ fun Text(
     maxLines: Int = Int.MAX_VALUE,
     minLines: Int = 1,
     style: TextStyle = LocalTextStyle.current,
+    en: String? = null,
 ) {
     val language = LocalAppLanguage.current
-    val shown = remember(text, language) { language.convert(text) }
+    val shown = remember(text, en, language) {
+        if (en != null) language.ui(text, en) else language.convert(text)
+    }
     MaterialText(
         text = shown,
         modifier = modifier,
@@ -351,6 +360,7 @@ fun PaperTextField(
     onValueChange: (String) -> Unit,
     modifier: Modifier = Modifier,
     placeholder: String = "",
+    placeholderEn: String? = null,
     singleLine: Boolean = true,
     minLines: Int = 1,
     maxLines: Int = if (singleLine) 1 else Int.MAX_VALUE,
@@ -419,6 +429,7 @@ fun PaperTextField(
                             textAlign = textAlign,
                             modifier = if (textAlign == TextAlign.Center) Modifier.fillMaxWidth() else Modifier,
                             style = textStyle,
+                            en = placeholderEn,
                         )
                     }
                     inner()
@@ -469,6 +480,7 @@ fun PaperOutlinedButton(
     enabled: Boolean = true,
     compact: Boolean = false,
     label: String,
+    en: String? = null,
 ) {
     val bg = AppTheme.accent.copy(alpha = if (enabled) 0.12f else 0.06f)
     val fg = AppTheme.accent.copy(alpha = if (enabled) 1f else 0.4f)
@@ -494,6 +506,7 @@ fun PaperOutlinedButton(
             fontSize = if (compact) 13.sp else 15.sp,
             style = AppTheme.compactText,
             maxLines = 1,
+            en = en,
         )
     }
 }
@@ -504,6 +517,7 @@ fun PaperPrimaryButton(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     label: String,
+    en: String? = null,
     leading: @Composable (() -> Unit)? = null,
 ) {
     Button(
@@ -518,10 +532,10 @@ fun PaperPrimaryButton(
         if (leading != null) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 leading()
-                Text(label, fontSize = 17.sp, fontWeight = FontWeight.SemiBold, style = AppTheme.compactText)
+                Text(label, fontSize = 17.sp, fontWeight = FontWeight.SemiBold, style = AppTheme.compactText, en = en)
             }
         } else {
-            Text(label, fontSize = 17.sp, fontWeight = FontWeight.SemiBold, style = AppTheme.compactText)
+            Text(label, fontSize = 17.sp, fontWeight = FontWeight.SemiBold, style = AppTheme.compactText, en = en)
         }
     }
 }
@@ -582,6 +596,7 @@ fun PaperStackIcon(
 fun PaperBackHeader(
     title: String,
     onBack: () -> Unit,
+    titleEn: String? = null,
     trailing: @Composable (() -> Unit)? = null,
     leading: @Composable (() -> Unit)? = null,
 ) {
@@ -596,7 +611,7 @@ fun PaperBackHeader(
             if (leading != null) {
                 leading()
             } else {
-                PaperHeaderButton(onClick = onBack, contentDescription = zh("返回")) {
+                PaperHeaderButton(onClick = onBack, contentDescription = ui("返回", "Back")) {
                     PaperChevron(color = AppTheme.accent, height = 18.dp, rotation = 180f)
                 }
             }
@@ -610,6 +625,7 @@ fun PaperBackHeader(
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.align(Alignment.Center).padding(horizontal = 50.dp),
             style = AppTheme.compactText,
+            en = titleEn,
         )
         if (trailing != null) {
             Box(Modifier.align(Alignment.CenterEnd)) {
@@ -624,7 +640,7 @@ fun AIFloatingButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val qaLabel = zh("问答")
+    val qaLabel = ui("问答", "Readings")
     Box(
         modifier
             .size(50.dp)
@@ -641,6 +657,7 @@ fun AIFloatingButton(
             fontSize = 22.sp,
             fontWeight = FontWeight.Bold,
             style = AppTheme.compactText,
+            en = "Ask",
         )
     }
 }
@@ -686,7 +703,7 @@ fun SwipeRevealDelete(
                 ) {
                     Icon(
                         Icons.Filled.Delete,
-                        contentDescription = zh("删除"),
+                        contentDescription = ui("删除", "Delete"),
                         tint = Color.White,
                         modifier = Modifier.size(18.dp),
                     )

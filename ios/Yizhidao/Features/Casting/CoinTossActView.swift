@@ -68,17 +68,17 @@ struct CoinTossActView: View {
             sequence?.cancel()
             sequence = nil
         }
-        .confirmationDialog("手选四象".zh, isPresented: $showsManualPicker, titleVisibility: .visible) {
+        .confirmationDialog("手选四象".ui("Choose a line"), isPresented: $showsManualPicker, titleVisibility: .visible) {
             ForEach(Self.manualOptions, id: \.line) { option in
                 Button(option.title.zh) { append(line: option.line) }
             }
-            Button("取消".zh, role: .cancel) {}
+            Button("取消".ui("Cancel"), role: .cancel) {}
         }
-        .confirmationDialog("重新摇这一卦？".zh, isPresented: $showsResetConfirm, titleVisibility: .visible) {
-            Button("重新摇".zh, role: .destructive) { reset() }
-            Button("继续".zh, role: .cancel) {}
+        .confirmationDialog("重新摇这一卦？".ui("Cast this hexagram again?"), isPresented: $showsResetConfirm, titleVisibility: .visible) {
+            Button("重新摇".ui("Start over"), role: .destructive) { reset() }
+            Button("继续".ui("Keep going"), role: .cancel) {}
         } message: {
-            Text("已摇的 \(lines.count) 爻会作废。".zh)
+            Text("已摇的 \(lines.count) 爻会作废。".ui("The \(lines.count) lines already cast will be discarded."))
         }
     }
 
@@ -94,10 +94,10 @@ struct CoinTossActView: View {
                     .foregroundStyle(.secondary)
             }
             .buttonStyle(.plain)
-            .accessibilityLabel("退出摇卦".zh)
+            .accessibilityLabel("退出摇卦".ui("Leave"))
             Spacer()
             if !lines.isEmpty {
-                Button("重来".zh) { showsResetConfirm = true }
+                Button("重来".ui("Start over")) { showsResetConfirm = true }
                     .font(.subheadline)
                     .tint(AppTheme.accent)
                     .disabled(isTossing)
@@ -189,8 +189,8 @@ struct CoinTossActView: View {
         }
         .opacity(isComplete ? 0.35 : 1)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("三枚铜钱".zh)
-        .accessibilityHint("轻点掷一爻，长按手选四象".zh)
+        .accessibilityLabel("三枚铜钱".ui("Three coins"))
+        .accessibilityHint("轻点掷一爻，长按手选四象".ui("Tap to throw a line. Touch and hold to choose."))
         .accessibilityAddTraits(.isButton)
     }
 

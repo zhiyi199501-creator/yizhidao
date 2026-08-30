@@ -57,8 +57,10 @@ import com.yizhidao.CoinCastingEngine
 import com.yizhidao.CoinToss
 import com.yizhidao.LineValue
 import com.yizhidao.app.ui.reading.YaoBar
+import com.yizhidao.app.lang.LocalAppLanguage
 import com.yizhidao.app.ui.theme.AppTheme
 import com.yizhidao.app.ui.theme.Text
+import com.yizhidao.app.ui.theme.ui
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -90,6 +92,7 @@ fun CoinTossAct(
     var showManual by remember { mutableStateOf(false) }
     var showReset by remember { mutableStateOf(false) }
     var sequence by remember { mutableStateOf<Job?>(null) }
+    val language = LocalAppLanguage.current
     val complete = lines.size == 6
     val canToss = !isTossing && !complete
 
@@ -165,6 +168,7 @@ fun CoinTossAct(
                         color = AppTheme.accent.copy(alpha = if (isTossing) 0.4f else 1f),
                         modifier = Modifier.clickable(enabled = !isTossing) { showReset = true },
                         style = AppTheme.compactText,
+                        en = "Again",
                     )
                 }
             } else {
@@ -183,7 +187,11 @@ fun CoinTossAct(
             style = AppTheme.compactText,
         )
         Text(
-            if (complete) "六爻已成" else "${yaoNames[lines.size]}爻 · 共六爻",
+            if (complete) {
+                ui("六爻已成", "Six lines complete")
+            } else {
+                language.ui("${yaoNames[lines.size]}爻 · 共六爻", "${yaoNames[lines.size]} · of 6")
+            },
             fontSize = 15.sp,
             fontWeight = FontWeight.SemiBold,
             color = AppTheme.accent,
@@ -262,10 +270,10 @@ fun CoinTossAct(
         Spacer(Modifier.weight(1f))
         Text(
             when {
-                complete -> "六爻已成，正在成卦"
-                isTossing -> "静候铜钱落定"
-                lines.isEmpty() -> "摇一摇手机，或轻点铜钱掷出第一爻"
-                else -> "摇一摇手机，或轻点铜钱掷出下一爻"
+                complete -> ui("六爻已成，正在成卦", "Forming the hexagram")
+                isTossing -> ui("静候铜钱落定", "Coins settling")
+                lines.isEmpty() -> ui("摇一摇手机，或轻点铜钱掷出第一爻", "Shake the phone, or tap the coins for the first line")
+                else -> ui("摇一摇手机，或轻点铜钱掷出下一爻", "Shake the phone, or tap the coins for the next line")
             },
             fontSize = 12.sp,
             color = AppTheme.secondaryText,
@@ -280,7 +288,7 @@ fun CoinTossAct(
     if (showManual) {
         AlertDialog(
             onDismissRequest = { showManual = false },
-            title = { Text("手选四象") },
+            title = { Text("手选四象", en = "Choose a line") },
             text = {
                 Column {
                     manualOptions.forEach { line ->
@@ -299,23 +307,28 @@ fun CoinTossAct(
                 }
             },
             confirmButton = {
-                TextButton(onClick = { showManual = false }) { Text("取消") }
+                TextButton(onClick = { showManual = false }) { Text("取消", en = "Cancel") }
             },
         )
     }
     if (showReset) {
         AlertDialog(
             onDismissRequest = { showReset = false },
-            title = { Text("重新摇这一卦？") },
-            text = { Text("已摇的 ${lines.size} 爻会作废。") },
+            title = { Text("重新摇这一卦？", en = "Toss this hexagram again?") },
+            text = {
+                Text(
+                    "已摇的 ${lines.size} 爻会作废。",
+                    en = "The ${lines.size} lines already tossed will be discarded.",
+                )
+            },
             confirmButton = {
                 TextButton(onClick = {
                     showReset = false
                     reset()
-                }) { Text("重新摇") }
+                }) { Text("重新摇", en = "Start over") }
             },
             dismissButton = {
-                TextButton(onClick = { showReset = false }) { Text("继续") }
+                TextButton(onClick = { showReset = false }) { Text("继续", en = "Continue") }
             },
         )
     }

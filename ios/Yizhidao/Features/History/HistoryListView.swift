@@ -6,6 +6,12 @@ struct HistoryListView: View {
         case timeline = "时间"
         case byHexagram = "按卦"
         var id: String { rawValue }
+        var label: String {
+            switch self {
+            case .timeline: return "时间".ui("Time")
+            case .byHexagram: return "按卦".ui("By hexagram")
+            }
+        }
     }
 
     private enum StatusFilter: String, CaseIterable, Identifiable {
@@ -16,6 +22,15 @@ struct HistoryListView: View {
         case unfulfilled = "未应验"
 
         var id: String { rawValue }
+        var label: String {
+            switch self {
+            case .all: return "全部状态".ui("All")
+            case .none: return "未验证".ui("Unverified")
+            case .fulfilled: return "应验".ui("Fulfilled")
+            case .partial: return "部分应验".ui("Partly")
+            case .unfulfilled: return "未应验".ui("Not fulfilled")
+            }
+        }
 
         func matches(_ record: ReadingRecord) -> Bool {
             switch self {
@@ -43,9 +58,9 @@ struct HistoryListView: View {
             VStack(alignment: .leading, spacing: 0) {
                 if !records.isEmpty {
                     VStack(alignment: .leading, spacing: 20) {
-                        Picker("浏览".zh, selection: $browseMode) {
+                        Picker("浏览".ui("Browse"), selection: $browseMode) {
                             ForEach(BrowseMode.allCases) { mode in
-                                Text(mode.rawValue.zh).tag(mode)
+                                Text(mode.label).tag(mode)
                             }
                         }
                         .pickerStyle(.segmented)
@@ -58,7 +73,7 @@ struct HistoryListView: View {
                                         Button {
                                             statusFilter = filter
                                         } label: {
-                                            Text(filter.rawValue.zh)
+                                            Text(filter.label)
                                                 .font(.caption.weight(.semibold))
                                                 .padding(.horizontal, 10)
                                                 .padding(.vertical, 6)
@@ -83,9 +98,9 @@ struct HistoryListView: View {
                 if records.isEmpty {
                     Spacer(minLength: 0)
                     ContentUnavailableView(
-                        "暂无占问",
+                        "暂无占问".ui("No casts yet"),
                         systemImage: "book.closed",
-                        description: Text("起卦后会自动保存在这里".zh)
+                        description: Text("起卦后会自动保存在这里".ui("Casts you make are saved here"))
                     )
                     Spacer(minLength: 0)
                 } else {
@@ -98,7 +113,7 @@ struct HistoryListView: View {
                 }
             }
             .parchmentBackground(hidesTabBar: false)
-            .navigationTitle("历史".zh)
+            .navigationTitle("历史".ui("History"))
             .navigationBarTitleDisplayMode(.inline)
             .navigationDestination(for: SimilarHexagramDestination.self) { destination in
                 HexagramGroupDetailView(destination: destination)
@@ -137,7 +152,7 @@ struct HistoryListView: View {
                         Image(systemName: "trash.fill")
                     }
                     .tint(.red)
-                    .accessibilityLabel("删除".zh)
+                    .accessibilityLabel("删除".ui("Delete"))
                 }
             }
         }

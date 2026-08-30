@@ -76,7 +76,7 @@ struct ResultView: View {
             .padding(.trailing, 20)
             .padding(.bottom, 24)
         }
-        .navigationTitle("卦象结果".zh)
+        .navigationTitle("卦象结果".ui("Result"))
         .navigationBarTitleDisplayMode(.inline)
         .parchmentBackground()
         .toolbar {
@@ -85,9 +85,9 @@ struct ResultView: View {
                     Button {
                         appNavigation.openSimilarHexagram(for: result)
                     } label: {
-                        Label("同类".zh, systemImage: "rectangle.stack")
+                        Label("同类".ui("Similar"), systemImage: "rectangle.stack")
                     }
-                    .accessibilityLabel("查看同类卦".zh)
+                    .accessibilityLabel("查看同类卦".ui("Similar hexagrams"))
                 }
             }
         }
@@ -146,15 +146,15 @@ struct ResultView: View {
 
     private var metaSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Label(result.method.displayName.zh, systemImage: "seal")
+            Label(result.method.displayName, systemImage: "seal")
                 .font(.subheadline.weight(.semibold))
-            Text(formattedTime(result.createdAt).zh)
+            Text(formattedTime(result.createdAt))
                 .font(.footnote)
                 .foregroundStyle(.secondary)
             if editableRecord != nil {
                     questionRow
             } else if let question = result.question, !question.isEmpty {
-                Text("所问：\(question)".zh)
+                Text("所问：\(question)".ui("Asked: \(question)"))
                     .font(.body)
             }
         }
@@ -166,7 +166,7 @@ struct ResultView: View {
     private var questionRow: some View {
         HStack(alignment: .top, spacing: 8) {
             if editingQuestion {
-                TextField("所问何事".zh, text: $questionText, axis: .vertical)
+                TextField("所问何事".ui("What you ask"), text: $questionText, axis: .vertical)
                     .lineLimit(2...5)
                     .appTextFieldStyle()
                     .focused($questionFocused)
@@ -179,10 +179,10 @@ struct ResultView: View {
                 .buttonStyle(.plain)
                 .foregroundStyle(canCommitQuestion ? AppTheme.accent : AppTheme.accent.opacity(0.35))
                 .disabled(!canCommitQuestion)
-                .accessibilityLabel("完成编辑所问".zh)
+                .accessibilityLabel("完成编辑所问".ui("Done"))
                 .padding(.top, 8)
             } else {
-                Text(questionText.isEmpty ? "所问何事".zh : questionText)
+                Text(questionText.isEmpty ? "所问何事".ui("What you ask") : questionText)
                     .font(.body)
                     .foregroundStyle(questionText.isEmpty ? .secondary : .primary)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -195,7 +195,7 @@ struct ResultView: View {
                 }
                 .buttonStyle(.plain)
                 .foregroundStyle(AppTheme.accent)
-                .accessibilityLabel("编辑所问".zh)
+                .accessibilityLabel("编辑所问".ui("Edit the question"))
             }
         }
     }
@@ -206,16 +206,16 @@ struct ResultView: View {
 
     private var verificationSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Picker("状态".zh, selection: $verificationStatus) {
+            Picker("状态".ui("Status"), selection: $verificationStatus) {
                 ForEach(VerificationStatus.allCases) { status in
-                    Text(status.displayName.zh).tag(status)
+                    Text(status.displayName).tag(status)
                 }
             }
             .pickerStyle(.segmented)
             .onChange(of: verificationStatus) { _, newValue in
                 persistVerification(status: newValue, note: verificationNote)
             }
-            TextField("验证结果", text: $verificationNote, axis: .vertical)
+            TextField("验证结果".ui("How it turned out"), text: $verificationNote, axis: .vertical)
                 .lineLimit(2...5)
                 .appTextFieldStyle()
                 .onChange(of: verificationNote) { _, newValue in
@@ -248,6 +248,10 @@ struct ResultView: View {
     private func formattedTime(_ date: Date) -> String {
         let f = DateFormatter()
         f.locale = AppLanguage.current.locale
+        if AppLanguage.current.isEnglish {
+            f.dateFormat = "MMM d, yyyy HH:mm:ss"
+            return "Cast \(f.string(from: date))"
+        }
         f.dateFormat = "yyyy年M月d日 HH:mm:ss"
         return "占卦时间：\(f.string(from: date))"
     }
@@ -259,6 +263,12 @@ struct HexagramReadingBody: View {
         case primary = "本卦"
         case resulting = "之卦"
         var id: String { rawValue }
+        var label: String {
+            switch self {
+            case .primary: return "本卦".ui("Primary")
+            case .resulting: return "之卦".ui("Relating")
+            }
+        }
     }
 
     let primaryNumber: Int
@@ -305,15 +315,15 @@ struct HexagramReadingBody: View {
         VStack(alignment: .leading, spacing: 20) {
             figuresSection
             if availableTabs.count > 1 {
-                Picker("卦".zh, selection: $selectedTab) {
+                Picker("卦".ui("Hexagram"), selection: $selectedTab) {
                     ForEach(availableTabs) { tab in
-                        Text(tab.rawValue.zh).tag(tab)
+                        Text(tab.label).tag(tab)
                     }
                 }
                 .pickerStyle(.segmented)
             }
             hexagramTextSection(for: selectedTab)
-            Text("经文版本：《易经证释》所引".zh)
+            Text("经文版本：《易经证释》所引".ui("Text: as quoted in Yijing Zhengshi"))
                 .font(.caption2)
                 .foregroundStyle(.tertiary)
                 .frame(maxWidth: .infinity, alignment: .trailing)
@@ -330,9 +340,9 @@ struct HexagramReadingBody: View {
         HStack(alignment: .top, spacing: 24) {
             VStack {
                 if let primary {
-                    Text("\(primary.symbol) \(primary.name)".zh)
+                    Text(primary.listLabel)
                         .font(.title3.weight(.bold))
-                    Text("第\(primary.number)卦 · 本卦".zh)
+                    Text(primary.roleCaption(roleZH: "本卦", roleEN: "Primary"))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -340,13 +350,12 @@ struct HexagramReadingBody: View {
             }
             .frame(maxWidth: .infinity)
 
-            if let resultingNumber,
-               let resulting {
+            if let resulting {
                 let changedLines = lines.map { $0.isChanging ? $0.changed : $0 }
                 VStack {
-                    Text("\(resulting.symbol) \(resulting.name)".zh)
+                    Text(resulting.listLabel)
                         .font(.title3.weight(.bold))
-                    Text("第\(resultingNumber)卦 · 之卦".zh)
+                    Text(resulting.roleCaption(roleZH: "之卦", roleEN: "Relating"))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                     HexagramFigureView(lines: changedLines, movingPositions: [])
@@ -362,6 +371,7 @@ struct HexagramReadingBody: View {
         if let hex {
             VStack(alignment: .leading, spacing: 16) {
                 scriptureSection(
+                    title: scriptureTitle("卦辞", "Judgment"),
                     explanationId: ImaExplanationId.guaci(number: hex.number),
                     showLead: shouldShowGuaciLead(tab: tab)
                 ) {
@@ -369,12 +379,18 @@ struct HexagramReadingBody: View {
                         .font(.body)
                         .lineSpacing(4)
                 }
-                scriptureSection(explanationId: ImaExplanationId.tuanci(number: hex.number)) {
+                scriptureSection(
+                    title: scriptureTitle("彖辞", "Commentary"),
+                    explanationId: ImaExplanationId.tuanci(number: hex.number)
+                ) {
                     Text(prefixed("彖曰：", hex.tuanci).zh)
                         .font(.body)
                         .lineSpacing(4)
                 }
-                scriptureSection(explanationId: ImaExplanationId.daxiang(number: hex.number)) {
+                scriptureSection(
+                    title: scriptureTitle("大象", "The Image"),
+                    explanationId: ImaExplanationId.daxiang(number: hex.number)
+                ) {
                     Text(prefixed("象曰：", hex.daxiang).zh)
                         .font(.body)
                         .lineSpacing(4)
@@ -440,7 +456,7 @@ struct HexagramReadingBody: View {
     }
 
     private var leadBadge: some View {
-        Text("主看".zh)
+        Text("主看".ui("Focus"))
             .font(.caption.weight(.bold))
             .foregroundStyle(.white)
             .padding(.horizontal, 6)
@@ -481,23 +497,34 @@ struct HexagramReadingBody: View {
         }
     }
 
+    private func scriptureTitle(_ zh: String, _ en: String) -> String? {
+        AppLanguage.current.isEnglish ? "\(en) · \(zh)" : nil
+    }
+
     private func scriptureSection(
+        title: String? = nil,
         explanationId: String,
         showLead: Bool = false,
         @ViewBuilder content: @escaping () -> some View
     ) -> some View {
-        section(showLead: showLead) {
+        section(title: title, showLead: showLead) {
             TappableScripture(explanationId: explanationId, selection: $imaSelection, content: content)
         }
     }
 
     private func section(
+        title: String? = nil,
         showLead: Bool = false,
         @ViewBuilder content: () -> some View
     ) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             if showLead {
                 leadBadge
+            }
+            if let title {
+                Text(title)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
             }
             content()
         }
@@ -565,21 +592,21 @@ struct AIAnalysisView: View {
                     if isLoading {
                         HStack {
                             Spacer()
-                            ProgressView("解读中…")
+                            ProgressView("解读中…".ui("Reading…"))
                             Spacer()
                         }
                         .padding(.vertical, 24)
                     }
 
                     if let analysis {
-                        analysisSection(title: "事情背景", text: analysis.summary)
-                        analysisSection(title: "当下", text: analysis.focus)
+                        analysisSection(title: "事情背景".ui("Background"), text: analysis.summary)
+                        analysisSection(title: "当下".ui("Now"), text: analysis.focus)
                         if !analysis.direction.isEmpty {
-                            analysisSection(title: "方向", text: analysis.direction)
+                            analysisSection(title: "方向".ui("Direction"), text: analysis.direction)
                         }
                         let adviceItems = aiAdviceDisplayItems(advice: analysis.advice, risks: analysis.risks)
                         if !adviceItems.isEmpty {
-                            bulletSection(title: "建议", items: adviceItems)
+                            bulletSection(title: "建议".ui("Advice"), items: adviceItems)
                         }
                         if !analysis.askNext.isEmpty, followUps.isEmpty, !isLoading, !isFollowupLoading {
                             askNextSection(analysis.askNext)
@@ -593,7 +620,7 @@ struct AIAnalysisView: View {
                     if isFollowupLoading {
                         HStack {
                             Spacer()
-                            ProgressView("回复中…")
+                            ProgressView("回复中…".ui("Replying…"))
                             Spacer()
                         }
                         .padding(.vertical, 8)
@@ -613,7 +640,7 @@ struct AIAnalysisView: View {
                 composerBar
             }
         }
-        .navigationTitle("问答".zh)
+        .navigationTitle("问答".ui("Readings"))
         .navigationBarTitleDisplayMode(.inline)
         .parchmentBackground()
         .toolbar {
@@ -622,9 +649,9 @@ struct AIAnalysisView: View {
                     Button {
                         appNavigation.openSimilarHexagram(for: result)
                     } label: {
-                        Label("同类".zh, systemImage: "rectangle.stack")
+                        Label("同类".ui("Similar"), systemImage: "rectangle.stack")
                     }
-                    .accessibilityLabel("查看同类卦".zh)
+                    .accessibilityLabel("查看同类卦".ui("Similar hexagrams"))
                 }
             }
         }
@@ -640,7 +667,7 @@ struct AIAnalysisView: View {
 
     private var composerBar: some View {
         HStack(alignment: .bottom, spacing: 8) {
-            TextField("追问或补充背景", text: $draft, axis: .vertical)
+            TextField("追问或补充背景".ui("Ask further, or add background"), text: $draft, axis: .vertical)
                 .lineLimit(1...4)
                 .appTextFieldStyle()
             Button {
@@ -651,7 +678,7 @@ struct AIAnalysisView: View {
                     .foregroundStyle(canSendFollowup ? AppTheme.accent : Color.secondary.opacity(0.4))
             }
             .disabled(!canSendFollowup)
-            .accessibilityLabel("发送".zh)
+            .accessibilityLabel("发送".ui("Send"))
         }
         .padding(.horizontal)
         .padding(.vertical, 10)
@@ -671,9 +698,9 @@ struct AIAnalysisView: View {
                             .fill(AppTheme.accent.opacity(0.12))
                     )
             }
-            analysisSection(title: "回复", text: turn.assistant)
+            analysisSection(title: "回复".ui("Reply"), text: turn.assistant)
             if !turn.advice.isEmpty {
-                bulletSection(title: "建议", items: turn.advice)
+                bulletSection(title: "建议".ui("Advice"), items: turn.advice)
             }
             if isLatest, !isFollowupLoading {
                 let nextQuestions = turn.askNext.isEmpty ? (analysis?.askNext ?? []) : turn.askNext
@@ -687,11 +714,11 @@ struct AIAnalysisView: View {
     private var headerSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             if let primary = store.hexagram(number: result.primaryNumber) {
-                Text("\(primary.symbol) \(primary.name)".zh)
+                Text(primary.listLabel)
                     .font(.title3.weight(.bold))
             }
             if let question = result.question, !question.isEmpty {
-                Text("所问：\(question)".zh)
+                Text("所问：\(question)".ui("Asked: \(question)"))
                     .font(.body)
             }
         }
@@ -742,10 +769,10 @@ struct AIAnalysisView: View {
 
     private func askNextSection(_ questions: [String]) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("可以接着问".zh)
+            Text("可以接着问".ui("Ask next"))
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(AppTheme.accent)
-            Text("点一句直接发出。".zh)
+            Text("点一句直接发出。".ui("Tap a line to send it."))
                 .font(.caption)
                 .foregroundStyle(.secondary)
             ForEach(Array(questions.enumerated()), id: \.offset) { _, question in
