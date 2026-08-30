@@ -51,8 +51,11 @@ import com.yizhidao.app.ui.theme.PaperBackHeader
 import com.yizhidao.app.ui.theme.PaperHeaderButton
 import com.yizhidao.app.ui.theme.PaperStackIcon
 import com.yizhidao.app.ui.theme.PaperTextField
+import com.yizhidao.app.lang.LocalAppLanguage
+import com.yizhidao.app.lang.listLabel
+import com.yizhidao.app.lang.numberLabel
 import com.yizhidao.app.ui.theme.Text
-import com.yizhidao.app.ui.theme.zh
+import com.yizhidao.app.ui.theme.ui
 import kotlinx.coroutines.launch
 
 @Composable
@@ -87,6 +90,7 @@ fun AIAnalysisScreen(
     var draft by remember { mutableStateOf("") }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var savedID by remember { mutableStateOf(saved?.id) }
+    val language = LocalAppLanguage.current
 
     val canSendFollowup = draft.trim().isNotEmpty() &&
         analysis != null &&
@@ -142,7 +146,7 @@ fun AIAnalysisScreen(
         }
         val token = authStore.session.value.accessToken
         if (token.isNullOrBlank()) {
-            errorMessage = "请先登录"
+            errorMessage = language.ui("请先登录", "Please sign in")
             isLoading = false
             return
         }
@@ -167,7 +171,7 @@ fun AIAnalysisScreen(
         val current = analysis
         val text = message.trim()
         if (token.isNullOrBlank()) {
-            errorMessage = "请先登录"
+            errorMessage = language.ui("请先登录", "Please sign in")
             return
         }
         if (current == null || text.isEmpty() || isLoading || isFollowupLoading) return
@@ -213,12 +217,13 @@ fun AIAnalysisScreen(
     Column(Modifier.fillMaxSize()) {
         PaperBackHeader(
             title = "问答",
+            titleEn = "Readings",
             onBack = onBack,
             trailing = if (onOpenSimilar != null) {
                 {
                     PaperHeaderButton(
                         onClick = { onOpenSimilar(result) },
-                        contentDescription = zh("查看同类卦"),
+                        contentDescription = ui("同类", "Similar"),
                     ) {
                         PaperStackIcon()
                     }
@@ -244,15 +249,26 @@ fun AIAnalysisScreen(
             ) {
                 hexagramStore.hexagram(result.primaryNumber)?.let { hex ->
                     Text(
-                        "${hex.symbol} ${hex.name}",
+                        hex.listLabel(language),
                         fontSize = 20.sp,
                         fontWeight = FontWeight.Bold,
                         color = AppTheme.ink,
                         style = AppTheme.compactText,
                     )
-                }
+                } ?: Text(
+                    numberLabel(language, result.primaryNumber),
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = AppTheme.ink,
+                    style = AppTheme.compactText,
+                )
                 result.question?.takeIf { it.isNotBlank() }?.let { q ->
-                    Text("所问：$q", fontSize = 16.sp, color = AppTheme.ink, style = AppTheme.compactText)
+                    Text(
+                        language.ui("所问：$q", "What you ask: $q"),
+                        fontSize = 16.sp,
+                        color = AppTheme.ink,
+                        style = AppTheme.compactText,
+                    )
                 }
             }
 
@@ -273,19 +289,20 @@ fun AIAnalysisScreen(
                         color = AppTheme.secondaryText,
                         modifier = Modifier.padding(start = 10.dp),
                         style = AppTheme.compactText,
+                        en = "Reading…",
                     )
                 }
             }
 
             analysis?.let { item ->
-                AnalysisCard("事情背景", item.summary)
-                AnalysisCard("当下", item.focus)
+                AnalysisCard("事情背景", "Background", item.summary)
+                AnalysisCard("当下", "Now", item.focus)
                 if (item.direction.isNotBlank()) {
-                    AnalysisCard("方向", item.direction)
+                    AnalysisCard("方向", "Direction", item.direction)
                 }
                 val adviceItems = aiAdviceDisplayItems(item.advice, item.risks)
                 if (adviceItems.isNotEmpty()) {
-                    BulletCard("建议", adviceItems)
+                    BulletCard("建议", "Advice", adviceItems)
                 }
                 if (item.askNext.isNotEmpty() && followUps.isEmpty() && !isLoading && !isFollowupLoading) {
                     AskNextCard(
@@ -310,9 +327,9 @@ fun AIAnalysisScreen(
                             style = AppTheme.compactText,
                         )
                     }
-                    AnalysisCard("回复", turn.assistant)
+                    AnalysisCard("回复", "Reply", turn.assistant)
                     if (turn.advice.isNotEmpty()) {
-                        BulletCard("建议", turn.advice)
+                        BulletCard("建议", "Advice", turn.advice)
                     }
                     if (isLatest && !isFollowupLoading) {
                         val nextQuestions = turn.askNext.ifEmpty { analysis?.askNext.orEmpty() }
@@ -343,6 +360,7 @@ fun AIAnalysisScreen(
                         color = AppTheme.secondaryText,
                         modifier = Modifier.padding(start = 8.dp),
                         style = AppTheme.compactText,
+                        en = "Replying…",
                     )
                 }
             }
@@ -368,6 +386,7 @@ fun AIAnalysisScreen(
                     onValueChange = { draft = it },
                     modifier = Modifier.weight(1f),
                     placeholder = "追问或补充背景",
+                    placeholderEn = "Ask or add context",
                     singleLine = false,
                     minLines = 1,
                     maxLines = 4,
@@ -384,7 +403,7 @@ fun AIAnalysisScreen(
                 ) {
                     Icon(
                         Icons.AutoMirrored.Filled.Send,
-                        contentDescription = "发送",
+                        contentDescription = ui("发送", "Send"),
                         tint = if (canSendFollowup) Color.White else AppTheme.disabledText,
                         modifier = Modifier.size(18.dp),
                     )
@@ -395,7 +414,7 @@ fun AIAnalysisScreen(
 }
 
 @Composable
-private fun AnalysisCard(title: String, text: String) {
+private fun AnalysisCard(title: String, titleEn: String, text: String) {
     val paragraphs = remember(text) { AIAnswerFormatter.paragraphs(text) }
     Column(
         Modifier
@@ -410,6 +429,7 @@ private fun AnalysisCard(title: String, text: String) {
             fontWeight = FontWeight.SemiBold,
             color = AppTheme.accent,
             style = AppTheme.compactText,
+            en = titleEn,
         )
         paragraphs.forEach { paragraph ->
             Text(
@@ -424,7 +444,7 @@ private fun AnalysisCard(title: String, text: String) {
 }
 
 @Composable
-private fun BulletCard(title: String, items: List<String>) {
+private fun BulletCard(title: String, titleEn: String, items: List<String>) {
     Column(
         Modifier
             .fillMaxWidth()
@@ -438,6 +458,7 @@ private fun BulletCard(title: String, items: List<String>) {
             fontWeight = FontWeight.SemiBold,
             color = AppTheme.accent,
             style = AppTheme.compactText,
+            en = titleEn,
         )
         items.forEachIndexed { index, item ->
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -476,12 +497,14 @@ private fun AskNextCard(questions: List<String>, onPick: (String) -> Unit) {
             fontWeight = FontWeight.SemiBold,
             color = AppTheme.accent,
             style = AppTheme.compactText,
+            en = "Ask next",
         )
         Text(
             "点一句直接发出。",
             fontSize = 12.sp,
             color = AppTheme.secondaryText,
             style = AppTheme.compactText,
+            en = "Tap a line to send it.",
         )
         questions.forEach { question ->
             Box(

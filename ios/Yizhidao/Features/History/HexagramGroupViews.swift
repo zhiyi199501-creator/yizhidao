@@ -5,6 +5,12 @@ enum HexagramMethodTab: String, CaseIterable, Identifiable, Hashable {
     case digital = "数字起卦"
     case coin = "金钱起卦"
     var id: String { rawValue }
+    var label: String {
+        switch self {
+        case .digital: return "数字起卦".ui("Numbers")
+        case .coin: return "金钱起卦".ui("Coins")
+        }
+    }
 }
 
 struct HexagramGroupListView: View {
@@ -40,14 +46,14 @@ struct HexagramGroupListView: View {
         VStack(alignment: .leading, spacing: 4) {
             HStack {
                 if let hex = store.hexagram(number: group.primaryNumber) {
-                    Text("\(hex.symbol) \(hex.name)".zh)
+                    Text(hex.listLabel)
                         .font(.headline)
                 } else {
-                    Text("第\(group.primaryNumber)卦".zh)
+                    Text("第\(group.primaryNumber)卦".ui("Hexagram \(group.primaryNumber)"))
                         .font(.headline)
                 }
                 Spacer()
-                Text("\(group.records.count) 次".zh)
+                Text("\(group.records.count) 次".ui("\(group.records.count)"))
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
@@ -133,9 +139,9 @@ struct HexagramGroupDetailView: View {
     var body: some View {
         VStack(spacing: 0) {
             VStack(alignment: .leading, spacing: 10) {
-                Picker("方法".zh, selection: $methodTab) {
+                Picker("方法".ui("Method"), selection: $methodTab) {
                     ForEach(HexagramMethodTab.allCases) { tab in
-                        Text(tab.rawValue.zh).tag(tab)
+                        Text(tab.label).tag(tab)
                     }
                 }
                 .pickerStyle(.segmented)
@@ -154,9 +160,9 @@ struct HexagramGroupDetailView: View {
                 )
             } else if filteredRecords.isEmpty {
                 ContentUnavailableView(
-                    "无匹配记录",
+                    "无匹配记录".ui("Nothing matches"),
                     systemImage: "line.3.horizontal.decrease.circle",
-                    description: Text("试试调整上方分类".zh)
+                    description: Text("试试调整上方分类".ui("Try another filter"))
                 )
             } else {
                 List {
@@ -179,7 +185,7 @@ struct HexagramGroupDetailView: View {
                                 Image(systemName: "trash.fill")
                             }
                             .tint(.red)
-                            .accessibilityLabel("删除".zh)
+                            .accessibilityLabel("删除".ui("Delete"))
                         }
                     }
                 }
@@ -218,23 +224,24 @@ struct HexagramGroupDetailView: View {
 
     private var emptyMethodTitle: String {
         switch methodTab {
-        case .digital: return "暂无数字起卦"
-        case .coin: return "暂无金钱卦"
+        case .digital: return "暂无数字起卦".ui("No number casts")
+        case .coin: return "暂无金钱卦".ui("No coin casts")
         }
     }
 
     private var emptyMethodDescription: String {
         switch methodTab {
-        case .digital: return "该卦尚无数字或时间起卦记录"
-        case .coin: return "该卦尚无金钱卦记录"
+        case .digital: return "该卦尚无数字或时间起卦记录".ui("No number or time casts for this hexagram yet")
+        case .coin: return "该卦尚无金钱卦记录".ui("No coin casts for this hexagram yet")
         }
     }
 
     private var navigationTitle: String {
+        let count = "\(records.count) 次".ui("\(records.count)")
         if let hex = store.hexagram(number: primaryNumber) {
-            return "\(hex.symbol) \(hex.name) · \(records.count) 次"
+            return "\(hex.listLabel) · \(count)"
         }
-        return "第\(primaryNumber)卦 · \(records.count) 次"
+        return "\("第\(primaryNumber)卦".ui("Hexagram \(primaryNumber)")) · \(count)"
     }
 
     private func filterChips(
@@ -283,14 +290,14 @@ enum MovingCountFilter: String, CaseIterable, Identifiable, Hashable {
 
     var label: String {
         switch self {
-        case .all: return "全部"
-        case .zero: return "0 动"
-        case .one: return "1 动"
-        case .two: return "2 动"
-        case .three: return "3 动"
-        case .four: return "4 动"
-        case .five: return "5 动"
-        case .six: return "6 动"
+        case .all: return "全部".ui("All")
+        case .zero: return "0 动".ui("0")
+        case .one: return "1 动".ui("1")
+        case .two: return "2 动".ui("2")
+        case .three: return "3 动".ui("3")
+        case .four: return "4 动".ui("4")
+        case .five: return "5 动".ui("5")
+        case .six: return "6 动".ui("6")
         }
     }
 
@@ -344,7 +351,7 @@ enum MovingPositionFilter: CaseIterable, Identifiable, Hashable {
 
     var label: String {
         switch self {
-        case .all: return "全部"
+        case .all: return "全部".ui("All")
         case .chu: return "初"
         case .er: return "二"
         case .san: return "三"

@@ -46,7 +46,7 @@ struct YijingIntroListView: View {
             }
         }
         .scrollContentBackground(.hidden)
-        .navigationTitle("基础入门".zh)
+        .navigationTitle("基础入门".ui("Primer"))
         .navigationBarTitleDisplayMode(.inline)
         .parchmentBackground()
     }
@@ -80,7 +80,7 @@ struct YijingIntroChapterView: View {
                         HStack(spacing: 10) {
                             if index > 0 {
                                 introChapterJump(
-                                    label: "上一章",
+                                    label: "上一章".ui("Previous"),
                                     title: chapters[index - 1].title,
                                     leadingChevron: true
                                 ) {
@@ -89,7 +89,7 @@ struct YijingIntroChapterView: View {
                             }
                             if index + 1 < chapters.count {
                                 introChapterJump(
-                                    label: "下一章",
+                                    label: "下一章".ui("Next"),
                                     title: chapters[index + 1].title,
                                     leadingChevron: false
                                 ) {
@@ -485,16 +485,16 @@ struct ClassicHexagramListView: View {
     var body: some View {
         List {
             ForEach(["上经", "下经"], id: \.self) { part in
-                Section(part.zh) {
+                Section(part.ui(part == "上经" ? "Upper" : "Lower")) {
                     ForEach(store.hexagrams.filter { $0.part == part }) { hex in
                         NavigationLink {
                             ClassicHexagramDetailView(hexagram: hex)
                         } label: {
                             HStack {
-                                Text("\(hex.symbol) \(hex.name)".zh)
+                                Text(hex.listLabel)
                                     .font(.headline)
                                 Spacer()
-                                Text(hex.title.zh)
+                                Text(AppLanguage.current.isEnglish ? hex.epithet : hex.title.zh)
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
                             }
@@ -504,7 +504,7 @@ struct ClassicHexagramListView: View {
             }
         }
         .scrollContentBackground(.hidden)
-        .navigationTitle("六十四卦".zh)
+        .navigationTitle("六十四卦".ui("64 Hexagrams"))
         .navigationBarTitleDisplayMode(.inline)
         .parchmentBackground()
     }
@@ -538,13 +538,13 @@ struct ClassicHexagramDetailView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .background(RoundedRectangle(cornerRadius: 12).fill(AppTheme.cardFill))
 
-                scriptureCard("卦辞", explanationId: ImaExplanationId.guaci(number: hexagram.number)) {
+                scriptureCard(scriptureTitle("卦辞", "Judgment"), explanationId: ImaExplanationId.guaci(number: hexagram.number)) {
                     Text(hexagram.guaci.zh)
                 }
-                scriptureCard("彖辞", explanationId: ImaExplanationId.tuanci(number: hexagram.number)) {
+                scriptureCard(scriptureTitle("彖辞", "Commentary"), explanationId: ImaExplanationId.tuanci(number: hexagram.number)) {
                     Text(prefixed("彖曰：", hexagram.tuanci).zh)
                 }
-                scriptureCard("大象", explanationId: ImaExplanationId.daxiang(number: hexagram.number)) {
+                scriptureCard(scriptureTitle("大象", "The Image"), explanationId: ImaExplanationId.daxiang(number: hexagram.number)) {
                     Text(prefixed("象曰：", hexagram.daxiang).zh)
                 }
                 ForEach(Array(zip(hexagram.yaoci, hexagram.xiaoxiang).enumerated()), id: \.offset) { index, pair in
@@ -564,7 +564,7 @@ struct ClassicHexagramDetailView: View {
                     }
                 }
                 if !hexagram.wenyan.isEmpty {
-                    scriptureCard("文言", explanationId: ImaExplanationId.wenyan(number: hexagram.number)) {
+                    scriptureCard(scriptureTitle("文言", "Wenyan"), explanationId: ImaExplanationId.wenyan(number: hexagram.number)) {
                         VStack(alignment: .leading, spacing: 8) {
                             ForEach(Array(hexagram.wenyan.enumerated()), id: \.offset) { _, paragraph in
                                 Text(paragraph.zh)
@@ -576,12 +576,16 @@ struct ClassicHexagramDetailView: View {
             }
             .padding()
         }
-        .navigationTitle(hexagram.name.zh)
+        .navigationTitle(hexagram.listLabel)
         .navigationBarTitleDisplayMode(.inline)
         .parchmentBackground()
         .sheet(item: $imaSelection) { selection in
             ImaExplanationSheet(entry: selection.entry, source: imaStore.source)
         }
+    }
+
+    private func scriptureTitle(_ zh: String, _ en: String) -> String {
+        AppLanguage.current.isEnglish ? "\(en) · \(zh)" : zh
     }
 
     private func scriptureCard(
@@ -633,7 +637,7 @@ struct ClassicWingListView: View {
             }
         }
         .scrollContentBackground(.hidden)
-        .navigationTitle("四传".zh)
+        .navigationTitle("四传".ui("The Wings"))
         .navigationBarTitleDisplayMode(.inline)
         .parchmentBackground()
     }
@@ -730,7 +734,7 @@ struct ZhengshiListView: View {
             }
         }
         .scrollContentBackground(.hidden)
-        .navigationTitle("易经证释".zh)
+        .navigationTitle("易经证释".ui("Yijing Zhengshi"))
         .navigationBarTitleDisplayMode(.inline)
         .parchmentBackground()
     }
@@ -784,7 +788,7 @@ struct ZhengshiSectionView: View {
 
 private struct ScriptureSourceLine: View {
     var body: some View {
-        Text("经文版本：《易经证释》所引".zh)
+        Text("经文版本：《易经证释》所引".ui("Text: as quoted in Yijing Zhengshi"))
             .font(.caption2)
             .foregroundStyle(.tertiary)
             .frame(maxWidth: .infinity, alignment: .trailing)

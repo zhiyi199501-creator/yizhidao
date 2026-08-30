@@ -44,9 +44,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.yizhidao.CastResult
-import com.yizhidao.Hexagram
 import com.yizhidao.HexagramStore
 import com.yizhidao.LineValue
+import com.yizhidao.app.lang.LocalAppLanguage
+import com.yizhidao.app.lang.displayName
 import com.yizhidao.app.ui.theme.AppTheme
 import com.yizhidao.app.ui.theme.Text
 import kotlinx.coroutines.delay
@@ -65,6 +66,7 @@ fun CastRevealAct(
     var showsSeal by remember { mutableStateOf(false) }
     var showsThanks by remember { mutableStateOf(false) }
     var didFinish by remember { mutableStateOf(false) }
+    val language = LocalAppLanguage.current
     val primary = store.hexagram(result.primaryNumber)
     val resulting = result.resultingNumber
         ?.takeIf { it != result.primaryNumber }
@@ -179,7 +181,8 @@ fun CastRevealAct(
                         .scale(if (showsSeal) 1f else 1.2f),
                 ) {
                     Text(
-                        primary.displayTitle(result.primaryNumber),
+                        primary?.displayName(language)
+                            ?: language.ui("第${result.primaryNumber}卦", "Hexagram ${result.primaryNumber}"),
                         fontSize = 36.sp,
                         fontWeight = FontWeight.Bold,
                         color = AppTheme.accent,
@@ -188,7 +191,7 @@ fun CastRevealAct(
                     val resultingNumber = result.resultingNumber
                     if (resulting != null && resultingNumber != null) {
                         Text(
-                            "之 ${resulting.displayTitle(resultingNumber)}",
+                            "之 ${resulting.displayName(language)}",
                             fontSize = 20.sp,
                             color = AppTheme.secondaryText,
                             modifier = Modifier.padding(top = 8.dp),
@@ -223,23 +226,27 @@ fun CastRevealAct(
                             style = AppTheme.compactText,
                         )
                     }
+                    RitualEnglishCaption("Step back")
                 }
             }
             Spacer(Modifier.weight(1f))
-            Text(
-                "轻点跳过动画",
-                fontSize = 11.sp,
-                color = AppTheme.ink.copy(alpha = if (showsThanks || didFinish) 0f else 0.28f),
-                style = AppTheme.compactText,
-            )
+            if (language.isEnglish) {
+                Text(
+                    "Tap to skip",
+                    fontSize = 11.sp,
+                    color = AppTheme.ink.copy(alpha = if (showsThanks || didFinish) 0f else 0.28f),
+                    style = AppTheme.compactText,
+                )
+            } else {
+                Text(
+                    "轻点跳过动画",
+                    fontSize = 11.sp,
+                    color = AppTheme.ink.copy(alpha = if (showsThanks || didFinish) 0f else 0.28f),
+                    style = AppTheme.compactText,
+                )
+            }
         }
     }
-}
-
-private fun Hexagram?.displayTitle(number: Int): String {
-    val raw = this?.name?.trim().orEmpty()
-    if (raw.isEmpty()) return "第${number}卦"
-    return if (raw.endsWith("卦")) raw else "${raw}卦"
 }
 
 @Composable

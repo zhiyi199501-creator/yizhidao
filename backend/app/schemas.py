@@ -87,6 +87,7 @@ class AIAnalysisBody(BaseModel):
     movingPositions: list[int] = Field(default_factory=list)
     lines: list[int] = Field(default_factory=list)
     hexTextVersion: str = "yi-zhengshi-2026-08"
+    uiLanguage: str = "zh"
 
 
 class AIAnalysisContent(BaseModel):

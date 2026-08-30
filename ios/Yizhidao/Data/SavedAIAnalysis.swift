@@ -1,17 +1,23 @@
 import Foundation
 
-func aiAdviceDisplayItems(advice: [String], risks: [String]) -> [String] {
+func aiAdviceDisplayItems(
+    advice: [String],
+    risks: [String],
+    english: Bool = AppLanguage.current.isEnglish
+) -> [String] {
     let parts = risks.compactMap { raw -> String? in
         var text = raw.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else { return nil }
-        for prefix in ["须防：", "须防:", "須防：", "須防:"] where text.hasPrefix(prefix) {
+        for prefix in ["须防：", "须防:", "須防：", "須防:", "Watch: ", "Watch:", "Caution: ", "Caution:"] where text.hasPrefix(prefix) {
             text = String(text.dropFirst(prefix.count)).trimmingCharacters(in: .whitespacesAndNewlines)
             break
         }
         return text.isEmpty ? nil : text
     }
     guard !parts.isEmpty else { return advice }
-    return advice + ["须防：\(parts.joined(separator: "；"))"]
+    let label = english ? "Watch: " : "须防："
+    let joiner = english ? "; " : "；"
+    return advice + ["\(label)\(parts.joined(separator: joiner))"]
 }
 
 struct SavedAIFollowUp: Codable, Hashable, Identifiable {

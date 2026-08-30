@@ -73,7 +73,7 @@ struct CastRevealView: View {
             sequence = nil
         }
         .accessibilityElement(children: .contain)
-        .accessibilityAction(named: Text("跳过动画".zh)) { skipAnimation() }
+        .accessibilityAction(named: Text("跳过动画".ui("Skip animation"))) { skipAnimation() }
     }
 
     @ViewBuilder
@@ -128,11 +128,11 @@ struct CastRevealView: View {
 
     private var seal: some View {
         VStack(spacing: 8) {
-            Text(primary?.displayName ?? "第\(result.primaryNumber)卦".zh)
+            Text(primary?.displayName ?? "第\(result.primaryNumber)卦".ui("Hexagram \(result.primaryNumber)"))
                 .font(.system(size: 36, weight: .bold))
                 .foregroundStyle(AppTheme.accent)
             if let resulting {
-                Text("之 \(resulting.displayName)".zh)
+                Text("之 \(resulting.displayName)".ui("Relating · \(resulting.displayName)"))
                     .font(.title3)
                     .foregroundStyle(.secondary)
             }
@@ -151,10 +151,13 @@ struct CastRevealView: View {
             Button {
                 finish()
             } label: {
-                Text("弟子退".zh)
-                    .font(.headline)
-                    .padding(.horizontal, 28)
-                    .padding(.vertical, 10)
+                VStack(spacing: 4) {
+                    Text("弟子退".zh)
+                        .font(.headline)
+                    RitualEnglishCaption(text: "Step back")
+                }
+                .padding(.horizontal, 28)
+                .padding(.vertical, 10)
             }
             .buttonStyle(.borderedProminent)
             .tint(AppTheme.accent)
@@ -166,7 +169,7 @@ struct CastRevealView: View {
     }
 
     private var skipHint: some View {
-        Text("轻点跳过动画".zh)
+        Text("轻点跳过动画".ui("Tap to skip"))
             .font(.caption2)
             .foregroundStyle(.tertiary)
             .opacity(showsThanks || didFinish ? 0 : 1)

@@ -22,7 +22,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import com.yizhidao.app.ui.theme.Text
-import com.yizhidao.app.ui.theme.zh
+import com.yizhidao.app.ui.theme.ui
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
@@ -50,11 +50,11 @@ import com.yizhidao.app.ui.qa.QAListScreen
 import com.yizhidao.app.ui.reading.ResultScreen
 import com.yizhidao.app.ui.theme.AppTheme
 
-enum class AppTab(val label: String, val icon: ImageVector) {
-    Cast("起卦", Icons.Outlined.AutoAwesome),
-    History("历史", Icons.Outlined.Schedule),
-    QA("问答", Icons.Outlined.ChatBubbleOutline),
-    Me("我的", Icons.Outlined.AccountCircle),
+enum class AppTab(val zh: String, val en: String, val icon: ImageVector) {
+    Cast("起卦", "Cast", Icons.Outlined.AutoAwesome),
+    History("历史", "History", Icons.Outlined.Schedule),
+    QA("问答", "Readings", Icons.Outlined.ChatBubbleOutline),
+    Me("我的", "Me", Icons.Outlined.AccountCircle),
 }
 
 @Composable
@@ -182,16 +182,17 @@ private fun PaperTabBar(
                         ) {
                             Icon(
                                 item.icon,
-                                contentDescription = zh(item.label),
+                                contentDescription = ui(item.zh, item.en),
                                 tint = if (isSelected) AppTheme.accent else AppTheme.ink.copy(alpha = 0.78f),
                                 modifier = Modifier.size(24.dp),
                             )
                         }
                         Text(
-                            item.label,
+                            item.zh,
                             fontSize = 11.sp,
                             color = if (isSelected) AppTheme.accent else AppTheme.ink.copy(alpha = 0.78f),
                             style = AppTheme.compactText,
+                            en = item.en,
                         )
                     }
                 }

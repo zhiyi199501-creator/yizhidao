@@ -15,7 +15,7 @@ enum AIAnswerFormatter {
 
     private static let softLimit = 60
     private static let minTailLength = 24
-    private static let enders: Set<Character> = ["。", "！", "？", "…", "!", "?"]
+    private static let enders: Set<Character> = ["。", "！", "？", "…", "!", "?", "."]
     private static let closers: Set<Character> = ["」", "』", "”", "’", "）", ")", "》", "〉", "】", "、"]
 
     private static func paragraphs(inBlock block: String) -> [String] {

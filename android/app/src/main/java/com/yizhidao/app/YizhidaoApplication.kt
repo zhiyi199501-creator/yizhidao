@@ -36,6 +36,11 @@ class AppContainer(app: Application) {
     val introBook: YijingIntroBook = YijingIntroCodec.decode(
         app.assets.open("YijingIntro.json").bufferedReader().use { it.readText() },
     )
+    val introBookEn: YijingIntroBook = runCatching {
+        YijingIntroCodec.decode(
+            app.assets.open("YijingIntro.en.json").bufferedReader().use { it.readText() },
+        )
+    }.getOrDefault(introBook)
     val imaExplanationStore: ImaExplanationStore = ImaExplanationStore(
         app.assets.open("ImaExplanations.json").bufferedReader().use { it.readText() },
     )

@@ -146,6 +146,7 @@ private fun IntroChapterJump(
                 fontWeight = FontWeight.SemiBold,
                 color = AppTheme.accent,
                 style = AppTheme.compactText,
+                en = if (leadingChevron) "Previous" else "Next",
             )
             Text(
                 title,

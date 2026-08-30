@@ -30,10 +30,17 @@ import com.yizhidao.ReadingGuide
 import com.yizhidao.app.ima.ImaExplanationEntry
 import com.yizhidao.app.ima.ImaExplanationId
 import com.yizhidao.app.ima.ImaExplanationStore
+import com.yizhidao.app.lang.LocalAppLanguage
+import com.yizhidao.app.lang.listLabel
+import com.yizhidao.app.lang.roleCaption
 import com.yizhidao.app.ui.theme.AppTheme
 import com.yizhidao.app.ui.theme.PaperSegmentedRow
+import com.yizhidao.app.ui.theme.ui
 
-private enum class HexTab(val label: String) { Primary("本卦"), Resulting("之卦") }
+private enum class HexTab(val zh: String, val en: String) {
+    Primary("本卦", "Primary"),
+    Resulting("之卦", "Relating"),
+}
 
 @Composable
 fun HexagramReadingBody(
@@ -61,6 +68,7 @@ fun HexagramReadingBody(
     imaStore: ImaExplanationStore,
 ) {
     var selectedEntry by remember { mutableStateOf<ImaExplanationEntry?>(null) }
+    val language = LocalAppLanguage.current
     val primary = store.hexagram(primaryNumber)
     val resulting = resultingNumber?.let { store.hexagram(it) }
     val focus = remember(movingPositions) { ReadingGuide.focus(movingPositions) }
@@ -72,14 +80,14 @@ fun HexagramReadingBody(
             Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.weight(1f)) {
                 if (primary != null) {
                     Text(
-                        "${primary.symbol} ${primary.name}",
+                        primary.listLabel(language),
                         fontSize = 20.sp,
                         fontWeight = FontWeight.Bold,
                         color = AppTheme.ink,
                         style = AppTheme.compactText,
                     )
                     Text(
-                        "第${primary.number}卦 · 本卦",
+                        primary.roleCaption(language, "本卦", "Primary"),
                         fontSize = 12.sp,
                         color = AppTheme.secondaryText,
                         style = AppTheme.compactText,
@@ -87,18 +95,18 @@ fun HexagramReadingBody(
                 }
                 HexagramFigure(lines = lines, movingPositions = movingPositions)
             }
-            if (resulting != null && resultingNumber != null) {
+            if (resulting != null) {
                 val changed = lines.map { if (it.isChanging) it.changed else it }
                 Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.weight(1f)) {
                     Text(
-                        "${resulting.symbol} ${resulting.name}",
+                        resulting.listLabel(language),
                         fontSize = 20.sp,
                         fontWeight = FontWeight.Bold,
                         color = AppTheme.ink,
                         style = AppTheme.compactText,
                     )
                     Text(
-                        "第${resultingNumber}卦 · 之卦",
+                        resulting.roleCaption(language, "之卦", "Relating"),
                         fontSize = 12.sp,
                         color = AppTheme.secondaryText,
                         style = AppTheme.compactText,
@@ -110,7 +118,7 @@ fun HexagramReadingBody(
 
         if (tabs.size > 1) {
             PaperSegmentedRow(
-                options = tabs.map { it.label },
+                options = tabs.map { ui(it.zh, it.en) },
                 selectedIndex = tabs.indexOf(tab).coerceAtLeast(0),
                 onSelect = { tab = tabs[it] },
             )
@@ -150,7 +158,7 @@ private fun HexagramTextSection(
     onSelectExplanation: (ImaExplanationEntry) -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        CardSection(showLead = shouldShowGuaciLead(tab, focus)) {
+        CardSection(title = scriptureTitle("卦辞", "Judgment"), showLead = shouldShowGuaciLead(tab, focus)) {
             TappableScripture(
                 explanationId = ImaExplanationId.guaci(hex.number),
                 imaStore = imaStore,
@@ -159,7 +167,7 @@ private fun HexagramTextSection(
                 Text(hex.guaci, fontSize = 16.sp, color = AppTheme.ink, lineHeight = 24.sp)
             }
         }
-        CardSection {
+        CardSection(title = scriptureTitle("彖辞", "Commentary")) {
             TappableScripture(
                 explanationId = ImaExplanationId.tuanci(hex.number),
                 imaStore = imaStore,
@@ -168,7 +176,7 @@ private fun HexagramTextSection(
                 Text(HexagramText.prefixed("彖曰：", hex.tuanci), fontSize = 16.sp, color = AppTheme.ink, lineHeight = 24.sp)
             }
         }
-        CardSection {
+        CardSection(title = scriptureTitle("大象", "The Image")) {
             TappableScripture(
                 explanationId = ImaExplanationId.daxiang(hex.number),
                 imaStore = imaStore,
@@ -214,7 +222,13 @@ private fun LineBlock(
 }
 
 @Composable
-private fun CardSection(showLead: Boolean = false, content: @Composable () -> Unit) {
+private fun scriptureTitle(zh: String, en: String): String? {
+    val language = LocalAppLanguage.current
+    return if (language.isEnglish) "$en · $zh" else null
+}
+
+@Composable
+private fun CardSection(title: String? = null, showLead: Boolean = false, content: @Composable () -> Unit) {
     Column(
         Modifier
             .fillMaxWidth()
@@ -223,6 +237,9 @@ private fun CardSection(showLead: Boolean = false, content: @Composable () -> Un
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         if (showLead) LeadBadge()
+        if (title != null) {
+            Text(title, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = AppTheme.secondaryText)
+        }
         content()
     }
 }
@@ -238,6 +255,7 @@ private fun LeadBadge() {
         modifier = Modifier
             .background(Color.Red, RoundedCornerShape(50))
             .padding(horizontal = 6.dp, vertical = 2.dp),
+        en = "Focus",
     )
 }
 
@@ -269,5 +287,6 @@ fun ScriptureSourceLine(modifier: Modifier = Modifier) {
         color = AppTheme.secondaryText,
         style = AppTheme.compactText,
         modifier = modifier,
+        en = "Text: as quoted in Yijing Zhengshi",
     )
 }

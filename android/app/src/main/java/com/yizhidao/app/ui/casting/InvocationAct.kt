@@ -61,6 +61,7 @@ fun InvocationAct(
             color = AppTheme.accent,
             style = AppTheme.compactText,
             modifier = Modifier.padding(top = 12.dp),
+            en = "What you ask",
         )
         Spacer(Modifier.weight(1f))
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -79,6 +80,7 @@ fun InvocationAct(
                         color = AppTheme.ink.copy(alpha = 0.28f),
                         textAlign = TextAlign.Center,
                         style = AppTheme.compactText,
+                        en = "Name one matter, briefly",
                     )
                 }
                 BasicTextField(
@@ -112,12 +114,14 @@ fun InvocationAct(
                 textAlign = TextAlign.Center,
                 style = AppTheme.compactText,
             )
+            RitualEnglishCaption("Offer this question")
         }
         Spacer(Modifier.weight(1f))
         PaperPrimaryButton(
             onClick = { onConfirm(trimmed) },
             enabled = trimmed.isNotEmpty(),
             label = "敬告",
+            en = "Offer",
             modifier = Modifier.padding(bottom = 24.dp),
         )
     }

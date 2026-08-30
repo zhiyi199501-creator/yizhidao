@@ -34,6 +34,9 @@ import com.yizhidao.CastResult
 import com.yizhidao.app.AppContainer
 import com.yizhidao.app.ai.SavedAIAnalysis
 import com.yizhidao.app.ui.reading.AIAnalysisScreen
+import com.yizhidao.app.lang.LocalAppLanguage
+import com.yizhidao.app.lang.listLabel
+import com.yizhidao.app.lang.numberLabel
 import com.yizhidao.app.ui.theme.AppTheme
 import com.yizhidao.app.ui.theme.PaperChevron
 import com.yizhidao.app.ui.theme.SwipeRevealDelete
@@ -49,6 +52,7 @@ fun QAListScreen(
     onTabBarVisible: (Boolean) -> Unit = {},
     onOpenSimilar: ((CastResult) -> Unit)? = null,
 ) {
+    val language = LocalAppLanguage.current
     val items by container.savedAIStore.items.collectAsState()
     var opened by remember { mutableStateOf<SavedAIAnalysis?>(null) }
     var revealedId by remember { mutableStateOf<String?>(null) }
@@ -83,6 +87,7 @@ fun QAListScreen(
             color = AppTheme.ink,
             style = AppTheme.compactText,
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+            en = "Readings",
         )
         if (items.isEmpty()) {
             Column(
@@ -98,6 +103,7 @@ fun QAListScreen(
                     fontWeight = FontWeight.SemiBold,
                     color = AppTheme.ink,
                     style = AppTheme.compactText,
+                    en = "No readings yet",
                 )
                 Spacer(Modifier.height(8.dp))
                 Text(
@@ -105,6 +111,7 @@ fun QAListScreen(
                     fontSize = 13.sp,
                     color = AppTheme.secondaryText,
                     style = AppTheme.compactText,
+                    en = "Readings you ask for will appear here",
                 )
             }
         } else {
@@ -137,7 +144,7 @@ fun QAListScreen(
                                 val hex = container.hexagramStore.hexagram(item.primaryNumber)
                                 QAHistoryRow(
                                     item = item,
-                                    title = hex?.let { "${it.symbol} ${it.name}" } ?: "第${item.primaryNumber}卦",
+                                    title = hex?.listLabel(language) ?: numberLabel(language, item.primaryNumber),
                                     onClick = {
                                         if (revealedId == item.id) {
                                             revealedId = null

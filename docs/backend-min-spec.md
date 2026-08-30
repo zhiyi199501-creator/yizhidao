@@ -57,7 +57,7 @@
 - 删除 `users` 行及该手机号/邮箱下未用验证码；token 随后失效（再 `GET /v1/me` → 401）
 
 ### 3c) 法律与支持页（App Store）
-- `GET /privacy` · `GET /terms` · `GET /support` → HTML（无鉴权）
+- `GET /privacy` · `GET /terms` · `GET /support` → HTML（无鉴权）。`?lang=en` 或 `Accept-Language: en*` 出英文本；生产镜像未发前仍是中文页
 
 ### 4) 发送邮箱验证码
 - `POST /v1/auth/email/send`
@@ -105,7 +105,8 @@
   "resultingNumber": 26,
   "movingPositions": [1],
   "lines": [7,8,8,7,7,9],
-  "hexTextVersion": "yi-zhengshi-2026-08"
+  "hexTextVersion": "yi-zhengshi-2026-08",
+  "uiLanguage": "zh"
 }
 ```
 - resp:

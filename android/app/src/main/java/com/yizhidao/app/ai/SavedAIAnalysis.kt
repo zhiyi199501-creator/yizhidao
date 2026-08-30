@@ -2,6 +2,7 @@ package com.yizhidao.app.ai
 
 import android.content.Context
 import com.yizhidao.CastResult
+import com.yizhidao.app.lang.AppLanguage
 import com.yizhidao.CastingMethod
 import com.yizhidao.LineValue
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -12,8 +13,12 @@ import kotlinx.serialization.json.Json
 import java.time.Instant
 import java.util.UUID
 
-fun aiAdviceDisplayItems(advice: List<String>, risks: List<String> = emptyList()): List<String> {
-    val prefixes = listOf("须防：", "须防:", "須防：", "須防:")
+fun aiAdviceDisplayItems(
+    advice: List<String>,
+    risks: List<String> = emptyList(),
+    english: Boolean = AppLanguage.current().isEnglish,
+): List<String> {
+    val prefixes = listOf("须防：", "须防:", "須防：", "須防:", "Watch: ", "Watch:", "Caution: ", "Caution:")
     val parts = risks.mapNotNull { raw ->
         var text = raw.trim()
         if (text.isEmpty()) return@mapNotNull null
@@ -22,7 +27,9 @@ fun aiAdviceDisplayItems(advice: List<String>, risks: List<String> = emptyList()
         text.ifEmpty { null }
     }
     if (parts.isEmpty()) return advice
-    return advice + listOf("须防：${parts.joinToString("；")}")
+    val label = if (english) "Watch: " else "须防："
+    val joiner = if (english) "; " else "；"
+    return advice + listOf("$label${parts.joinToString(joiner)}")
 }
 
 @Serializable

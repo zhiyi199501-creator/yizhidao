@@ -19,7 +19,7 @@ struct MethodPickView: View {
                     .frame(maxWidth: .infinity)
                     .padding(.top, 40)
 
-                Text("怎样取这一卦".zh)
+                Text("怎样取这一卦".ui("How to cast this hexagram"))
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(AppTheme.accent)
                     .padding(.top, 8)
@@ -27,13 +27,28 @@ struct MethodPickView: View {
                 Spacer(minLength: 24)
 
                 VStack(spacing: 16) {
-                    methodButton(title: "数字起卦", subtitle: "三个数定上卦、下卦、动爻") {
+                    methodButton(
+                        title: "数字起卦",
+                        titleEN: "Three numbers",
+                        subtitle: "三个数定上卦、下卦、动爻",
+                        subtitleEN: "Upper, lower, and the moving line"
+                    ) {
                         onPick(.digitalNumbers)
                     }
-                    methodButton(title: "时间起卦", subtitle: "以此刻十二时辰取数") {
+                    methodButton(
+                        title: "时间起卦",
+                        titleEN: "Time",
+                        subtitle: "以此刻十二时辰取数",
+                        subtitleEN: "This double-hour, right now"
+                    ) {
                         onPick(.digitalTime)
                     }
-                    methodButton(title: "金钱起卦", subtitle: "三枚铜钱摇六次") {
+                    methodButton(
+                        title: "金钱起卦",
+                        titleEN: "Three coins",
+                        subtitle: "三枚铜钱摇六次",
+                        subtitleEN: "Six throws"
+                    ) {
                         onPick(.coin)
                     }
                 }
@@ -51,19 +66,25 @@ struct MethodPickView: View {
                     .foregroundStyle(.secondary)
             }
             .buttonStyle(.plain)
-            .accessibilityLabel("取消起卦".zh)
+            .accessibilityLabel("取消起卦".ui("Cancel casting"))
             .padding(.horizontal, 20)
             .padding(.top, 8)
         }
     }
 
-    private func methodButton(title: String, subtitle: String, action: @escaping () -> Void) -> some View {
+    private func methodButton(
+        title: String,
+        titleEN: String,
+        subtitle: String,
+        subtitleEN: String,
+        action: @escaping () -> Void
+    ) -> some View {
         Button(action: action) {
             VStack(spacing: 6) {
                 Text(title.zh)
                     .font(.headline)
                     .foregroundStyle(AppTheme.accent)
-                Text(subtitle.zh)
+                Text(subtitle.ui(subtitleEN))
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             }
@@ -76,5 +97,7 @@ struct MethodPickView: View {
             .contentShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
         }
         .buttonStyle(.plain)
+        .accessibilityLabel(title.ui(titleEN))
+        .accessibilityHint(subtitle.ui(subtitleEN))
     }
 }

@@ -10,11 +10,11 @@ struct ReadingRecordRow: View {
             HStack(spacing: 6) {
                 if showPrimaryTitle {
                     if let hex = store.hexagram(number: record.primaryNumber) {
-                        Text("\(hex.symbol) \(hex.name)".zh)
+                        Text(hex.listLabel)
                             .font(.headline)
                             .lineLimit(1)
                     } else {
-                        Text("第\(record.primaryNumber)卦".zh)
+                        Text("第\(record.primaryNumber)卦".ui("Hexagram \(record.primaryNumber)"))
                             .font(.headline)
                             .lineLimit(1)
                     }
@@ -25,15 +25,15 @@ struct ReadingRecordRow: View {
                     }
                     verificationBadge
                 } else if let resulting = record.resultingNumber {
-                    resultingTitle(number: resulting, prefix: "之卦 · ")
+                    resultingTitle(number: resulting, prefix: "之卦 · ".ui("Relating · "))
                     verificationBadge
                 } else if record.movingPositions.isEmpty {
-                    Text("六爻不变".zh)
+                    Text("六爻不变".ui("No changing lines"))
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(.secondary)
                     verificationBadge
                 } else {
-                    Text("\(record.movingPositions.count) 爻变".zh)
+                    Text("\(record.movingPositions.count) 爻变".ui("\(record.movingPositions.count) changing"))
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(.secondary)
                     verificationBadge
@@ -99,10 +99,10 @@ struct ReadingRecordRow: View {
     @ViewBuilder
     private func resultingTitle(number: Int, prefix: String = "") -> some View {
         if let hex = store.hexagram(number: number) {
-            Text("\(prefix)\(hex.symbol) \(hex.name)".zh)
+            Text(prefix + hex.listLabel)
                 .font(prefix.isEmpty ? .headline : .subheadline.weight(.semibold))
         } else {
-            Text("\(prefix)第\(number)卦".zh)
+            Text(prefix + "第\(number)卦".ui("Hexagram \(number)"))
                 .font(prefix.isEmpty ? .headline : .subheadline.weight(.semibold))
         }
     }
@@ -140,9 +140,9 @@ struct ReadingRecordRow: View {
             }
         }
         var parts: [String] = []
-        if fulfilled > 0 { parts.append("应验 \(fulfilled)") }
-        if partial > 0 { parts.append("部分 \(partial)") }
-        if unfulfilled > 0 { parts.append("未应验 \(unfulfilled)") }
+        if fulfilled > 0 { parts.append("应验 \(fulfilled)".ui("Fulfilled \(fulfilled)")) }
+        if partial > 0 { parts.append("部分 \(partial)".ui("Partly \(partial)")) }
+        if unfulfilled > 0 { parts.append("未应验 \(unfulfilled)".ui("Not fulfilled \(unfulfilled)")) }
         return parts.isEmpty ? nil : parts.joined(separator: " · ")
     }
 }

@@ -33,7 +33,7 @@ struct TappableScripture<Content: View>: View {
                     .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            .accessibilityHint("查看讲解".zh)
+            .accessibilityHint("查看讲解".ui("Read the commentary"))
         } else {
             content()
         }
@@ -57,6 +57,11 @@ struct ImaExplanationSheet: View {
                         .padding()
                         .background(RoundedRectangle(cornerRadius: 12).fill(AppTheme.cardFill))
 
+                    if AppLanguage.current.isEnglish {
+                        Text("Commentary is in Chinese")
+                            .font(.caption)
+                            .foregroundStyle(.tertiary)
+                    }
                     ImaAnswerBody(text: entry.answer)
                 }
                 .padding()
@@ -65,7 +70,7 @@ struct ImaExplanationSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("关闭".zh) { dismiss() }
+                    Button("关闭".ui("Close")) { dismiss() }
                 }
             }
             .parchmentBackground(hidesTabBar: false)

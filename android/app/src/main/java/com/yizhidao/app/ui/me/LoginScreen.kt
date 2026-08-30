@@ -56,10 +56,12 @@ import com.yizhidao.app.auth.AuthApi
 import com.yizhidao.app.auth.GoogleSignInHelper
 import com.yizhidao.app.auth.LocalAuthStore
 import com.yizhidao.app.auth.LocalUserSession
+import com.yizhidao.app.lang.LocalAppLanguage
 import com.yizhidao.app.ui.theme.AppTheme
 import com.yizhidao.app.ui.theme.PaperBackHeader
 import com.yizhidao.app.ui.theme.PaperTextField
 import com.yizhidao.app.ui.theme.Text
+import com.yizhidao.app.ui.theme.ui
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -157,7 +159,7 @@ private fun MainLoginPage(
             onBack = onBack,
             leading = {
                 TextButton(onClick = onBack) {
-                    Text("取消", color = AppTheme.accent, fontSize = 17.sp, style = AppTheme.compactText)
+                    Text("取消", color = AppTheme.accent, fontSize = 17.sp, style = AppTheme.compactText, en = "Cancel")
                 }
             },
         )
@@ -176,7 +178,7 @@ private fun MainLoginPage(
 
             LoginFilledButton(
                 onClick = { requireConsent() },
-                label = "Google 登录",
+                label = ui("Google 登录", "Google"),
                 enabled = !isLoggingIn && GoogleSignInHelper.isConfigured,
                 leading = {
                     Icon(
@@ -194,8 +196,10 @@ private fun MainLoginPage(
             LoginStatusLine(
                 isBusy = isLoggingIn,
                 message = errorMessage
-                    ?: "Google 登录需在 build.gradle.kts 配置 GOOGLE_WEB_CLIENT_ID"
-                        .takeIf { !GoogleSignInHelper.isConfigured },
+                    ?: ui(
+                        "Google 登录需在 build.gradle.kts 配置 GOOGLE_WEB_CLIENT_ID",
+                        "Set GOOGLE_WEB_CLIENT_ID in build.gradle.kts to use Google sign-in",
+                    ).takeIf { !GoogleSignInHelper.isConfigured },
                 isError = errorMessage != null,
             )
 
@@ -205,13 +209,13 @@ private fun MainLoginPage(
 
             Spacer(Modifier.weight(1f))
 
-            LoginSectionDivider("其他登录方式")
+            LoginSectionDivider(ui("其他登录方式", "Other ways to sign in"))
 
             Spacer(Modifier.height(14.dp))
 
             LoginGhostButton(
                 onClick = onEmailLogin,
-                label = "邮箱登录",
+                label = ui("邮箱登录", "Email"),
                 leading = {
                     Icon(
                         Icons.Default.Email,
@@ -226,7 +230,7 @@ private fun MainLoginPage(
             if (BuildConfig.DEBUG) {
                 Spacer(Modifier.height(12.dp))
                 Text(
-                    "当前接口：${AuthApi.baseUrl}",
+                    ui("当前接口：${AuthApi.baseUrl}", "API: ${AuthApi.baseUrl}"),
                     fontSize = 11.sp,
                     color = AppTheme.secondaryText.copy(alpha = 0.7f),
                     style = AppTheme.compactText,
@@ -264,8 +268,10 @@ private fun EmailLoginPage(
     var showConsentDialog by remember { mutableStateOf(false) }
     var pendingAction by remember { mutableStateOf<PendingEmailAction?>(null) }
     val scope = rememberCoroutineScope()
+    val language = LocalAppLanguage.current
     val focusManager = LocalFocusManager.current
     val keyboard = LocalSoftwareKeyboardController.current
+    val codeSentMessage = ui("验证码已发送", "Code sent")
 
     LaunchedEffect(cooldownSec) {
         if (cooldownSec <= 0) return@LaunchedEffect
@@ -278,7 +284,7 @@ private fun EmailLoginPage(
             PendingEmailAction.SendEmailCode -> {
                 val trimmed = email.trim()
                 if (!isValidEmail(trimmed)) {
-                    errorMessage = "请输入正确邮箱"
+                    errorMessage = language.ui("请输入正确邮箱", "Enter a valid email")
                     return
                 }
                 scope.launch {
@@ -286,7 +292,7 @@ private fun EmailLoginPage(
                     try {
                         val resp = AuthApi.sendEmailCode(trimmed)
                         cooldownSec = resp.cooldownSec.coerceAtLeast(0)
-                        errorMessage = "验证码已发送"
+                        errorMessage = codeSentMessage
                     } catch (e: Exception) {
                         errorMessage = AuthApi.describe(e)
                     } finally {
@@ -298,7 +304,7 @@ private fun EmailLoginPage(
                 val trimmedEmail = email.trim()
                 val trimmedCode = code.trim()
                 if (!isValidEmail(trimmedEmail) || trimmedCode.isEmpty()) {
-                    errorMessage = "请输入邮箱和验证码"
+                    errorMessage = language.ui("请输入邮箱和验证码", "Enter email and code")
                     return
                 }
                 scope.launch {
@@ -361,6 +367,7 @@ private fun EmailLoginPage(
                 fontWeight = FontWeight.SemiBold,
                 color = AppTheme.accent,
                 style = AppTheme.compactText,
+                en = "Email",
             )
             Spacer(Modifier.height(8.dp))
             Text(
@@ -368,6 +375,7 @@ private fun EmailLoginPage(
                 fontSize = 13.sp,
                 color = AppTheme.secondaryText,
                 style = AppTheme.compactText,
+                en = "Enter the code we send you",
             )
 
             Spacer(Modifier.height(32.dp))
@@ -379,6 +387,7 @@ private fun EmailLoginPage(
                     .fillMaxWidth()
                     .height(50.dp),
                 placeholder = "邮箱",
+                placeholderEn = "Email",
                 shape = LoginShape,
                 horizontalPadding = 14.dp,
                 keyboardOptions = KeyboardOptions(
@@ -402,6 +411,7 @@ private fun EmailLoginPage(
                     .fillMaxWidth()
                     .height(50.dp),
                 placeholder = "验证码",
+                placeholderEn = "Code",
                 shape = LoginShape,
                 horizontalPadding = 14.dp,
                 keyboardOptions = KeyboardOptions(
@@ -422,7 +432,7 @@ private fun EmailLoginPage(
                             .background(AppTheme.fieldStroke),
                     )
                     Text(
-                        if (cooldownSec > 0) "${cooldownSec}s" else "发送验证码",
+                        if (cooldownSec > 0) "${cooldownSec}s" else ui("发送验证码", "Send code"),
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Medium,
                         color = if (canSendCode) AppTheme.accent else AppTheme.secondaryText,
@@ -440,7 +450,7 @@ private fun EmailLoginPage(
 
             LoginFilledButton(
                 onClick = { requireConsent(PendingEmailAction.EmailLogin) },
-                label = "登 录",
+                label = ui("登 录", "Sign In"),
                 enabled = !isLoggingIn && isValidEmail(email.trim()) && code.isNotBlank(),
             )
 
@@ -449,7 +459,7 @@ private fun EmailLoginPage(
             LoginStatusLine(
                 isBusy = isLoggingIn,
                 message = errorMessage,
-                isError = errorMessage != "验证码已发送",
+                isError = errorMessage != codeSentMessage,
             )
 
             Spacer(Modifier.height(16.dp))
@@ -521,6 +531,7 @@ private fun LoginBrandMark() {
             letterSpacing = 1.5.sp,
             style = AppTheme.compactText,
             modifier = Modifier.padding(start = 1.5.dp),
+            en = "Cast, then contemplate the words",
         )
     }
 }
@@ -656,6 +667,7 @@ private fun LoginStatusLine(
                     fontSize = 12.sp,
                     color = AppTheme.secondaryText,
                     style = AppTheme.compactText,
+                    en = "Signing in…",
                 )
             }
             message != null -> Text(
@@ -709,6 +721,7 @@ private fun ConsentRow(
             fontSize = 12.sp,
             color = AppTheme.secondaryText,
             style = AppTheme.compactText,
+            en = "I agree to the Terms of Use and Privacy Policy",
         )
     }
 }
@@ -720,18 +733,21 @@ private fun ConsentDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("请先同意协议") },
+        title = { Text("请先同意协议", en = "Please agree first") },
         text = {
-            Text("登录前需同意《用户协议》和《隐私政策》。点击「同意并继续」即表示你已阅读并同意。")
+            Text(
+                "登录前需同意《用户协议》和《隐私政策》。点击「同意并继续」即表示你已阅读并同意。",
+                en = "Please read and agree to the Terms of Use and Privacy Policy before signing in.",
+            )
         },
         confirmButton = {
             TextButton(onClick = onAgree) {
-                Text("同意并继续", color = AppTheme.accent)
+                Text("同意并继续", color = AppTheme.accent, en = "Agree and Continue")
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("取消", color = AppTheme.secondaryText)
+                Text("取消", color = AppTheme.secondaryText, en = "Cancel")
             }
         },
         containerColor = AppTheme.parchmentTop,

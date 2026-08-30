@@ -178,21 +178,37 @@ final class HexagramStoreTests: XCTestCase {
 final class YijingIntroStoreTests: XCTestCase {
     func testIntroHasNineChapters() {
         let store = YijingIntroStore(bundle: Bundle(for: YijingIntroStore.self))
-        XCTAssertEqual(store.chapters.count, 9)
-        XCTAssertEqual(store.chapters.map(\.id), [
+        let chapters = store.displayedChapters(english: false)
+        XCTAssertEqual(chapters.count, 9)
+        XCTAssertEqual(chapters.map(\.id), [
             "what", "purpose", "yin-yang-bagua", "hexagrams-lines",
             "how-to-read", "play-the-text", "how-to-cast", "changing-lines", "path",
         ])
         XCTAssertTrue(store.note.isEmpty)
-        XCTAssertTrue(store.chapters[5].plainText.contains("观其象"))
-        XCTAssertTrue(store.chapters[6].plainText.contains("数字起卦"))
-        XCTAssertTrue(store.chapters[6].plainText.contains("输入三数"))
-        XCTAssertTrue(store.chapters[6].plainText.contains("时间起卦"))
-        XCTAssertTrue(store.chapters[6].plainText.contains("金钱起卦"))
-        XCTAssertTrue(store.chapters[7].plainText.contains("主看"))
-        XCTAssertTrue(store.chapters[2].blocks.contains { if case .figure(let kind, _) = $0 { return kind == "bagua" }; return false })
-        XCTAssertTrue(store.chapters[7].blocks.contains { if case .table = $0 { return true }; return false })
-        XCTAssertTrue(store.chapters[8].blocks.contains { if case .links = $0 { return true }; return false })
+        XCTAssertTrue(chapters[5].plainText.contains("观其象"))
+        XCTAssertTrue(chapters[6].plainText.contains("数字起卦"))
+        XCTAssertTrue(chapters[6].plainText.contains("输入三数"))
+        XCTAssertTrue(chapters[6].plainText.contains("时间起卦"))
+        XCTAssertTrue(chapters[6].plainText.contains("金钱起卦"))
+        XCTAssertTrue(chapters[7].plainText.contains("主看"))
+        XCTAssertTrue(chapters[2].blocks.contains { if case .figure(let kind, _) = $0 { return kind == "bagua" }; return false })
+        XCTAssertTrue(chapters[7].blocks.contains { if case .table = $0 { return true }; return false })
+        XCTAssertTrue(chapters[8].blocks.contains { if case .links = $0 { return true }; return false })
+    }
+
+    func testEnglishIntroRewritesChromeAndKeepsChineseQuotes() {
+        let store = YijingIntroStore(bundle: Bundle(for: YijingIntroStore.self))
+        let chapters = store.displayedChapters(english: true)
+        XCTAssertEqual(chapters.count, 9)
+        XCTAssertEqual(chapters.map(\.id), [
+            "what", "purpose", "yin-yang-bagua", "hexagrams-lines",
+            "how-to-read", "play-the-text", "how-to-cast", "changing-lines", "path",
+        ])
+        XCTAssertTrue(chapters[5].plainText.contains("观其象"))
+        XCTAssertTrue(chapters[5].title.contains("Watch the image"))
+        XCTAssertTrue(chapters[6].plainText.contains("Three numbers"))
+        XCTAssertTrue(chapters[6].plainText.contains("爻变开化之神"))
+        XCTAssertTrue(chapters[7].plainText.contains("Focus"))
     }
 }
 

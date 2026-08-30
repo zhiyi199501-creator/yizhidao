@@ -26,7 +26,7 @@ cd android && ./gradlew :engines:test
 
 ## 技术栈
 
-- **App（iOS）**：SwiftUI + SwiftData；无第三方依赖。经文 `Hexagrams.json`（卦爻辞取证释；文言／四传并入同文件）；案例 `cases.json`。繁简跟系统语言（台湾／香港／澳门为繁体），无应用内开关。
+- **App（iOS）**：SwiftUI + SwiftData；无第三方依赖。经文 `Hexagrams.json`（卦爻辞取证释；文言／四传并入同文件）；案例 `cases.json`。语言只跟系统：中文简繁（台港澳为繁），非中文界面壳英文；无应用内开关。
 - **App（Android）**：Kotlin + Jetpack Compose；生产 HTTPS 用 **Cronet**（`AppHttp`，勿改回 `HttpURLConnection`）。引擎在 `android/engines`（纯 JVM，与 iOS 单测对拍）。见 `android/README.md`
 - **后端**：`backend/` FastAPI + SQLite；登录为 Apple / Google / 邮箱 OTP（短信路由仍保留，App 不展示）；AI（`AI_MODE=mock|openai`）；内部 `admin/`（Vite，Cookie 鉴权）
 
@@ -41,17 +41,17 @@ cd android && ./gradlew :engines:test
 - 案例底稿：`ios/Yizhidao/Resources/cases.json`。日常在运营后台「案例」编辑工作副本并**发布**（立刻热更新 App `GET /v1/cases`）。导出 JSON 再提交包内文件，供下次发 App。可选导入旧「案例编辑表.xlsx」或 JSON；Excel 不再当日常编辑器。补占编号按实际文王序，括号标讲座来源（如 `01-3乾卦三爻（从大有卦三爻讲）`）
 - 经文底稿：`ios/Yizhidao/Resources/Hexagrams.json`。编辑根目录 `易经正文编辑表.xlsx`（gitignore）→ `python3 scripts/import_jingwen.py`；导出 `python3 scripts/export_jingwen.py`
 - 《易经证释》阅读稿：`ios/Yizhidao/Resources/Zhengshi.json`。源文件不入库；更新时 `python3 scripts/import_zhengshi.py [全册.doc]`；代码（`ZhengshiStore`/阅读页）还在，但「我的」菜单暂未挂入口
-- **基础入门**：`ios/Yizhidao/Resources/YijingIntro.json` 九章（含「怎样起卦」：按仪式写静心／告神／选法门／取数，不写 ÷8／÷6）。块 `p`／`quote`／`list`／`table`／`figure`／`links`；册页阅读，章末上一章／下一章同一行。勿再按经文卡片切段。Android `copyIosAssets` 拷同文件
+- **基础入门**：`ios/Yizhidao/Resources/YijingIntro.json` 九章（含「怎样起卦」：按仪式写静心／告神／选法门／取数，不写 ÷8／÷6）。英文界面读 `YijingIntro.en.json`（同 id／块型，引文仍中文，不机翻经文）。块 `p`／`quote`／`list`／`table`／`figure`／`links`；册页阅读，章末上一章／下一章同一行。勿再按经文卡片切段。Android `copyIosAssets` 拷 `YijingIntro.json` 与 `YijingIntro.en.json`
 - **IMA 黄庭书院讲解**：点经文可看知识库讲解。覆盖卦辞／彖／大象／爻辞+小象（成对）、用九／用六（成对）、文言（乾坤）。包内 `ios/Yizhidao/Resources/ImaExplanations.json`；源采集 gitignore `data/ima-explanations/`。后台「黄庭」可改 `answer`：**立刻影响服务端 AI**；App 弹层要下次发版。导出 `python3 scripts/export_ima_explanations.py` **会覆盖**手改，改过后别跑。Android `copyIosAssets` 拷同文件（**不含** `Zhengshi.json`）。ID：`{nn}-guaci|tuanci|daxiang|wenyan|yong`、`{nn}-yao-{0…5}`（初=0）。入口：结果／案例／六十四卦详情（文言与用九用六仅六十四卦详情有）
 - **IMA 展示**：包内 `ImaExplanations.json` 原稿已去掉出处后标／整行「思考过程」；App `ImaAnswerFormatter` 与后台读取仍再洗一遍。「表格」标记与 markdown 表画成表。安卓弹层用全屏 Popup（约 93% 高，盖住页头），下拉超过 **1/4** 收起，点遮罩不关。iOS 宣纸 `AppTheme` 已为 OLED 调淡；弹层 `.presentationBackground` 用同一渐变
 - `ios/Yizhidao/App/`：`AppNavigation`、`AppTheme`、登录与「我的」（多在 `YizhidaoApp.swift`）。「我的」：资料、**基础入门**、**六十四卦 / 四传**、**案例**、**意见反馈**（`POST /v1/feedback`，可匿名；后台「反馈」查看）、**检查更新**（`GET /v1/app/version`）、设置（回收站，清空需确认；退出登录；**注销账号**调 `DELETE /v1/me`）。经文详情卡片标题**彖辞** / **大象**，正文带「彖曰：」「象曰：」前缀。六十四卦详情与四传正文最下标「经文版本：《易经证释》所引」（与结果页同一句）。「问答」Tab 列出全部本地问答（一占一条，自动保存）。包内与生产页：隐私政策 / 用户协议；公网 `https://api.yiwanjia.work/{privacy,terms,support}`
 - **二级页藏底栏**：结果、问答详情、历史同卦／记录、我的子页。iOS `parchmentBackground()` 默认藏 Tab，四个 Tab 根页和 IMA sheet 传 `hidesTabBar: false`。Android `onTabBarVisible`。登录 sheet 里的协议页不要藏 Tab
 - Android「问答」与回收站对齐 iOS 分组列表：白卡片竖排卦名／时间／所问；问答左滑删除，回收站左滑恢复＋彻底删除。勿改回设置项左右排布；删除钮未滑开不得透出
 - **经文勿换他本**；改解卦规则先改 `ReadingGuide` 并补测
-- 繁简只跟系统语言 + `.zh`。禁止 hook `UILabel` / `UIButton` / `Bundle.main`（iPhone 11 弹键盘会卡）。点空白收键盘须在手势 `shouldReceive` 跳过输入框；登录数字框用 `UITextField`，勿加 `textContentType` 自动填充
+- 语言只跟系统，无应用内开关。中文：简繁仍走 `.zh` / Android `Text()`（台港澳为繁）。**非中文系统：界面壳英文**（iOS `"起卦".ui("Cast")`，Android `ui("起卦","Cast")` / `Text(..., en=)`）；经文、仪式礼文、黄庭、案例不英译。基础入门另备 `YijingIntro.en.json`（引文仍中文）。英文界面问答传 `uiLanguage=en`：卡片用英文，经文仍引中文；prompt 开头锁输出语言。所问必填，服务端不再为空白所问改写「可以接着问」。法律页 `?lang=en` / `Accept-Language`（生产镜像未发前公网页仍中文）。卦名英文界面并列拼音与短别称（`HexagramNames` / `listLabel`）。禁止 hook `UILabel` / `UIButton` / `Bundle.main`（iPhone 11 弹键盘会卡）。点空白收键盘须在手势 `shouldReceive` 跳过输入框；登录数字框用 `UITextField`，勿加 `textContentType` 自动填充
 - **主看 UI**：0 动→本卦卦辞；2 动→本卦上动爻；3 动→本卦卦辞；4 动→之卦下静爻；5 动→之卦静爻；6 动→之卦卦辞；1 动不标「主看」
 - 时间起卦只占此刻、只用十二时辰。勿写 ÷8／÷6，不要「公历取数」，不要手选时刻。取数在告神之后、点「时间起卦」那一下才 `.now`——静心加告神要走大半分钟，钉在首页或静心会跨过时辰。引擎 `solarComponents` 仍留给历史／单测，UI 不要再挂。
-- **起卦仪式**：全屏盖层（iOS `CastingActView` + `fullScreenCover(item:)` + `CastingRequest`，勿用 `isPresented` + 独立可选态；Android `CastingActOverlay` Dialog）。幕序：静心（文案恒「凝心一会」；按住 2.5 秒，松手即散不续接；可跳过）→ 告神 → **选法门**（`MethodPickView` / `MethodPickAct`：数字起卦 / 时间起卦 / 金钱起卦；点整框即可，勿只给文字热区）→ 取数（金钱摇卦 / 三数落数 / 时间取选法门那一刻）→ 揭卦。**三种取数一律在告神、选法门之后**。聚气不产随机种子，每次取数用当下系统随机。`CastResult` 取数后才算。揭卦压印后停住，出示「感谢爻变开化之神的指示」，点「弟子退」才进结果页；轻点只跳过逐爻动画，不自动交接。揭卦点「弟子退」先落到结果页，再无动画收仪式盖层，勿先闪回起卦首页。摇手机走加速度计（iOS `ShakeDetector` / Android `Sensor.TYPE_ACCELEROMETER`），勿抢 first responder / 焦点。
+- **起卦仪式**：全屏盖层（iOS `CastingActView` + `fullScreenCover(item:)` + `CastingRequest`，勿用 `isPresented` + 独立可选态；Android `CastingActOverlay` Dialog）。幕序：静心（文案恒「凝心一会」；按住 2.5 秒，松手即散不续接；可跳过）→ 告神 → **选法门**（`MethodPickView` / `MethodPickAct`：数字起卦 / 时间起卦 / 金钱起卦；点整框即可，勿只给文字热区）→ 取数（金钱摇卦 / 三数落数 / 时间取选法门那一刻）→ 揭卦。**三种取数一律在告神、选法门之后**。聚气不产随机种子，每次取数用当下系统随机。`CastResult` 取数后才算。揭卦压印后停住，出示「感谢爻变开化之神的指示」，点「弟子退」才进结果页（英文界面中文礼文不动，仅加 Hold to settle / Offer this question / Step back 一类说明）；轻点只跳过逐爻动画，不自动交接。揭卦点「弟子退」先落到结果页，再无动画收仪式盖层，勿先闪回起卦首页。摇手机走加速度计（iOS `ShakeDetector` / Android `Sensor.TYPE_ACCELEROMETER`），勿抢 first responder / 焦点。
 - **起卦页只有系辞一句 + 一个「起卦」印**：君子居则观其象而玩其辞，动则观其变而玩其占，是以自天祐之，吉无不利。字竖排从右往左，底下空心双圈朱印（外圈略粗于内圈），不要拉满宽的系统按钮。冷启动三句按阅读顺序原地淡入，切 Tab 不重播。无方法分段、无输入框、无所问、无「此刻／选时刻」、无「公历取数」。规矩只在「基础入门」。无按键音效设置。
 - **所问在告神幕**：`InvocationView`，句式「弟子今有…之事…望示一卦」，空则「敬告」禁用。键盘延迟 0.35 秒聚焦。所问一路带到选法门、取数幕与揭卦幕
 - 金钱摇卦：摇手机（`ShakeDetector` CoreMotion，勿 `motionEnded`）或轻点铜钱，一次一爻，满六自动成卦；长按手选四象；「重来」作废。上爻在上、初爻在下。字阳 3、背阴 2
@@ -71,6 +71,8 @@ cd android && ./gradlew :engines:test
 **内容后台（未合 main、生产未发）**：`admin/` 第二版（案例发布 / 黄庭改 answer / 经文只读 / 夹具抽检 / App 意见反馈）。生产 `/admin/` **404**。合入并重建镜像前，生产更新案例仍 `docker compose cp`（见 `docs/deploy.md`）。
 
 **App 信息架构（未发，2026-08-30）**：Tab **起卦 / 历史 / 问答 / 我的**；案例在「我的」；菜单 **基础入门 / 六十四卦 / 四传 / 案例 / 意见反馈 / 检查更新**；基础入门九章册页（含怎样起卦）。起卦页系辞竖排 + 空心朱印，全屏仪式静心→告神→选法门→取数→揭卦；时间卦只占此刻。结果页所问只读可改、不展示取数；刚起完约 2 秒自动开问答一次，再进复用已存。二级页藏底栏。商店 / TestFlight 现役包仍是旧 Tab（起卦 / 历史 / 案例 / 我的）与页内取数。
+
+**英文化（未合、未发，2026-08-30）**：本地未提交改动（现挂在 `feature/admin-ops-cms`）。界面壳英文、卦名拼音／短别称、入门 `YijingIntro.en.json`、法律英文本、问答 `uiLanguage=en`。经文／礼文／黄庭／案例不英译。商店 listing 英文未做。生产 `https://api.yiwanjia.work/privacy?lang=en` 2026-08-30 仍出中文。
 
 **App Release（仅海外）**：新加坡 `124.156.192.137`，`https://api.yiwanjia.work/health` 200（SSH `yiwanjia`）。iOS / Android Release 均指向该域；**不上架中国区**，无需 ICP。现役栈是 `docker compose` + `Caddyfile.overseas`（拷成 `Caddyfile`），不是 `prod.yml`；解析 DNSPod，禁止橙云。运维见 `docs/deploy.md`。国内 iPhone 11 直连 443 不稳，开代理可通。
 

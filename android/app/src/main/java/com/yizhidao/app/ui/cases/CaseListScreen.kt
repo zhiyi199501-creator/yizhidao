@@ -27,7 +27,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.MenuBook
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import com.yizhidao.app.lang.LocalAppLanguage
+import com.yizhidao.app.lang.listLabel
+import com.yizhidao.app.lang.numberLabel
 import com.yizhidao.app.ui.theme.Text
+import com.yizhidao.app.ui.theme.ui
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -56,14 +60,14 @@ import com.yizhidao.app.ui.theme.PaperBackHeader
 import com.yizhidao.app.ui.theme.PaperChevron
 import kotlinx.coroutines.launch
 
-private enum class PositionFilter(val label: String, val position: Int?) {
-    All("全部", null),
-    Chu("初", 1),
-    Er("二", 2),
-    San("三", 3),
-    Si("四", 4),
-    Wu("五", 5),
-    Shang("上", 6);
+private enum class PositionFilter(val zh: String, val en: String, val position: Int?) {
+    All("全部", "All", null),
+    Chu("初", "1st", 1),
+    Er("二", "2nd", 2),
+    San("三", "3rd", 3),
+    Si("四", "4th", 4),
+    Wu("五", "5th", 5),
+    Shang("上", "Top", 6);
 
     fun matches(movingPositions: List<Int>): Boolean {
         val p = position ?: return true
@@ -131,12 +135,14 @@ private fun CaseGroupListScreen(
                 .clickable(onClick = onRefresh)
                 .padding(horizontal = 8.dp, vertical = 4.dp),
             style = AppTheme.compactText,
+            en = "Refresh",
         )
     }
     Column(Modifier.fillMaxSize()) {
         if (onBack != null) {
             PaperBackHeader(
                 title = "案例",
+                titleEn = "Cases",
                 onBack = onBack,
                 trailing = refreshButton,
             )
@@ -154,6 +160,7 @@ private fun CaseGroupListScreen(
                     color = AppTheme.ink,
                     style = AppTheme.compactText,
                     modifier = Modifier.weight(1f),
+                    en = "Cases",
                 )
                 refreshButton()
             }
@@ -168,9 +175,9 @@ private fun CaseGroupListScreen(
                         modifier = Modifier.size(48.dp),
                     )
                     Spacer(Modifier.height(12.dp))
-                    Text("暂无案例", fontSize = 17.sp, fontWeight = FontWeight.SemiBold, color = AppTheme.ink)
+                    Text("暂无案例", fontSize = 17.sp, fontWeight = FontWeight.SemiBold, color = AppTheme.ink, en = "No cases")
                     Spacer(Modifier.height(6.dp))
-                    Text("案例数据未加载", fontSize = 13.sp, color = AppTheme.secondaryText)
+                    Text("案例数据未加载", fontSize = 13.sp, color = AppTheme.secondaryText, en = "Cases didn’t load")
                 }
             }
         } else {
@@ -203,7 +210,7 @@ private fun CaseGroupListScreen(
                                 style = AppTheme.compactText,
                             )
                             Text(
-                                "${items.size} 例",
+                                ui("${items.size} 例", "${items.size} cases"),
                                 fontSize = 15.sp,
                                 color = AppTheme.secondaryText,
                                 style = AppTheme.compactText,
@@ -239,7 +246,7 @@ private fun CaseGroupDetailScreen(
 
     Column(Modifier.fillMaxSize()) {
         PaperBackHeader(
-            title = "${hexTitle(hex, number)} · ${cases.size} 例",
+            title = "${hexTitle(hex, number)} · ${ui("${cases.size} 例", "${cases.size} cases")}",
             onBack = onBack,
         )
         Column(
@@ -254,7 +261,7 @@ private fun CaseGroupDetailScreen(
             ) {
                 PositionFilter.entries.forEach { filter ->
                     Text(
-                        filter.label,
+                        ui(filter.zh, filter.en),
                         modifier = Modifier
                             .clip(CircleShape)
                             .background(if (positionFilter == filter) AppTheme.accent else Color.Black.copy(alpha = 0.06f))
@@ -272,7 +279,7 @@ private fun CaseGroupDetailScreen(
 
         if (visible.isEmpty()) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text("无匹配案例", color = AppTheme.secondaryText, fontSize = 15.sp)
+                Text("无匹配案例", color = AppTheme.secondaryText, fontSize = 15.sp, en = "No matching cases")
             }
         } else {
             LazyColumn(contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 24.dp, top = 12.dp)) {
@@ -311,7 +318,7 @@ private fun CaseRow(
 ) {
     val primary = store.hexagram(study.number)
     val resulting = study.resultingNumber?.let { store.hexagram(it) }
-    val movingLabel = PositionFilter.from(study.movingPositions.singleOrNull() ?: -1)?.label
+    val movingLabel = PositionFilter.from(study.movingPositions.singleOrNull() ?: -1)?.zh
     val summary = study.verification.trim().takeIf { it.isNotEmpty() && it != "原文未提及" }
 
     Row(
@@ -356,11 +363,12 @@ private fun CaseRow(
                             fontWeight = FontWeight.SemiBold,
                             color = AppTheme.secondaryText,
                             style = AppTheme.compactText,
+                            en = "No changing lines",
                         )
                     }
                     else -> {
                         Text(
-                            "${study.movingPositions.size} 爻变",
+                            ui("${study.movingPositions.size} 爻变", "${study.movingPositions.size} changing"),
                             fontSize = 15.sp,
                             fontWeight = FontWeight.SemiBold,
                             color = AppTheme.secondaryText,
@@ -397,8 +405,9 @@ private fun CaseRow(
 
 @Composable
 private fun CaseDetailScreen(study: CaseStudy, container: AppContainer, onBack: () -> Unit) {
+    val language = LocalAppLanguage.current
     val hex = container.hexagramStore.hexagram(study.number)
-    val title = if (hex != null) "${hex.name}${study.position}" else study.position
+    val title = if (hex != null) "${hex.listLabel(language)}${study.position}" else study.position
     Column(Modifier.fillMaxSize()) {
         PaperBackHeader(title = title, onBack = onBack)
         Column(
@@ -408,10 +417,10 @@ private fun CaseDetailScreen(study: CaseStudy, container: AppContainer, onBack: 
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp),
         ) {
-            if (study.background.isNotBlank()) CaseBlock("背景", study.background)
-            if (study.question.isNotBlank()) CaseBlock("所问何事", study.question)
-            if (study.verification.isNotBlank()) CaseBlock("验证结果", study.verification)
-            if (study.explanation.isNotBlank()) CaseBlock("讲师解读", study.explanation)
+            if (study.background.isNotBlank()) CaseBlock("背景", "Background", study.background)
+            if (study.question.isNotBlank()) CaseBlock("所问何事", "What you ask", study.question)
+            if (study.verification.isNotBlank()) CaseBlock("验证结果", "Outcome", study.verification)
+            if (study.explanation.isNotBlank()) CaseBlock("讲师解读", "Teacher’s reading", study.explanation)
             HexagramReadingBody(
                 primaryNumber = study.number,
                 resultingNumber = study.resultingNumber,
@@ -425,7 +434,7 @@ private fun CaseDetailScreen(study: CaseStudy, container: AppContainer, onBack: 
 }
 
 @Composable
-private fun CaseBlock(title: String, body: String) {
+private fun CaseBlock(title: String, titleEn: String, body: String) {
     Column(
         Modifier
             .fillMaxWidth()
@@ -439,6 +448,7 @@ private fun CaseBlock(title: String, body: String) {
             fontWeight = FontWeight.SemiBold,
             color = AppTheme.accent,
             style = AppTheme.compactText,
+            en = titleEn,
         )
         Text(body, fontSize = 16.sp, color = AppTheme.ink, lineHeight = 24.sp)
     }
@@ -470,5 +480,8 @@ private fun ChangeArrow(movingLabel: String?) {
     }
 }
 
-private fun hexTitle(hex: Hexagram?, number: Int): String =
-    if (hex != null) "${hex.symbol} ${hex.name}" else "第${number}卦"
+@Composable
+private fun hexTitle(hex: Hexagram?, number: Int): String {
+    val language = LocalAppLanguage.current
+    return hex?.listLabel(language) ?: numberLabel(language, number)
+}

@@ -8,7 +8,7 @@ package com.yizhidao.app.ai
 object AIAnswerFormatter {
     private const val SOFT_LIMIT = 60
     private const val MIN_TAIL_LENGTH = 24
-    private val ENDERS = setOf('。', '！', '？', '…', '!', '?')
+    private val ENDERS = setOf('。', '！', '？', '…', '!', '?', '.')
     private val CLOSERS = setOf('」', '』', '”', '’', '）', ')', '》', '〉', '】', '、')
 
     fun paragraphs(raw: String): List<String> = raw

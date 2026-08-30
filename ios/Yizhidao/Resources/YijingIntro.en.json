@@ -1,0 +1,283 @@
+{
+  "source": "",
+  "note": "English rewrite for study. Scripture quotations stay in Chinese.",
+  "chapters": [
+    {
+      "id": "what",
+      "title": "What the Yijing is",
+      "subtitle": "A classic that lands on body, mind, nature, and fate",
+      "blocks": [
+        {
+          "type": "p",
+          "text": "The Yijing, also called the Zhouyi, builds sixty-four hexagrams from two marks, yin and yang, to model change in heaven, earth, and the human heart. It is often called the first among the classics. It teaches how to stand in a given time and place. It is not one more fortune-telling trick."
+        },
+        {
+          "type": "quote",
+          "text": "穷理尽性，以至于命。",
+          "cite": "说卦"
+        },
+        {
+          "type": "p",
+          "text": "Every teaching, in the end, returns to a person’s body, mind, nature, and fate. That same pattern is called Dao in heaven, nature in a person, mind in its awareness, fate in the one breath that moves, and Change in how that breath turns. To study the Changes is to set this life back in order."
+        },
+        {
+          "type": "quote",
+          "text": "乾道变化，各正性命。",
+          "cite": "乾卦彖辞"
+        },
+        {
+          "type": "p",
+          "text": "The ancients honored what is so of itself, and patterned themselves on the law of the cosmos. A person lives inside heaven and earth; only by following that larger law does lasting good come. Used as practice, it clarifies the mind. Used among people, it is how one lives. The Great Treatise says 「易与天地准」: the Changes take heaven and earth as their measure."
+        }
+      ]
+    },
+    {
+      "id": "purpose",
+      "title": "Why study the Changes",
+      "subtitle": "The Way first, the cast last",
+      "blocks": [
+        {
+          "type": "p",
+          "text": "Many people first think of casting lots and knowing fortune. Those uses exist, but they are the end of a skill. Confucius said 「志于道，据于德，依于仁，游于艺」— set the will on the Way, stand on virtue, lean on humaneness, and wander among the arts. The cast is the wandering, not the root."
+        },
+        {
+          "type": "p",
+          "text": "What matters most is living from one’s own good nature. Each line holds up a likeness of how the breath is moving, so we can try that likeness on our own gain and loss. The art of turning toward the auspicious and away from harm is already inside how one treats people."
+        },
+        {
+          "type": "p",
+          "text": "Every hexagram and every line has an image: one scene, offered so you can map it onto many. Judgment and line texts are the sages putting the atmosphere they saw into the nearest human words. The words are likenesses, not a manual for one event."
+        },
+        {
+          "type": "p",
+          "text": "The Way is a great Yijing; the mind in this body is a small one. To watch inner ease and strain through the images is the real aim. A blank slate is not a handicap. Without a habit of “fortune-telling,” it is often easier to start from the root."
+        }
+      ]
+    },
+    {
+      "id": "yin-yang-bagua",
+      "title": "Yin, yang, and the eight trigrams",
+      "subtitle": "From the Supreme Ultimate to eight atmospheres",
+      "blocks": [
+        {
+          "type": "p",
+          "text": "The Great Treatise says: the Changes have the Supreme Ultimate; it gives birth to the two modes; the two modes give birth to the four images; the four images give birth to the eight trigrams. The Supreme Ultimate is the breath before it splits. The two modes are yin and yang. They are not good and bad. They face each other and turn into each other."
+        },
+        {
+          "type": "figure",
+          "kind": "yin-yang"
+        },
+        {
+          "type": "p",
+          "text": "The eight trigrams are eight basic atmospheres, each with a scene in nature and a scene in human feeling. You need not memorize number formulas first. Feel whether this one is firm, still, sunk, or glad, then match that to the atmosphere in your own body and mind."
+        },
+        {
+          "type": "figure",
+          "kind": "bagua"
+        },
+        {
+          "type": "p",
+          "text": "Fuxi drew the trigrams “from what is near, from the body,” and most of all from the mind. There is also the Earlier Heaven set and the Later Heaven set: the first speaks more of facing pairs, the second of circulation. The point of the difference is to feel a return from Later to Earlier—from daily habit back to original nature and fate."
+        }
+      ]
+    },
+    {
+      "id": "hexagrams-lines",
+      "title": "Sixty-four hexagrams and six lines",
+      "subtitle": "Time, place, the mean, and correctness",
+      "blocks": [
+        {
+          "type": "p",
+          "text": "Two trigrams stacked make a hexagram; sixty-four in all. The lower three lines are the inner trigram: often the self, the inside, the start. The upper three are the outer: often others, the world, the outcome."
+        },
+        {
+          "type": "figure",
+          "kind": "six-lines",
+          "caption": "Example: 天风姤. Lower 巽, upper 乾 — wind under heaven."
+        },
+        {
+          "type": "p",
+          "text": "Count the six lines from the bottom: 初, 二, 三, 四, 五, 上. A yang line is called 九, a yin line 六, so you meet 初九, 六二, 九三 … 上六. The first line is the beginning, still hidden. The top is the end, already past or complete. The second and fifth sit in the middle of each trigram, and are often said to “have the mean.”"
+        },
+        {
+          "type": "p",
+          "text": "“Correct” means a yang line in a yang place (first, third, fifth) and a yin line in a yin place (second, fourth, top). “The mean and correct” is an ideal, but the text does not condemn every “incorrect” line. Time changes what a seat means. For a start it is enough to know: read a line with its time, its place, and the lines above and below it."
+        },
+        {
+          "type": "p",
+          "text": "The received order is King Wen’s: thirty hexagrams in the Upper Canon, from 乾 and 坤 to 坎 and 离; thirty-four in the Lower, from 咸 and 恒 to 既济 and 未济. This app’s “64 Hexagrams” follows that order."
+        }
+      ]
+    },
+    {
+      "id": "how-to-read",
+      "title": "How to read the text",
+      "subtitle": "Judgment, lines, Commentary, Images, and the Wings",
+      "blocks": [
+        {
+          "type": "p",
+          "text": "A Yijing usually splits into Classic and Commentaries. The Classic is the Judgment and line texts of the sixty-four hexagrams—the first words you play with after a cast. The Commentaries explain the Classic. Han scholars called them the Ten Wings."
+        },
+        {
+          "type": "figure",
+          "kind": "jing-chuan"
+        },
+        {
+          "type": "p",
+          "text": "The Judgment holds the atmosphere of the whole hexagram, as in 乾 「元亨利贞」. A line text holds that line’s time and place, as in 初九 「潜龙勿用」. The Commentary on the Judgment explains why the Judgment reads as it does. The Image often lands on 「君子以……」—how a person acts by patterning heaven. The Small Image explains that line. The Wenyan is attached only to 乾 and 坤. The Great Treatise is a general essay; 说卦 speaks of the eight images; 序卦 of the sequence; 杂卦 names each hexagram in a short pair."
+        },
+        {
+          "type": "p",
+          "text": "In this app, “64 Hexagrams” lets you read Judgment, Commentary, Image, line texts, and Small Images hexagram by hexagram; 乾 and 坤 also have the Wenyan. “The Wings” holds the Great Treatise, 说卦, 序卦, and 杂卦. Learn the Judgment, the Image, and the line you asked about first; open the Commentary and the Treatise after that."
+        },
+        {
+          "type": "p",
+          "text": "These words are likenesses. They do not forecast one concrete event. They give an atmosphere and a principle. Your work is to play—to turn them over until they map onto the matter you asked and the mind that is moving now."
+        }
+      ]
+    },
+    {
+      "id": "play-the-text",
+      "title": "Watch the image, play the words",
+      "subtitle": "Where study begins",
+      "blocks": [
+        {
+          "type": "quote",
+          "text": "君子居则观其象而玩其辞，动则观其变而玩其占，是以自天祐之，吉无不利。",
+          "cite": "系辞"
+        },
+        {
+          "type": "p",
+          "text": "At rest, watch the image and play with the words. When you must act, watch the change and play with the cast. That sentence is the one on the Cast tab. “Play” is not dabbling. It is Confucius wearing out the binding of a book and still reading."
+        },
+        {
+          "type": "p",
+          "text": "A likeness has no single match. The same 「潜龙勿用」 can be a career not yet time to take office, or a thought not yet time to speak. Through playing the cast, the words find your matter by themselves."
+        },
+        {
+          "type": "p",
+          "text": "A cast throws this present matter into a hexagram, to see the atmosphere now, and where it would go if another change were added. Someone who has learned this feels wise—not by magic, but by seeing the fruit already in the cause. The whole book talks about causes: given this state of conditions, if you go on, the fruit is likely thus; if you correct mind and act, the change is otherwise."
+        },
+        {
+          "type": "p",
+          "text": "So you do not cast to fetch an auspicious or inauspicious label and rest. You cast to correct a life, a thought, a deed. The cases in this app train how words land on events. The Ask card on a result is only an aid. It cannot replace your own lingering with the text."
+        }
+      ]
+    },
+    {
+      "id": "how-to-cast",
+      "title": "How to cast",
+      "subtitle": "Three numbers, time, and three coins",
+      "blocks": [
+        {
+          "type": "p",
+          "text": "The Cast tab has one sentence and a seal. Tap it and you enter Stillness—hold to gather; when the ink is full, go on; skip if you must. Next is the offering: write the question in one matter, one breath. Empty questions cannot go on. Only after the offering do you choose how this hexagram is taken: three numbers, time, or three coins. The first two are the plum-blossom line, stored as “Three numbers” and “Time.” Drop one number at a time; shake one line at a time; a time cast takes only this moment. One matter, one mind. Once asked, read the words. Do not recast until you like the result."
+        },
+        {
+          "type": "p",
+          "text": "The rite is sincerity, not theater. The first four steps are already in the flow: Stillness covers the first two, the offering the third, thanks after the reveal the fourth. Tap 弟子退 before you read. Putting the tools away and beginning the reading is still yours after the hexagram is in hand."
+        },
+        {
+          "type": "list",
+          "items": [
+            "Wash the hands. Sit somewhere quiet. Keep the table clear.",
+            "Settle the body and mind. Be careful with the intention.",
+            "Bow, and pray in silence: 爻变开化之神在上，弟子某某某，今有某事（简单扼要讲清楚）不知休咎，望示一圣卦指示。",
+            "After the hexagram, bow: 感谢爻变开化之神的指示，弟子退。",
+            "Put the tools away, then begin the reading."
+          ]
+        },
+        {
+          "type": "p",
+          "text": "Three numbers: take three positive integers from the top down—upper trigram, lower trigram, moving line. Take them only after Stillness, the offering, and choosing this method. Drop one number at a time: hold a number in mind and write it, or tap Random. When three are set, the hexagram forms. Start over in the corner if you must; numbers already taken are void. This method moves one line only."
+        },
+        {
+          "type": "p",
+          "text": "Time: this moment only, by the twelve double-hours. The instant is when you choose Time, not when you tapped Cast on the home seal—Stillness and the offering still come first. There is no clock picker and no Western-calendar count. Time also sets an upper trigram, a lower trigram, and one moving line."
+        },
+        {
+          "type": "p",
+          "text": "Three coins: shake three coins six times, from the bottom up—first line first, top line last. On screen the top line is above, the first below. Each shake: character is yang, back is yin, making one of the four images below. Enter the toss only after Stillness, the offering, and choosing this method. Shake the phone or tap the coins for one line; six lines complete the hexagram. Hold a coin to pick an image by hand. Start over voids the lines already thrown."
+        },
+        {
+          "type": "table",
+          "rows": [
+            ["Coins", "Line", "Move"],
+            ["Three yang", "Old yang 9", "Moves; yang becomes yin"],
+            ["Two yang, one yin", "Young yin 8", "Still"],
+            ["One yang, two yin", "Young yang 7", "Still"],
+            ["Three yin", "Old yin 6", "Moves; yin becomes yang"]
+          ]
+        },
+        {
+          "type": "p",
+          "text": "After the cast you see the primary hexagram; if a line moved, you also see the relating hexagram. The next chapter is how to name them, and where to look when several lines move."
+        }
+      ]
+    },
+    {
+      "id": "changing-lines",
+      "title": "Primary, relating, and moving lines",
+      "subtitle": "One question, one focus",
+      "blocks": [
+        {
+          "type": "p",
+          "text": "A cast gives the primary hexagram. If a line changes, the hexagram after the change is the relating hexagram. The matter now is the primary; the trend is the relating. Moving lines are the ones that change. When several move, you cannot lean on all six alike. Focus is the place to land first."
+        },
+        {
+          "type": "table",
+          "rows": [
+            ["Moving lines", "Focus"],
+            ["0", "Judgment of the primary"],
+            ["1", "That line of the primary"],
+            ["2", "Both moving lines of the primary; the upper leads"],
+            ["3", "Judgments of both; the primary leads"],
+            ["4", "The two still lines of the relating; the lower leads"],
+            ["5", "The still line of the relating"],
+            ["6", "Judgment of the relating"]
+          ]
+        },
+        {
+          "type": "p",
+          "text": "Focus is a landing, not a license to skip the rest. When one line moves, the result page does not mark “Focus”; you still read that line. Play the focused words thoroughly, then the two hexagrams as a whole. A vague question yields a vague hexagram."
+        }
+      ]
+    },
+    {
+      "id": "path",
+      "title": "A path in, and usual mistakes",
+      "subtitle": "Start from a blank page",
+      "blocks": [
+        {
+          "type": "p",
+          "text": "One way: finish this primer so the Way stays first and the cast last. Then open 64 Hexagrams from 乾 and 坤, and read Judgment and Image aloud. Huangting Chan’s lectures start from 艮 and stress the plenty inside “stopping”; 艮 can be a second door. Then cast one small matter that actually happened, and play the focused words without rushing to a verdict. Then read Cases to see how the same words land on human affairs. If you still have strength, read the Great Treatise and 说卦."
+        },
+        {
+          "type": "links",
+          "links": [
+            { "title": "64 Hexagrams", "subtitle": "Begin with 乾 and 坤", "route": "hexagrams" },
+            { "title": "Cases", "subtitle": "How the words land on events", "route": "cases" },
+            { "title": "The Wings", "subtitle": "Treatise and 说卦 when you have strength", "route": "wings" }
+          ]
+        },
+        {
+          "type": "p",
+          "text": "Usual mistakes:"
+        },
+        {
+          "type": "list",
+          "items": [
+            "Treating the Yijing as fortune-telling, wanting only to know and to dodge. You may gain a moment and lose the moral root.",
+            "Reading later verdicts and lucky labels instead of the text. The words are the atmosphere the sages left; a label cannot play in your place.",
+            "Taking one sentence as the only prophecy of one event, then doubting the book or forcing a fit when it does not match. The words are likenesses. Match the atmosphere and the principle.",
+            "Seeking the method outside the mind. The hexagram has appeared, but you will not look at the mind that is moving. The hexagram is a mirror. It shows the one who asked."
+          ]
+        },
+        {
+          "type": "p",
+          "text": "A beginner can study this, and often should. The app can cast, mark the focus, and set the text and cases beside you. Understanding, correction, and becoming a person still return to this one thought."
+        }
+      ]
+    }
+  ]
+}
