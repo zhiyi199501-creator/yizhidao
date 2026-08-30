@@ -17,8 +17,6 @@ struct NumberDrawActView: View {
 
     /// 取数的节奏，与摇卦幕分开：这里一次落一个数。
     private enum Beat {
-        /// 盖层转场没走完就聚焦，iPhone 11 会卡。
-        static let focusDelay: Double = 0.35
         static let afterNumber: Double = 0.5
         static let beforeComplete: Double = 0.6
 
@@ -43,13 +41,7 @@ struct NumberDrawActView: View {
             VStack(spacing: 0) {
                 header
                 Spacer(minLength: 16)
-                VStack(spacing: 34) {
-                    slotColumn
-                    VStack(spacing: 14) {
-                        entryRow
-                        settleButton
-                    }
-                }
+                drawGrid
                 Spacer(minLength: 16)
                 instruction
             }
@@ -58,10 +50,6 @@ struct NumberDrawActView: View {
             .padding(.bottom, 28)
         }
         .overlay(alignment: .top) { topBar }
-        .task {
-            try? await Task.sleep(nanoseconds: Beat.nanoseconds(Beat.focusDelay))
-            focused = true
-        }
         .onDisappear {
             sequence?.cancel()
             sequence = nil
@@ -119,56 +107,69 @@ struct NumberDrawActView: View {
         return "\(Self.slotNames[drawn.count]) · 共三数"
     }
 
-    private var slotColumn: some View {
-        VStack(spacing: 14) {
+    /// 三列对齐：标签｜虚框／输入框｜随机。虚框左右与实框同宽。
+    /// 输入框仍只此一个，不放进 `ForEach`，以免落定后换身份、键盘掉再弹。
+    private var drawGrid: some View {
+        Grid(alignment: .center, horizontalSpacing: 12, verticalSpacing: 14) {
             ForEach(0..<3, id: \.self) { index in
-                slotRow(index: index)
+                GridRow {
+                    Text(Self.slotNames[index].zh)
+                        .font(.subheadline)
+                        .foregroundStyle(index <= drawn.count ? .secondary : .tertiary)
+                        .frame(width: 56, alignment: .leading)
+                    slotValue(index: index)
+                    Color.clear
+                        .frame(width: 0, height: 0)
+                        .gridCellUnsizedAxes([.horizontal, .vertical])
+                }
+                .frame(height: 34)
+            }
+            if !isComplete {
+                GridRow {
+                    Color.clear
+                        .frame(width: 56, height: 1)
+                    TextField("输入数字".zh, text: $entry)
+                        .keyboardType(.numberPad)
+                        .multilineTextAlignment(.center)
+                        .focused($focused)
+                        .appTextFieldStyle()
+                        .frame(maxWidth: .infinity)
+                    Button("随机".zh) {
+                        entry = String(Int.random(in: 10...999))
+                    }
+                    .buttonStyle(.bordered)
+                    .tint(AppTheme.accent)
+                }
+                .disabled(isSettling)
+                GridRow {
+                    Color.clear
+                        .frame(width: 56, height: 1)
+                    settleButton
+                        .padding(.top, 10)
+                    Color.clear
+                        .frame(width: 0, height: 0)
+                        .gridCellUnsizedAxes([.horizontal, .vertical])
+                }
             }
         }
+        .frame(maxWidth: .infinity)
     }
 
-    private func slotRow(index: Int) -> some View {
-        HStack(spacing: 12) {
-            Text(Self.slotNames[index].zh)
-                .font(.subheadline)
-                .foregroundStyle(index <= drawn.count ? .secondary : .tertiary)
-                .frame(width: 56, alignment: .leading)
-
-            if index < drawn.count {
-                Text("\(drawn[index])")
-                    .font(.title3.monospacedDigit().weight(.semibold))
-                    .foregroundStyle(AppTheme.accent)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            } else {
-                Capsule()
-                    .strokeBorder(
-                        Color.primary.opacity(index == drawn.count ? 0.28 : 0.12),
-                        style: StrokeStyle(lineWidth: 1, dash: [4, 4])
-                    )
-                    .frame(height: 12)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            }
+    @ViewBuilder
+    private func slotValue(index: Int) -> some View {
+        if index < drawn.count {
+            Text("\(drawn[index])")
+                .font(.title3.monospacedDigit().weight(.semibold))
+                .foregroundStyle(AppTheme.accent)
+                .frame(maxWidth: .infinity, alignment: .center)
+        } else {
+            Capsule()
+                .strokeBorder(
+                    Color.primary.opacity(index == drawn.count ? 0.28 : 0.12),
+                    style: StrokeStyle(lineWidth: 1, dash: [4, 4])
+                )
+                .frame(maxWidth: .infinity, maxHeight: 12, alignment: .leading)
         }
-        .frame(height: 34)
-    }
-
-    /// 只此一个输入框，不放进 `slotColumn` 的 `ForEach`：
-    /// 落定一个数就换一行的话输入框会换身份，键盘会掉下去再弹上来。
-    private var entryRow: some View {
-        HStack(spacing: 12) {
-            TextField("输入数字".zh, text: $entry)
-                .keyboardType(.numberPad)
-                .focused($focused)
-                .appTextFieldStyle()
-            Button("随机".zh) {
-                TapSoundPlayer.shared.play()
-                entry = String(Int.random(in: 10...999))
-            }
-            .buttonStyle(.bordered)
-            .tint(AppTheme.accent)
-        }
-        .disabled(isSettling || isComplete)
-        .opacity(isComplete ? 0 : 1)
     }
 
     private var settleButton: some View {
@@ -211,7 +212,6 @@ struct NumberDrawActView: View {
         }
         entry = ""
         RitualHaptics.yaoSettled(moving: false)
-        TapSoundPlayer.shared.play()
 
         sequence = Task { @MainActor in
             do {

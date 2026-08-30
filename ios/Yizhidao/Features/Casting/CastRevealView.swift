@@ -1,7 +1,7 @@
 import SwiftUI
 
-/// 揭卦：六爻自初至上逐根显形，动爻点朱砂，再压印卦名，然后交给结果页。
-/// 轻点任意处跳过。
+/// 揭卦：六爻自初至上逐根显形，动爻点朱砂，再压印卦名。
+/// 压印后停住，完成礼仪第四步，点「弟子退」才进结果页。
 struct CastRevealView: View {
     let result: CastResult
     var onFinish: () -> Void
@@ -13,6 +13,7 @@ struct CastRevealView: View {
     @State private var pulsesCinnabar = false
     @State private var sequence: Task<Void, Never>?
     @State private var didFinish = false
+    @State private var showsThanks = false
 
     private static let cinnabar = Color(red: 0.78, green: 0.19, blue: 0.16)
 
@@ -26,9 +27,8 @@ struct CastRevealView: View {
         static let beforeFinalYao: Double = 0.22
         /// 六爻已满、卦名未出的悬停。
         static let beforeSeal: Double = 0.6
-        static let sealHold: Double = 1.2
-        /// 「减弱动态效果」下整卦淡入后的停留。
-        static let reducedHold: Double = 1.4
+        /// 卦名压印后再停一拍，才出示致谢。
+        static let beforeThanks: Double = 0.45
 
         static func nanoseconds(_ seconds: Double) -> UInt64 {
             UInt64(seconds * 1_000_000_000)
@@ -54,6 +54,7 @@ struct CastRevealView: View {
                 VStack(spacing: 36) {
                     figure
                     seal
+                    thanks
                 }
                 Spacer(minLength: 24)
                 skipHint
@@ -62,14 +63,17 @@ struct CastRevealView: View {
             .padding(.vertical, 44)
         }
         .contentShape(Rectangle())
-        .onTapGesture { skip() }
+        .onTapGesture {
+            guard !showsThanks else { return }
+            skipAnimation()
+        }
         .onAppear { start() }
         .onDisappear {
             sequence?.cancel()
             sequence = nil
         }
         .accessibilityElement(children: .contain)
-        .accessibilityAction(named: Text("跳过".zh)) { skip() }
+        .accessibilityAction(named: Text("跳过动画".zh)) { skipAnimation() }
     }
 
     @ViewBuilder
@@ -138,11 +142,34 @@ struct CastRevealView: View {
         .scaleEffect(showsSeal ? 1 : 1.2)
     }
 
+    private var thanks: some View {
+        VStack(spacing: 18) {
+            Text("感谢爻变开化之神的指示".zh)
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+            Button {
+                finish()
+            } label: {
+                Text("弟子退".zh)
+                    .font(.headline)
+                    .padding(.horizontal, 28)
+                    .padding(.vertical, 10)
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(AppTheme.accent)
+        }
+        .opacity(showsThanks ? 1 : 0)
+        .offset(y: showsThanks ? 0 : 8)
+        .allowsHitTesting(showsThanks)
+        .accessibilityHidden(!showsThanks)
+    }
+
     private var skipHint: some View {
-        Text("轻点跳过".zh)
+        Text("轻点跳过动画".zh)
             .font(.caption2)
             .foregroundStyle(.tertiary)
-            .opacity(didFinish ? 0 : 1)
+            .opacity(showsThanks || didFinish ? 0 : 1)
     }
 
     private func start() {
@@ -171,7 +198,6 @@ struct CastRevealView: View {
                         revealedCount = index + 1
                     }
                     RitualHaptics.yaoSettled(moving: result.movingPositions.contains(index + 1))
-                    TapSoundPlayer.shared.play()
                     try await Task.sleep(nanoseconds: Beat.nanoseconds(Beat.betweenYao))
                 }
                 try await Task.sleep(nanoseconds: Beat.nanoseconds(Beat.beforeSeal))
@@ -179,12 +205,11 @@ struct CastRevealView: View {
                     showsSeal = true
                 }
                 RitualHaptics.seal()
-                TapSoundPlayer.shared.play()
-                try await Task.sleep(nanoseconds: Beat.nanoseconds(Beat.sealHold))
+                try await Task.sleep(nanoseconds: Beat.nanoseconds(Beat.beforeThanks))
             } catch {
-                return // 被跳过取消，收尾交给 skip()
+                return
             }
-            finish()
+            presentThanks()
         }
     }
 
@@ -197,21 +222,29 @@ struct CastRevealView: View {
         RitualHaptics.seal()
         sequence = Task { @MainActor in
             do {
-                try await Task.sleep(nanoseconds: Beat.nanoseconds(Beat.reducedHold))
+                try await Task.sleep(nanoseconds: Beat.nanoseconds(Beat.beforeThanks))
             } catch {
                 return
             }
-            finish()
+            presentThanks()
         }
     }
 
-    private func skip() {
-        guard !didFinish else { return }
+    /// 只跳过逐爻动画，不离开揭卦页。
+    private func skipAnimation() {
+        guard !showsThanks, !didFinish else { return }
         sequence?.cancel()
         sequence = nil
         revealedCount = 6
         showsSeal = true
-        finish()
+        presentThanks()
+    }
+
+    private func presentThanks() {
+        guard !showsThanks else { return }
+        withAnimation(.easeOut(duration: 0.35)) {
+            showsThanks = true
+        }
     }
 
     private func finish() {

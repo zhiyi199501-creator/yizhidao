@@ -121,7 +121,8 @@ struct SavedAIAnalysis: Codable, Identifiable, Hashable {
         primaryNumber: Int,
         lines: [Int]
     ) -> String {
-        "\(methodRaw)|\(createdAt.timeIntervalSince1970)|\(primaryNumber)|\(lines.map(String.init).joined(separator: ","))"
+        let ms = Int64((createdAt.timeIntervalSince1970 * 1000.0).rounded())
+        return "\(methodRaw)|\(ms)|\(primaryNumber)|\(lines.map(String.init).joined(separator: ","))"
     }
 
     static func fingerprint(result: CastResult) -> String {
@@ -272,10 +273,31 @@ enum SavedAIAnalysisStore {
             items[index] = merged
         } else if let index = items.firstIndex(where: { $0.id == item.id }) {
             items[index] = item
+        } else if let index = items.firstIndex(where: { $0.fingerprint == item.fingerprint }) {
+            items[index] = SavedAIAnalysis.make(
+                result: item.toCastResult(),
+                analysis: item.analysis,
+                followUps: item.followUps,
+                readingRecordID: item.readingRecordID ?? items[index].readingRecordID,
+                existingID: items[index].id
+            )
         } else {
             items.insert(item, at: 0)
         }
         save(items)
+    }
+
+    static func matches(_ item: SavedAIAnalysis, recordID: UUID?, result: CastResult) -> Bool {
+        if let recordID, item.readingRecordID == recordID {
+            return true
+        }
+        if item.fingerprint == SavedAIAnalysis.fingerprint(result: result) {
+            return true
+        }
+        return item.methodRaw == result.method.rawValue
+            && item.primaryNumber == result.primaryNumber
+            && item.lines == result.lines.map(\.rawValue)
+            && abs(item.createdAt.timeIntervalSince(result.createdAt)) < 1
     }
 
     static func find(recordID: UUID?, result: CastResult) -> SavedAIAnalysis? {
@@ -284,7 +306,10 @@ enum SavedAIAnalysisStore {
             return hit
         }
         let fp = SavedAIAnalysis.fingerprint(result: result)
-        return items.first { $0.fingerprint == fp }
+        if let hit = items.first(where: { $0.fingerprint == fp }) {
+            return hit
+        }
+        return items.first { matches($0, recordID: recordID, result: result) }
     }
 
     static func remove(id: UUID) {

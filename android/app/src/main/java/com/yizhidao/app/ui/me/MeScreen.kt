@@ -4,11 +4,7 @@ import android.content.Intent
 import android.net.Uri
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
-import androidx.compose.material.icons.outlined.Check
-import androidx.compose.material.icons.automirrored.outlined.VolumeUp
 import androidx.compose.material.icons.outlined.Delete
-import com.yizhidao.app.sound.TapSoundKind
-import com.yizhidao.app.sound.TapSoundPlayer
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -98,6 +94,7 @@ import com.yizhidao.app.classic.ClassicChapter
 import com.yizhidao.app.classic.ClassicWing
 import com.yizhidao.app.classic.YijingIntroBook
 import com.yizhidao.app.ui.reading.ScaledHexagramFigure
+import com.yizhidao.app.ui.reading.ScriptureSourceLine
 import com.yizhidao.app.ui.theme.AppTheme
 import com.yizhidao.app.ui.theme.PaperBackHeader
 import com.yizhidao.app.ui.theme.PaperChevron
@@ -138,7 +135,6 @@ private sealed interface MeRoute {
     data object Cases : MeRoute
     data object Feedback : MeRoute
     data object Settings : MeRoute
-    data object TapSound : MeRoute
     data object Recycle : MeRoute
     data object Intro : MeRoute
     data class IntroChapter(val index: Int) : MeRoute
@@ -221,11 +217,7 @@ fun MeScreen(
             session = session,
             onBack = { route = MeRoute.Home },
             onOpenRecycle = { route = MeRoute.Recycle },
-            onOpenTapSound = { route = MeRoute.TapSound },
             onLogout = { container.authStore.logout() },
-        )
-        MeRoute.TapSound -> TapSoundPage(
-            onBack = { route = MeRoute.Settings },
         )
         MeRoute.Recycle -> RecycleBinPage(
             container = container,
@@ -773,11 +765,9 @@ private fun SettingsPage(
     session: LocalUserSession,
     onBack: () -> Unit,
     onOpenRecycle: () -> Unit,
-    onOpenTapSound: () -> Unit,
     onLogout: () -> Unit,
 ) {
     val trash by container.readingRepository.trash.collectAsState()
-    val tapSound = TapSoundPlayer.current()
     var showLogoutConfirm by remember { mutableStateOf(false) }
     Column(Modifier.fillMaxSize()) {
         PaperBackHeader(title = "设置", onBack = onBack)
@@ -788,22 +778,6 @@ private fun SettingsPage(
                 .padding(horizontal = 16.dp)
                 .padding(bottom = 24.dp),
         ) {
-            MeCard {
-                MeRow(
-                    icon = Icons.AutoMirrored.Outlined.VolumeUp,
-                    title = "按键音效",
-                    trailing = {
-                        Text(
-                            tapSound.title,
-                            fontSize = 15.sp,
-                            color = AppTheme.secondaryText,
-                            style = AppTheme.compactText,
-                        )
-                    },
-                    onClick = onOpenTapSound,
-                )
-            }
-            Spacer(Modifier.height(12.dp))
             MeCard {
                 MeRow(
                     icon = Icons.Outlined.Delete,
@@ -852,57 +826,6 @@ private fun SettingsPage(
             },
             containerColor = AppTheme.parchmentTop,
         )
-    }
-}
-
-@Composable
-private fun TapSoundPage(onBack: () -> Unit) {
-    var selected by remember { mutableStateOf(TapSoundPlayer.current()) }
-    val context = androidx.compose.ui.platform.LocalContext.current
-    Column(Modifier.fillMaxSize()) {
-        PaperBackHeader(title = "按键音效", onBack = onBack)
-        Column(
-            Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp)
-                .padding(bottom = 24.dp),
-        ) {
-            MeCard {
-                TapSoundKind.entries.forEachIndexed { index, kind ->
-                    MeRow(
-                        icon = null,
-                        title = kind.title,
-                        showChevron = false,
-                        trailing = {
-                            if (selected == kind) {
-                                Icon(
-                                    Icons.Outlined.Check,
-                                    contentDescription = zh("已选"),
-                                    tint = AppTheme.accent,
-                                    modifier = Modifier.size(20.dp),
-                                )
-                            }
-                        },
-                        onClick = {
-                            selected = kind
-                            TapSoundPlayer.setKind(context, kind)
-                        },
-                    )
-                    if (index < TapSoundKind.entries.lastIndex) {
-                        MeDivider()
-                    }
-                }
-            }
-            Text(
-                "点按「随机」「摇」时播放。系统静音时不会出声。",
-                fontSize = 13.sp,
-                color = AppTheme.secondaryText,
-                lineHeight = 18.sp,
-                style = AppTheme.compactText,
-                modifier = Modifier.padding(start = 4.dp, top = 10.dp),
-            )
-        }
     }
 }
 
@@ -1540,6 +1463,7 @@ private fun HexagramReader(hex: Hexagram, imaStore: ImaExplanationStore, onBack:
                     onSelectExplanation = { selectedEntry = it },
                 )
             }
+            ScriptureSourceLine(Modifier.align(Alignment.End))
         }
     }
     selectedEntry?.let { entry ->
@@ -1565,6 +1489,7 @@ private fun ChapterReader(wingTitle: String, chapter: ClassicChapter, onBack: ()
             chapter.paragraphs.forEach { paragraph ->
                 ScriptureCard(body = paragraph)
             }
+            ScriptureSourceLine(Modifier.align(Alignment.End))
         }
     }
 }

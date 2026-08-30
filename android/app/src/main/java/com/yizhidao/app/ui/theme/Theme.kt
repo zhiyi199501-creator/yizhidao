@@ -360,12 +360,14 @@ fun PaperTextField(
     horizontalPadding: Dp = 10.dp,
     leading: @Composable (() -> Unit)? = null,
     trailing: @Composable (() -> Unit)? = null,
+    textAlign: TextAlign = TextAlign.Start,
 ) {
     val textStyle = AppTheme.compactText.merge(
         TextStyle(
             color = AppTheme.ink,
             fontSize = 17.sp,
             lineHeight = 22.sp,
+            textAlign = textAlign,
         ),
     )
     val lineHeight = with(LocalDensity.current) { 22.sp.toDp() }
@@ -404,10 +406,20 @@ fun PaperTextField(
                     Modifier
                         .weight(1f)
                         .then(if (singleLine) Modifier.fillMaxHeight() else Modifier),
-                    contentAlignment = if (singleLine) Alignment.CenterStart else Alignment.TopStart,
+                    contentAlignment = if (singleLine) {
+                        if (textAlign == TextAlign.Center) Alignment.Center else Alignment.CenterStart
+                    } else {
+                        Alignment.TopStart
+                    },
                 ) {
                     if (value.isEmpty()) {
-                        Text(placeholder, color = AppTheme.placeholder, style = textStyle)
+                        Text(
+                            placeholder,
+                            color = AppTheme.placeholder,
+                            textAlign = textAlign,
+                            modifier = if (textAlign == TextAlign.Center) Modifier.fillMaxWidth() else Modifier,
+                            style = textStyle,
+                        )
                     }
                     inner()
                 }

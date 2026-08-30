@@ -118,7 +118,28 @@ fun AIAnalysisScreen(
         savedID = item.id
     }
 
+    fun applySaved(existing: SavedAIAnalysis) {
+        analysis = existing.analysis.let {
+            AuthApi.AIAnalyzeResponse.Analysis(
+                summary = it.summary,
+                focus = it.focus,
+                advice = it.advice,
+                direction = it.direction,
+                risks = it.risks,
+                askNext = it.askNext,
+            )
+        }
+        followUps = existing.followUps
+        savedID = existing.id
+        isLoading = false
+    }
+
     fun runAnalysis() {
+        val existing = analysisStore.find(readingRecordId, result)
+        if (existing != null) {
+            applySaved(existing)
+            return
+        }
         val token = authStore.session.value.accessToken
         if (token.isNullOrBlank()) {
             errorMessage = "请先登录"
@@ -179,8 +200,12 @@ fun AIAnalysisScreen(
         }
     }
 
-    LaunchedEffect(saved?.id) {
-        if (saved == null && analysis == null) {
+    LaunchedEffect(saved?.id, readingRecordId) {
+        if (analysis != null) return@LaunchedEffect
+        val existing = saved ?: analysisStore.find(readingRecordId, result)
+        if (existing != null) {
+            applySaved(existing)
+        } else {
             runAnalysis()
         }
     }

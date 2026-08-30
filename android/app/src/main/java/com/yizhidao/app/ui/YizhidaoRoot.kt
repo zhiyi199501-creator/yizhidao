@@ -104,6 +104,7 @@ fun YizhidaoRoot(container: AppContainer) {
                         CastingHomeScreen(
                             container = container,
                             onResult = { pendingResult = it },
+                            onTabBarVisible = { hideTabBar = !it },
                         )
                     }
                 }

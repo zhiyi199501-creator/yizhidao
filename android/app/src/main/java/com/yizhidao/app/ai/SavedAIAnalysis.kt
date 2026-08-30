@@ -131,15 +131,25 @@ class SavedAIAnalysisStore(context: Context) {
     }
 
     fun upsert(item: SavedAIAnalysis) {
-        val current = load().toMutableList()
+        val current = _items.value.toMutableList()
         val byRecord = item.readingRecordId
             ?.takeIf { it.isNotBlank() }
             ?.let { rid -> current.indexOfFirst { it.readingRecordId == rid } }
             ?: -1
-        val index = if (byRecord >= 0) byRecord else current.indexOfFirst { it.id == item.id }
+        val byId = current.indexOfFirst { it.id == item.id }
+        val byFingerprint = current.indexOfFirst { it.fingerprint() == item.fingerprint() }
+        val index = when {
+            byRecord >= 0 -> byRecord
+            byId >= 0 -> byId
+            byFingerprint >= 0 -> byFingerprint
+            else -> -1
+        }
         if (index >= 0) {
-            val keepId = current[index].id
-            current[index] = if (keepId == item.id) item else item.copy(id = keepId)
+            val keep = current[index]
+            current[index] = item.copy(
+                id = keep.id,
+                readingRecordId = item.readingRecordId ?: keep.readingRecordId,
+            )
         } else {
             current.add(0, item)
         }
@@ -147,16 +157,17 @@ class SavedAIAnalysisStore(context: Context) {
     }
 
     fun find(recordId: String?, result: CastResult): SavedAIAnalysis? {
-        val items = load()
+        val items = _items.value
         if (!recordId.isNullOrBlank()) {
             items.firstOrNull { it.readingRecordId == recordId }?.let { return it }
         }
         val fp = SavedAIAnalysis.fingerprint(result)
-        return items.firstOrNull { it.fingerprint() == fp }
+        items.firstOrNull { it.fingerprint() == fp }?.let { return it }
+        return items.firstOrNull { matches(it, recordId, result) }
     }
 
     fun remove(id: String) {
-        save(load().filterNot { it.id == id })
+        save(_items.value.filterNot { it.id == id })
     }
 
     private fun save(items: List<SavedAIAnalysis>) {
@@ -167,5 +178,14 @@ class SavedAIAnalysisStore(context: Context) {
     companion object {
         private const val PREFS = "ai.saved.analyses.v1"
         private const val KEY = "items"
+
+        fun matches(item: SavedAIAnalysis, recordId: String?, result: CastResult): Boolean {
+            if (!recordId.isNullOrBlank() && item.readingRecordId == recordId) return true
+            if (item.fingerprint() == SavedAIAnalysis.fingerprint(result)) return true
+            return item.methodRaw == result.method.raw
+                && item.primaryNumber == result.primaryNumber
+                && item.lines == result.lines.map { it.rawValue }
+                && kotlin.math.abs(item.createdAtEpochMs - result.createdAt.toEpochMilli()) < 1000
+        }
     }
 }

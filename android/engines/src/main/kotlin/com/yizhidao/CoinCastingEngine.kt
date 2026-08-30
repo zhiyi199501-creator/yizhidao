@@ -22,6 +22,15 @@ class SecureRandomSource(
     }
 }
 
+/** 一掷三枚的落面。摇卦画面要把三枚分别画出来，光有 `LineValue` 不够。 */
+data class CoinToss(
+    /** 初 → 末三枚，`true` 为字面（阳）。 */
+    val faces: List<Boolean>,
+) {
+    val yangCount: Int get() = faces.count { it }
+    val line: LineValue get() = CoinCastingEngine.line(yangCount)
+}
+
 object CoinCastingEngine {
     /** Character side (字) = yang 3; Manchu/back (背) = yin 2. */
     fun line(fromYangCount: Int): LineValue = when (fromYangCount) {
@@ -32,13 +41,12 @@ object CoinCastingEngine {
         else -> error("yangCount must be 0...3")
     }
 
-    fun tossLine(rng: RandomSource): LineValue {
-        var yang = 0
-        repeat(3) {
-            if (rng.nextBoolean()) yang += 1
-        }
-        return line(fromYangCount = yang)
-    }
+    fun toss(rng: RandomSource): CoinToss =
+        CoinToss(faces = List(3) { rng.nextBoolean() })
+
+    fun toss(): CoinToss = toss(SecureRandomSource())
+
+    fun tossLine(rng: RandomSource): LineValue = toss(rng).line
 
     fun tossLine(): LineValue = tossLine(SecureRandomSource())
 

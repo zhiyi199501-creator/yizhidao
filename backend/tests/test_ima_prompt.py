@@ -1,3 +1,4 @@
+import json
 import unittest
 from pathlib import Path
 import sys
@@ -5,8 +6,8 @@ import sys
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from app.services.ai import _hex_block, explanation_slots
-from app.services.ima_format import blocks, prompt_text, stripped
-from app.services.ima_store import get_entry
+from app.services.ima_format import blocks, clean_catalog_answers, prompt_text, stripped
+from app.services.ima_store import get_entry, resolve_ima_path
 
 
 class ImaFormatTests(unittest.TestCase):
@@ -86,6 +87,24 @@ class ExplanationSlotTests(unittest.TestCase):
 
 
 class ImaStoreTests(unittest.TestCase):
+    def test_packaged_answers_are_prestripped(self):
+        path = resolve_ima_path()
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        entries = payload.get("entries") or {}
+        self.assertGreater(len(entries), 100)
+        dirty = [
+            entry_id
+            for entry_id, entry in entries.items()
+            if stripped(entry.get("answer") or "") != (entry.get("answer") or "")
+        ]
+        self.assertEqual(dirty, [])
+
+    def test_clean_catalog_answers_rewrites_footnotes(self):
+        entries = {"01-guaci": {"answer": "永远不行动 1\n思考过程\n1. 小畜不是小气"}}
+        self.assertEqual(clean_catalog_answers(entries), 1)
+        self.assertEqual(entries["01-guaci"]["answer"], "永远不行动\n1. 小畜不是小气")
+        self.assertEqual(clean_catalog_answers(entries), 0)
+
     def test_loads_qian_guaci(self):
         entry = get_entry("01-guaci")
         self.assertIsNotNone(entry)

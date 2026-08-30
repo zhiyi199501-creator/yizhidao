@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""从 data/ima-explanations/ 重建包内 ImaExplanations.json。会覆盖手改与后台保存的 answer；改过后不要跑。"""
+"""从 data/ima-explanations/ 重建包内 ImaExplanations.json。会覆盖手改与后台保存的 answer；改过后不要跑。写入前会去掉出处后标与整行「思考过程」。"""
 from __future__ import annotations
 
 import json
@@ -7,7 +7,9 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "backend"))
 sys.path.insert(0, str(ROOT / "scripts"))
+from app.services.ima_format import clean_catalog_answers  # noqa: E402
 from ima_units import is_bad  # noqa: E402
 
 ANSWERS = ROOT / "data/ima-explanations/answers.json"
@@ -79,6 +81,7 @@ def main() -> None:
         raise SystemExit(f"missing {ANSWERS}")
     store = json.loads(ANSWERS.read_text(encoding="utf-8"))
     entries = build_entries(store.get("answers", {}))
+    clean_catalog_answers(entries)
     payload = {
         "version": 1,
         "source": "黄庭书院 · IMA 知识库",

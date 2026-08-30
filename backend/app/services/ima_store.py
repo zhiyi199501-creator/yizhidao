@@ -5,7 +5,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from app.config import settings
 from app.errors import AppError
-from app.services.ima_format import prompt_text
+from app.services.ima_format import prompt_text, stripped
 
 _REPO_ROOT = Path(__file__).resolve().parents[3]
 _DEFAULT_PATH = _REPO_ROOT / "ios/Yizhidao/Resources/ImaExplanations.json"
@@ -103,7 +103,7 @@ def entries_for_hexagram(number: int) -> List[Dict[str, Any]]:
                 "id": entry_id,
                 "title": entry.get("title") or "",
                 "scripture": entry.get("scripture") or "",
-                "answer": entry.get("answer") or "",
+                "answer": stripped(entry.get("answer") or ""),
                 "_rank": rank.get(suffix, 99),
             }
         )
@@ -121,7 +121,7 @@ def save_entry_answer(entry_id: str, answer: str) -> Dict[str, Any]:
     entries = raw.get("entries") if isinstance(raw, dict) else None
     if not isinstance(entries, dict) or entry_id not in entries:
         raise AppError("找不到该条讲解", code=4001, status_code=404)
-    entries[entry_id]["answer"] = answer
+    entries[entry_id]["answer"] = stripped(answer)
     path = resolve_ima_write_path()
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp = path.with_name(path.name + ".tmp")

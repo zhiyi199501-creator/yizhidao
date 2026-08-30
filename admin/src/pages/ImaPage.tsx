@@ -49,7 +49,7 @@ export function ImaPage() {
         <div className="meta">只改 answer · title / 经文只读</div>
       </div>
       <p className="banner">
-        保存后<strong>服务端 AI 立刻</strong>用新稿。App 点经文弹层读的是包内 JSON，要<strong>下次发 App</strong>才变。不要再跑
+        原稿与编辑框都按 App 弹层清洗（去掉出处后标／整行「思考过程」）。保存后<strong>服务端 AI 立刻</strong>用新稿。App 点经文弹层读的是包内 JSON，要<strong>下次发 App</strong>才变。不要再跑
         export_ima_explanations.py（会覆盖手改）。
       </p>
       {error ? <p className="error">{error}</p> : null}

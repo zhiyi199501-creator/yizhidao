@@ -11,7 +11,6 @@ import com.yizhidao.app.classic.YijingIntroBook
 import com.yizhidao.app.classic.YijingIntroCodec
 import com.yizhidao.app.ai.SavedAIAnalysisStore
 import com.yizhidao.app.ima.ImaExplanationStore
-import com.yizhidao.app.sound.TapSoundPlayer
 
 class YizhidaoApplication : Application() {
     lateinit var container: AppContainer
@@ -20,7 +19,6 @@ class YizhidaoApplication : Application() {
     override fun onCreate() {
         super.onCreate()
         AppHttp.init(this)
-        TapSoundPlayer.init(this)
         container = AppContainer(this)
     }
 }

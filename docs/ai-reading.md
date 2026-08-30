@@ -8,7 +8,7 @@
 
 ## 用户路径
 
-结果页悬浮 **问**：该占已有问答则直接打开；没有则自动 `POST /v1/ai/analyze`（需登录）。页标题「问答」。卡片：事情背景 / 当下 / 方向 / 建议 / 可以接着问。须防只一条，并入建议（条目前加「须防：」），接口仍单独返回 `risks`。长文由 App `AIAnswerFormatter` 在展示层按句分段，不改存盘。问答详情右上角「同类」与结果页相同（进历史同卦明细）。App 起卦所问必填；接口仍接受空所问（旧记录），空时「可以接着问」固定为「我的事业会如何？」「我的感情会如何？」。点短问即发出（不填入输入框），或自写后发 → `POST /v1/ai/followup` → 回复 + 这一轮建议；最新一轮仍给「可以接着问」（须是用户口吻，用「我」）。初次的短问在已有追问后藏掉。问答自动保存到本地「问答」Tab（一占一条）；追问成功会更新该条。
+结果页悬浮 **问**：该占已有问答则直接打开，**禁止重打** `analyze`。没有则自动 `POST /v1/ai/analyze`（需登录）。刚起完的卦进入结果页约 2 秒后自动打开问答，只自动一次。页标题「问答」。卡片：事情背景 / 当下 / 方向 / 建议 / 可以接着问。须防只一条，并入建议（条目前加「须防：」），接口仍单独返回 `risks`。长文由 App `AIAnswerFormatter` 在展示层按句分段，不改存盘。问答详情右上角「同类」与结果页相同（进历史同卦明细）。所问必填（告神幕）；接口仍接受空所问（旧记录），空时「可以接着问」固定为「我的事业会如何？」「我的感情会如何？」。点短问即发出（不填入输入框），或自写后发 → `POST /v1/ai/followup` → 回复 + 这一轮建议；最新一轮仍给「可以接着问」（须是用户口吻，用「我」）。初次的短问在已有追问后藏掉。问答自动保存到本地「问答」Tab（一占一条）；追问成功会更新该条。
 
 旧客户端只读 `summary` / `focus` / `advice` 和追问 `reply`，多出的字段可忽略。
 
@@ -54,7 +54,7 @@
 
 **经文块**（本卦、之卦各一块，《易经证释》所引）：卦名、卦辞、彖辞、大象、六爻辞、六小象。不附文言、用九、用六。
 
-**黄庭讲解**（`explanation_slots` → `ImaExplanations.json`，清洗与 App `ImaAnswerFormatter` 相同：去「思考过程」、出处脚注）：
+**黄庭讲解**（`explanation_slots` → `ImaExplanations.json`，包内原稿已预清洗；运行时与 App `ImaAnswerFormatter` 再洗一遍：去「思考过程」、出处脚注）：
 
 
 | 动爻数 | 必给                                           | 另给                         |
@@ -90,8 +90,8 @@
 
 ## App
 
-- iOS：`ResultView` + `AuthAPI`（`YizhidaoApp.swift`）；本地 `SavedAIAnalysis.swift`（一占一条；旧 JSON 缺 `readingRecordID` 时按卦象指纹对上）
-- Android：`AIAnalysisScreen.kt` + `AuthApi.kt`；本地 `SavedAIAnalysis.kt`（`readingRecordId`）
+- iOS：`ResultView` + `AuthAPI`（`YizhidaoApp.swift`）；本地 `SavedAIAnalysis.swift`（一占一条；按 `readingRecordID`，旧 JSON 缺 ID 时按卦象指纹／时刻容差对上；对上了就展示，不再请求）
+- Android：`AIAnalysisScreen.kt` + `AuthApi.kt`；本地 `SavedAIAnalysis.kt`（`readingRecordId`；`find` 读内存列表，同样禁止已存再 analyze）
 - 展示层卡片标题是中文「事情背景」等，不把 JSON 键名秀给用户。须防不单独成卡，只一条并入建议（条目前加「须防：」）
 - 点「可以接着问」直接发出，不填入输入框。所问为空时这两项固定为「我的事业会如何？」「我的感情会如何？」（服务端覆盖，不靠模型）；有所问时模型须用「我」的口吻拟短问
 

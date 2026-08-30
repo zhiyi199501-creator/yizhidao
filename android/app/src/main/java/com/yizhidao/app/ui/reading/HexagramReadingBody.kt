@@ -128,13 +128,7 @@ fun HexagramReadingBody(
             )
         }
 
-        Text(
-            "经文版本：《易经证释》所引",
-            fontSize = 11.sp,
-            color = AppTheme.secondaryText,
-            style = AppTheme.compactText,
-            modifier = Modifier.align(Alignment.End),
-        )
+        ScriptureSourceLine(modifier = Modifier.align(Alignment.End))
     }
 
     selectedEntry?.let { entry ->
@@ -265,4 +259,15 @@ private fun shouldShowLead(
         is ReadingFocus.Kind.ResultingLines -> tab == HexTab.Resulting && kind.lead == position
         else -> false
     }
+}
+
+@Composable
+fun ScriptureSourceLine(modifier: Modifier = Modifier) {
+    Text(
+        "经文版本：《易经证释》所引",
+        fontSize = 11.sp,
+        color = AppTheme.secondaryText,
+        style = AppTheme.compactText,
+        modifier = modifier,
+    )
 }

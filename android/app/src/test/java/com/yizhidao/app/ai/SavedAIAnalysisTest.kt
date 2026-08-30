@@ -42,6 +42,19 @@ class SavedAIAnalysisTest {
         assertEquals(SavedAIAnalysis.fingerprint(result), second.fingerprint())
     }
 
+    @Test
+    fun matchesSameCastWithoutRecordId() {
+        val result = sampleResult(createdAtMs = 1_700_000_000_123L)
+        val saved = SavedAIAnalysis.make(
+            result = result,
+            analysis = SavedAIContent("背景", "当下", listOf("建议")),
+            followUps = emptyList(),
+        )
+        assertEquals(true, SavedAIAnalysisStore.matches(saved, recordId = "later-id", result = result))
+        val nearby = result.copy(createdAt = Instant.ofEpochMilli(1_700_000_000_800L))
+        assertEquals(true, SavedAIAnalysisStore.matches(saved, recordId = null, result = nearby))
+    }
+
     private fun sampleResult(createdAtMs: Long) = CastResult(
         method = CastingMethod.DIGITAL_MANUAL,
         createdAt = Instant.ofEpochMilli(createdAtMs),

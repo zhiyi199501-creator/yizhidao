@@ -18,7 +18,6 @@ struct YizhidaoApp: App {
         UserDefaults.standard.set(false, forKey: "NSURLSessionHTTP3Enabled")
         _ = HexagramStore.shared
         _ = ImaExplanationStore.shared
-        TapSoundPlayer.shared.prepare()
     }
 
     var body: some Scene {
@@ -1547,7 +1546,6 @@ private struct FeedbackView: View {
 private struct SettingsView: View {
     @Binding var session: LocalUserSession
     @Environment(\.dismiss) private var dismiss
-    @AppStorage(TapSoundPlayer.defaultsKey) private var tapSound: TapSoundKind = .none
     @State private var showLogoutConfirm = false
     @State private var showDeleteConfirm = false
     @State private var isDeletingAccount = false
@@ -1556,19 +1554,6 @@ private struct SettingsView: View {
 
     var body: some View {
         List {
-            Section {
-                NavigationLink {
-                    TapSoundSettingsView()
-                } label: {
-                    HStack {
-                        Label("按键音效".zh, systemImage: "speaker.wave.2")
-                        Spacer()
-                        Text(tapSound.title.zh)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-            }
-
             Section {
                 NavigationLink {
                     RecycleBinView()
@@ -1655,39 +1640,6 @@ private struct SettingsView: View {
         } catch {
             deleteErrorMessage = LoginError.describe(error)
         }
-    }
-}
-
-private struct TapSoundSettingsView: View {
-    @AppStorage(TapSoundPlayer.defaultsKey) private var tapSound: TapSoundKind = .none
-
-    var body: some View {
-        List {
-            Section {
-                ForEach(TapSoundKind.allCases) { kind in
-                    Button {
-                        tapSound = kind
-                        TapSoundPlayer.shared.play(kind: kind)
-                    } label: {
-                        HStack {
-                            Text(kind.title.zh)
-                            Spacer()
-                            if tapSound == kind {
-                                Image(systemName: "checkmark")
-                                    .foregroundStyle(AppTheme.accent)
-                            }
-                        }
-                    }
-                    .buttonStyle(.plain)
-                }
-            } footer: {
-                Text("点按「随机」「摇」时播放。系统静音时不会出声。".zh)
-            }
-        }
-        .scrollContentBackground(.hidden)
-        .navigationTitle("按键音效".zh)
-        .navigationBarTitleDisplayMode(.inline)
-        .parchmentBackground()
     }
 }
 

@@ -16,6 +16,10 @@ struct ResultView: View {
     @State private var savedRecord: ReadingRecord?
     @State private var showAIAnalysis = false
     @State private var showLoginForAI = false
+    @State private var didAutoOpenAI = false
+    @State private var aiRecordID: UUID?
+    @State private var editingQuestion = false
+    @FocusState private var questionFocused: Bool
 
     private var resultForAnalysis: CastResult {
         let trimmedQuestion = questionText.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -67,16 +71,7 @@ struct ResultView: View {
         }
         .overlay(alignment: .bottomTrailing) {
             AIFloatingButton {
-                persistNewRecordIfNeeded()
-                let existing = SavedAIAnalysisStore.find(
-                    recordID: editableRecord?.id,
-                    result: resultForAnalysis
-                )
-                if existing != nil || LocalAuthStore.load().isLoggedIn {
-                    showAIAnalysis = true
-                } else {
-                    showLoginForAI = true
-                }
+                openAIAnalysis()
             }
             .padding(.trailing, 20)
             .padding(.bottom, 24)
@@ -99,7 +94,7 @@ struct ResultView: View {
         .navigationDestination(isPresented: $showAIAnalysis) {
             AIAnalysisView(
                 result: resultForAnalysis,
-                readingRecordID: editableRecord?.id,
+                readingRecordID: aiRecordID ?? editableRecord?.id,
                 showSimilarHexagramButton: showSimilarHexagramButton
             )
         }
@@ -112,6 +107,28 @@ struct ResultView: View {
         }
         .onAppear {
             persistNewRecordIfNeeded()
+        }
+        .task {
+            guard isNew, !didAutoOpenAI else { return }
+            persistNewRecordIfNeeded()
+            try? await Task.sleep(nanoseconds: 2_000_000_000)
+            guard !didAutoOpenAI, !showAIAnalysis, !showLoginForAI, !editingQuestion else { return }
+            openAIAnalysis()
+        }
+    }
+
+    private func openAIAnalysis() {
+        didAutoOpenAI = true
+        persistNewRecordIfNeeded()
+        aiRecordID = editableRecord?.id
+        let existing = SavedAIAnalysisStore.find(
+            recordID: aiRecordID,
+            result: resultForAnalysis
+        )
+        if existing != nil || LocalAuthStore.load().isLoggedIn {
+            showAIAnalysis = true
+        } else {
+            showLoginForAI = true
         }
     }
 
@@ -135,25 +152,56 @@ struct ResultView: View {
                 .font(.footnote)
                 .foregroundStyle(.secondary)
             if editableRecord != nil {
-                    TextField("所问何事", text: $questionText, axis: .vertical)
-                        .lineLimit(2...5)
-                        .appTextFieldStyle()
-                        .onChange(of: questionText) { _, newValue in
-                            persistQuestion(newValue)
-                        }
+                    questionRow
             } else if let question = result.question, !question.isEmpty {
                 Text("所问：\(question)".zh)
                     .font(.body)
-            }
-            if let numbers = result.numbers {
-                Text("取数：\(numbers.map(String.init).joined(separator: " · "))".zh)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding()
         .background(RoundedRectangle(cornerRadius: 12).fill(AppTheme.cardFill))
+    }
+
+    private var questionRow: some View {
+        HStack(alignment: .top, spacing: 8) {
+            if editingQuestion {
+                TextField("所问何事".zh, text: $questionText, axis: .vertical)
+                    .lineLimit(2...5)
+                    .appTextFieldStyle()
+                    .focused($questionFocused)
+                Button {
+                    commitQuestion()
+                } label: {
+                    Image(systemName: "checkmark")
+                        .font(.body.weight(.semibold))
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(canCommitQuestion ? AppTheme.accent : AppTheme.accent.opacity(0.35))
+                .disabled(!canCommitQuestion)
+                .accessibilityLabel("完成编辑所问".zh)
+                .padding(.top, 8)
+            } else {
+                Text(questionText.isEmpty ? "所问何事".zh : questionText)
+                    .font(.body)
+                    .foregroundStyle(questionText.isEmpty ? .secondary : .primary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                Button {
+                    editingQuestion = true
+                    questionFocused = true
+                } label: {
+                    Image(systemName: "square.and.pencil")
+                        .font(.body)
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(AppTheme.accent)
+                .accessibilityLabel("编辑所问".zh)
+            }
+        }
+    }
+
+    private var canCommitQuestion: Bool {
+        !questionText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
     private var verificationSection: some View {
@@ -179,11 +227,14 @@ struct ResultView: View {
         .background(RoundedRectangle(cornerRadius: 12).fill(AppTheme.cardFill))
     }
 
-    private func persistQuestion(_ text: String) {
-        guard let editableRecord else { return }
-        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        editableRecord.question = trimmed.isEmpty ? nil : trimmed
+    private func commitQuestion() {
+        let trimmed = questionText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty, let editableRecord else { return }
+        questionText = trimmed
+        editableRecord.question = trimmed
         try? modelContext.save()
+        editingQuestion = false
+        questionFocused = false
     }
 
     private func persistVerification(status: VerificationStatus, note: String) {
@@ -579,6 +630,9 @@ struct AIAnalysisView: View {
         }
         .task {
             if analysis == nil {
+                if applySavedAnalysisIfAvailable() {
+                    return
+                }
                 await runAnalysis()
             }
         }
@@ -739,7 +793,22 @@ struct AIAnalysisView: View {
     }
 
     @MainActor
+    private func applySavedAnalysisIfAvailable() -> Bool {
+        guard let saved = SavedAIAnalysisStore.find(recordID: readingRecordID, result: result) else {
+            return false
+        }
+        analysis = AuthAPI.AIAnalyzeResponse.Analysis(saved: saved.analysis)
+        followUps = saved.followUps
+        savedID = saved.id
+        isLoading = false
+        return true
+    }
+
+    @MainActor
     private func runAnalysis() async {
+        if applySavedAnalysisIfAvailable() {
+            return
+        }
         guard let token = LocalAuthStore.load().accessToken else {
             errorMessage = "请先登录"
             isLoading = false

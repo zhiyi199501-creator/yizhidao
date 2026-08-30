@@ -2,8 +2,7 @@
 import UIKit
 #endif
 
-/// 起卦流程的触觉反馈。按键音效默认是「无」，静音的用户全靠触觉感知节奏，
-/// 所以这里不跟 `TapSoundPlayer` 的设置绑定。
+/// 起卦流程的触觉反馈。
 @MainActor
 enum RitualHaptics {
     #if canImport(UIKit)

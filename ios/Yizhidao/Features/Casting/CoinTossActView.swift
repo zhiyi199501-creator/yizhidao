@@ -249,7 +249,6 @@ struct CoinTossActView: View {
                         settledCoins = index + 1
                     }
                     RitualHaptics.yaoSettled(moving: false)
-                    TapSoundPlayer.shared.play()
                     try await Task.sleep(nanoseconds: Beat.nanoseconds(Beat.betweenCoins))
                 }
                 try await Task.sleep(nanoseconds: Beat.nanoseconds(Beat.beforeYao))

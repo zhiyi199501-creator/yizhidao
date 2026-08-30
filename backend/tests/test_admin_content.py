@@ -209,7 +209,7 @@ class ImaEditTests(_AdminClientMixin, unittest.TestCase):
                     "01-guaci": {
                         "title": "乾卦卦辞",
                         "scripture": "乾，元亨利贞。",
-                        "answer": "旧讲解",
+                        "answer": "永远不行动 1\n1. 小畜不是小气",
                     }
                 },
             }
@@ -246,7 +246,24 @@ class ImaEditTests(_AdminClientMixin, unittest.TestCase):
         one = self.client.get("/v1/admin/ima/1")
         self.assertEqual(one.status_code, 200)
         self.assertEqual(one.json()["entries"][0]["id"], "01-guaci")
+        self.assertEqual(
+            one.json()["entries"][0]["answer"],
+            "永远不行动\n1. 小畜不是小气",
+        )
         self.assertNotIn("entries", index.json())
+
+    def test_save_ima_answer_strips_citation_footnotes(self):
+        self._login()
+        saved = self.client.put(
+            "/v1/admin/ima/entries/01-guaci",
+            json={"answer": "这就是勇气 1。\n1. 小畜不是小气"},
+        )
+        self.assertEqual(saved.status_code, 200, saved.text)
+        cleaned = "这就是勇气。\n1. 小畜不是小气"
+        self.assertEqual(saved.json()["entry"]["answer"], cleaned)
+        entry = get_entry("01-guaci")
+        self.assertIsNotNone(entry)
+        self.assertEqual(entry["answer"], cleaned)
 
 
 class JingwenAndEvalTests(_AdminClientMixin, unittest.TestCase):

@@ -572,6 +572,7 @@ struct ClassicHexagramDetailView: View {
                         }
                     }
                 }
+                ScriptureSourceLine()
             }
             .padding()
         }
@@ -678,6 +679,7 @@ struct ClassicChapterDetailView: View {
                         .padding()
                         .background(RoundedRectangle(cornerRadius: 12).fill(AppTheme.cardFill))
                 }
+                ScriptureSourceLine()
             }
             .padding()
         }
@@ -777,6 +779,15 @@ struct ZhengshiSectionView: View {
         .navigationTitle(title.zh)
         .navigationBarTitleDisplayMode(.inline)
         .parchmentBackground()
+    }
+}
+
+private struct ScriptureSourceLine: View {
+    var body: some View {
+        Text("经文版本：《易经证释》所引".zh)
+            .font(.caption2)
+            .foregroundStyle(.tertiary)
+            .frame(maxWidth: .infinity, alignment: .trailing)
     }
 }
 

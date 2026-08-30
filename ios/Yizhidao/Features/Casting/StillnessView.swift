@@ -129,16 +129,13 @@ struct StillnessView: View {
                 }
         )
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("聚气".zh)
-        .accessibilityHint("按住聚气，满了继续".zh)
+        .accessibilityLabel("凝心一会".zh)
+        .accessibilityHint("按住，满了继续".zh)
         .accessibilityAddTraits(.isButton)
         .accessibilityAction { finish() }
     }
 
-    private var promptText: String {
-        if didFinish { return "气已聚" }
-        return isPressing ? "守住" : "按住聚气"
-    }
+    private var promptText: String { "凝心一会" }
 
     private func beginGathering() {
         guard !didFinish else { return }
