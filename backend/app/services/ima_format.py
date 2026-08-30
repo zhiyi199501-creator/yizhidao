@@ -9,6 +9,20 @@ TableBlock = List[List[str]]
 Block = Union[TextBlock, TableBlock]
 
 
+def clean_catalog_answers(entries: dict) -> int:
+    """就地清洗 entries[*].answer，返回改动条数。"""
+    changed = 0
+    for entry in entries.values():
+        if not isinstance(entry, dict):
+            continue
+        old = str(entry.get("answer") or "")
+        new = stripped(old)
+        if new != old:
+            entry["answer"] = new
+            changed += 1
+    return changed
+
+
 def stripped(text: str) -> str:
     """去掉整行「思考过程」和出处脚注数字。"""
     without_thinking = "\n".join(

@@ -31,12 +31,43 @@ object ClassicYijingCodec {
 }
 
 @Serializable
+data class YijingIntroLink(
+    val title: String,
+    val subtitle: String = "",
+    val route: String,
+)
+
+@Serializable
+data class YijingIntroBlock(
+    val type: String,
+    val text: String = "",
+    val cite: String = "",
+    val kind: String = "",
+    val caption: String = "",
+    val items: List<String> = emptyList(),
+    val rows: List<List<String>> = emptyList(),
+    val links: List<YijingIntroLink> = emptyList(),
+) {
+    val plainText: String
+        get() = when (type) {
+            "p", "quote" -> listOf(text, cite).filter { it.isNotBlank() }.joinToString(" ")
+            "list" -> items.joinToString(" ")
+            "table" -> rows.flatten().joinToString(" ")
+            "figure" -> caption
+            "links" -> links.joinToString(" ") { "${it.title} ${it.subtitle}" }
+            else -> text
+        }
+}
+
+@Serializable
 data class YijingIntroChapter(
     val id: String,
     val title: String,
     val subtitle: String = "",
-    val paragraphs: List<String>,
-)
+    val blocks: List<YijingIntroBlock> = emptyList(),
+) {
+    val plainText: String get() = blocks.joinToString(" ") { it.plainText }
+}
 
 @Serializable
 data class YijingIntroBook(

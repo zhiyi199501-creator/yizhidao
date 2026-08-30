@@ -28,6 +28,7 @@ import androidx.compose.material3.Icon
 import com.yizhidao.app.ui.theme.Text
 import com.yizhidao.app.ui.theme.zh
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -174,6 +175,13 @@ fun HistoryListScreen(
     }
 
     val opened = openRecordId?.let { id -> records.find { it.id == id } }
+    val showingDetail = opened != null || (byHexagram && filterPrimary != null)
+    LaunchedEffect(showingDetail) {
+        onTabBarVisible(!showingDetail)
+    }
+    DisposableEffect(Unit) {
+        onDispose { onTabBarVisible(true) }
+    }
     if (opened != null) {
         ResultScreen(
             result = opened.toCastResult(),
@@ -181,7 +189,6 @@ fun HistoryListScreen(
             container = container,
             existing = opened,
             onBack = onCloseRecord,
-            onTabBarVisible = onTabBarVisible,
             onOpenSimilar = { result ->
                 appliedJump = SimilarHexagramJump.from(result)
                 filterPrimary = result.primaryNumber

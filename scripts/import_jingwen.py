@@ -20,6 +20,13 @@ M = {"m": NS}
 YAO_LABELS = ["初爻", "二爻", "三爻", "四爻", "五爻", "上爻"]
 YAO_INDEX = {name: i for i, name in enumerate(YAO_LABELS)}
 WING_ORDER = ["系辞传", "说卦传", "序卦传", "杂卦传"]
+XICI_LEAD = re.compile(r"^\d+\.\d+\s*")
+
+
+def strip_xici_paragraph_index(wing_title: str, text: str) -> str:
+    if wing_title != "系辞传":
+        return text
+    return XICI_LEAD.sub("", text, count=1)
 
 zf = zipfile.ZipFile(XLSX)
 shared = []
@@ -246,7 +253,10 @@ for title in WING_ORDER + [t for t in grouped if t not in WING_ORDER]:
     chapters = []
     for chap_title, paras in grouped[title].items():
         paras = sorted(paras, key=lambda x: x[0])
-        chapters.append({"title": chap_title, "paragraphs": [t for _, t in paras]})
+        chapters.append({
+            "title": chap_title,
+            "paragraphs": [strip_xici_paragraph_index(title, t) for _, t in paras],
+        })
     wings.append({
         "id": id_by_title.get(title) or re.sub(r"传$", "", title),
         "title": title,

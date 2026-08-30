@@ -62,6 +62,7 @@ export type Overview = {
     imaLoaded: boolean;
     imaCount: number;
   };
+  feedback?: { total: number; unread: number };
 };
 
 export type AdminUser = {
@@ -141,6 +142,29 @@ export type SystemStatus = {
   config: Record<string, string | number | boolean>;
   data: Record<string, Record<string, unknown>>;
   rateLimitNote: string;
+};
+
+export type FeedbackItem = {
+  id: number;
+  createdAt: string | null;
+  userId: string | null;
+  nickname: string | null;
+  email: string | null;
+  phone: string | null;
+  body: string;
+  contact: string;
+  platform: string;
+  appVersion: string;
+  readAt: string | null;
+};
+
+export type FeedbackPage = {
+  ok: boolean;
+  total: number;
+  unread: number;
+  page: number;
+  pageSize: number;
+  items: FeedbackItem[];
 };
 
 export type ContentCase = {
@@ -296,4 +320,18 @@ export const api = {
   evalSamples: () => request<{ ok: boolean; samples: EvalSample[] }>("/v1/admin/eval/samples"),
   evalRun: (ids: string[] | null, live: boolean) =>
     request<EvalRun>("/v1/admin/eval/run", { method: "POST", body: JSON.stringify({ ids, live }) }),
+  feedback: (q: string, unreadOnly: boolean, page = 1) => {
+    const params = new URLSearchParams({
+      q,
+      unreadOnly: unreadOnly ? "true" : "false",
+      page: String(page),
+      pageSize: "20",
+    });
+    return request<FeedbackPage>(`/v1/admin/feedback?${params}`);
+  },
+  setFeedbackRead: (id: number, read: boolean) =>
+    request<{ ok: boolean; item: FeedbackItem }>(`/v1/admin/feedback/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify({ read }),
+    }),
 };

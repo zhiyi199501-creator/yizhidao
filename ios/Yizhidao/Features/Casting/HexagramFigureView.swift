@@ -60,22 +60,26 @@ struct ScaledHexagramFigureView: View {
 struct YaoBarView: View {
     let line: LineValue
     var highlighted: Bool = false
+    var barWidth: CGFloat = 110
+    var barHeight: CGFloat = 10
+    var gapWidth: CGFloat = 10
+    var showsChangeMarker: Bool = true
 
-    private let barWidth: CGFloat = 110
-    private let gapWidth: CGFloat = 10
     private let markerWidth: CGFloat = 12
 
     var body: some View {
         HStack(spacing: 6) {
             barContent
-                .frame(width: barWidth, height: 10)
-            if line.isChanging {
-                Text(line.isYang ? "○" : "×".zh)
-                    .font(.caption.weight(.bold))
-                    .foregroundStyle(barColor)
-                    .frame(width: markerWidth, alignment: .center)
-            } else {
-                Color.clear.frame(width: markerWidth, height: 10)
+                .frame(width: barWidth, height: barHeight)
+            if showsChangeMarker {
+                if line.isChanging {
+                    Text(line.isYang ? "○" : "×".zh)
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(barColor)
+                        .frame(width: markerWidth, alignment: .center)
+                } else {
+                    Color.clear.frame(width: markerWidth, height: barHeight)
+                }
             }
         }
         .padding(4)

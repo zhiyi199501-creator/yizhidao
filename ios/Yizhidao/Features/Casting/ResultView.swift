@@ -16,6 +16,10 @@ struct ResultView: View {
     @State private var savedRecord: ReadingRecord?
     @State private var showAIAnalysis = false
     @State private var showLoginForAI = false
+    @State private var didAutoOpenAI = false
+    @State private var aiRecordID: UUID?
+    @State private var editingQuestion = false
+    @FocusState private var questionFocused: Bool
 
     private var resultForAnalysis: CastResult {
         let trimmedQuestion = questionText.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -67,11 +71,7 @@ struct ResultView: View {
         }
         .overlay(alignment: .bottomTrailing) {
             AIFloatingButton {
-                if LocalAuthStore.load().isLoggedIn {
-                    showAIAnalysis = true
-                } else {
-                    showLoginForAI = true
-                }
+                openAIAnalysis()
             }
             .padding(.trailing, 20)
             .padding(.bottom, 24)
@@ -92,7 +92,11 @@ struct ResultView: View {
             }
         }
         .navigationDestination(isPresented: $showAIAnalysis) {
-            AIAnalysisView(result: resultForAnalysis)
+            AIAnalysisView(
+                result: resultForAnalysis,
+                readingRecordID: aiRecordID ?? editableRecord?.id,
+                showSimilarHexagramButton: showSimilarHexagramButton
+            )
         }
         .sheet(isPresented: $showLoginForAI) {
             LoginSheetView { newSession in
@@ -102,16 +106,42 @@ struct ResultView: View {
             }
         }
         .onAppear {
-            guard isNew, !didSave else { return }
-            let inserted = ReadingRecord(from: result)
-            modelContext.insert(inserted)
-            try? modelContext.save()
-            savedRecord = inserted
-            questionText = inserted.question ?? ""
-            verificationStatus = inserted.verificationStatus
-            verificationNote = inserted.verificationNote ?? ""
-            didSave = true
+            persistNewRecordIfNeeded()
         }
+        .task {
+            guard isNew, !didAutoOpenAI else { return }
+            persistNewRecordIfNeeded()
+            try? await Task.sleep(nanoseconds: 2_000_000_000)
+            guard !didAutoOpenAI, !showAIAnalysis, !showLoginForAI, !editingQuestion else { return }
+            openAIAnalysis()
+        }
+    }
+
+    private func openAIAnalysis() {
+        didAutoOpenAI = true
+        persistNewRecordIfNeeded()
+        aiRecordID = editableRecord?.id
+        let existing = SavedAIAnalysisStore.find(
+            recordID: aiRecordID,
+            result: resultForAnalysis
+        )
+        if existing != nil || LocalAuthStore.load().isLoggedIn {
+            showAIAnalysis = true
+        } else {
+            showLoginForAI = true
+        }
+    }
+
+    private func persistNewRecordIfNeeded() {
+        guard isNew, !didSave else { return }
+        let inserted = ReadingRecord(from: result)
+        modelContext.insert(inserted)
+        try? modelContext.save()
+        savedRecord = inserted
+        questionText = inserted.question ?? ""
+        verificationStatus = inserted.verificationStatus
+        verificationNote = inserted.verificationNote ?? ""
+        didSave = true
     }
 
     private var metaSection: some View {
@@ -122,25 +152,56 @@ struct ResultView: View {
                 .font(.footnote)
                 .foregroundStyle(.secondary)
             if editableRecord != nil {
-                    TextField("所问何事（可选）", text: $questionText, axis: .vertical)
-                        .lineLimit(2...5)
-                        .appTextFieldStyle()
-                        .onChange(of: questionText) { _, newValue in
-                            persistQuestion(newValue)
-                        }
+                    questionRow
             } else if let question = result.question, !question.isEmpty {
                 Text("所问：\(question)".zh)
                     .font(.body)
-            }
-            if let numbers = result.numbers {
-                Text("取数：\(numbers.map(String.init).joined(separator: " · "))".zh)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding()
         .background(RoundedRectangle(cornerRadius: 12).fill(AppTheme.cardFill))
+    }
+
+    private var questionRow: some View {
+        HStack(alignment: .top, spacing: 8) {
+            if editingQuestion {
+                TextField("所问何事".zh, text: $questionText, axis: .vertical)
+                    .lineLimit(2...5)
+                    .appTextFieldStyle()
+                    .focused($questionFocused)
+                Button {
+                    commitQuestion()
+                } label: {
+                    Image(systemName: "checkmark")
+                        .font(.body.weight(.semibold))
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(canCommitQuestion ? AppTheme.accent : AppTheme.accent.opacity(0.35))
+                .disabled(!canCommitQuestion)
+                .accessibilityLabel("完成编辑所问".zh)
+                .padding(.top, 8)
+            } else {
+                Text(questionText.isEmpty ? "所问何事".zh : questionText)
+                    .font(.body)
+                    .foregroundStyle(questionText.isEmpty ? .secondary : .primary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                Button {
+                    editingQuestion = true
+                    questionFocused = true
+                } label: {
+                    Image(systemName: "square.and.pencil")
+                        .font(.body)
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(AppTheme.accent)
+                .accessibilityLabel("编辑所问".zh)
+            }
+        }
+    }
+
+    private var canCommitQuestion: Bool {
+        !questionText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
     private var verificationSection: some View {
@@ -154,7 +215,7 @@ struct ResultView: View {
             .onChange(of: verificationStatus) { _, newValue in
                 persistVerification(status: newValue, note: verificationNote)
             }
-            TextField("验证结果（可选）", text: $verificationNote, axis: .vertical)
+            TextField("验证结果", text: $verificationNote, axis: .vertical)
                 .lineLimit(2...5)
                 .appTextFieldStyle()
                 .onChange(of: verificationNote) { _, newValue in
@@ -166,11 +227,14 @@ struct ResultView: View {
         .background(RoundedRectangle(cornerRadius: 12).fill(AppTheme.cardFill))
     }
 
-    private func persistQuestion(_ text: String) {
-        guard let editableRecord else { return }
-        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        editableRecord.question = trimmed.isEmpty ? nil : trimmed
+    private func commitQuestion() {
+        let trimmed = questionText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty, let editableRecord else { return }
+        questionText = trimmed
+        editableRecord.question = trimmed
         try? modelContext.save()
+        editingQuestion = false
+        questionFocused = false
     }
 
     private func persistVerification(status: VerificationStatus, note: String) {
@@ -445,16 +509,17 @@ struct HexagramReadingBody: View {
 
 struct AIAnalysisView: View {
     let result: CastResult
-    private let initialSavedID: UUID?
+    private let readingRecordID: UUID?
+    private let showSimilarHexagramButton: Bool
 
-    @State private var isLoading = false
+    @Environment(AppNavigation.self) private var appNavigation
+    @State private var isLoading: Bool
     @State private var isFollowupLoading = false
     @State private var analysis: AuthAPI.AIAnalyzeResponse.Analysis?
-    @State private var followUps: [SavedAIFollowUp] = []
+    @State private var followUps: [SavedAIFollowUp]
     @State private var draft = ""
     @State private var errorMessage: String?
     @State private var savedID: UUID?
-    @State private var isDirty = false
 
     private var store: HexagramStore { .shared }
     private var canSendFollowup: Bool {
@@ -464,18 +529,31 @@ struct AIAnalysisView: View {
             && !isFollowupLoading
     }
 
-    init(result: CastResult) {
+    init(result: CastResult, readingRecordID: UUID? = nil, showSimilarHexagramButton: Bool = true) {
         self.result = result
-        self.initialSavedID = nil
+        self.readingRecordID = readingRecordID
+        self.showSimilarHexagramButton = showSimilarHexagramButton
+        if let saved = SavedAIAnalysisStore.find(recordID: readingRecordID, result: result) {
+            _analysis = State(initialValue: AuthAPI.AIAnalyzeResponse.Analysis(saved: saved.analysis))
+            _followUps = State(initialValue: saved.followUps)
+            _savedID = State(initialValue: saved.id)
+            _isLoading = State(initialValue: false)
+        } else {
+            _analysis = State(initialValue: nil)
+            _followUps = State(initialValue: [])
+            _savedID = State(initialValue: nil)
+            _isLoading = State(initialValue: true)
+        }
     }
 
-    init(saved: SavedAIAnalysis) {
+    init(saved: SavedAIAnalysis, showSimilarHexagramButton: Bool = true) {
         self.result = saved.toCastResult()
-        self.initialSavedID = saved.id
+        self.readingRecordID = saved.readingRecordID
+        self.showSimilarHexagramButton = showSimilarHexagramButton
         _analysis = State(initialValue: AuthAPI.AIAnalyzeResponse.Analysis(saved: saved.analysis))
         _followUps = State(initialValue: saved.followUps)
         _savedID = State(initialValue: saved.id)
-        _isDirty = State(initialValue: false)
+        _isLoading = State(initialValue: false)
     }
 
     var body: some View {
@@ -526,22 +604,6 @@ struct AIAnalysisView: View {
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
-
-                    if analysis != nil, !isLoading {
-                        Button("重新解读".zh) {
-                            Task { await runAnalysis() }
-                        }
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .frame(maxWidth: .infinity)
-                    } else if !isLoading, analysis == nil {
-                        Button("开始解读".zh) {
-                            Task { await runAnalysis() }
-                        }
-                        .buttonStyle(.borderedProminent)
-                        .tint(AppTheme.accent)
-                        .frame(maxWidth: .infinity)
-                    }
                 }
                 .padding()
             }
@@ -551,30 +613,29 @@ struct AIAnalysisView: View {
                 composerBar
             }
         }
-        .navigationTitle("AI 解读".zh)
+        .navigationTitle("问答".zh)
         .navigationBarTitleDisplayMode(.inline)
         .parchmentBackground()
         .toolbar {
-            if analysis != nil {
+            if showSimilarHexagramButton {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button(saveButtonTitle.zh) {
-                        saveCurrent()
+                    Button {
+                        appNavigation.openSimilarHexagram(for: result)
+                    } label: {
+                        Label("同类".zh, systemImage: "rectangle.stack")
                     }
-                    .disabled(!isDirty && savedID != nil)
+                    .accessibilityLabel("查看同类卦".zh)
                 }
             }
         }
         .task {
-            if analysis == nil, !isLoading, initialSavedID == nil {
+            if analysis == nil {
+                if applySavedAnalysisIfAvailable() {
+                    return
+                }
                 await runAnalysis()
             }
         }
-    }
-
-    private var saveButtonTitle: String {
-        if savedID != nil, !isDirty { return "已保存" }
-        if savedID != nil { return "重新保存" }
-        return "保存"
     }
 
     private var composerBar: some View {
@@ -640,13 +701,17 @@ struct AIAnalysisView: View {
     }
 
     private func analysisSection(title: String, text: String) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 10) {
             Text(title.zh)
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(AppTheme.accent)
-            Text(text.zh)
-                .font(.body)
-                .fixedSize(horizontal: false, vertical: true)
+            ForEach(Array(AIAnswerFormatter.paragraphs(in: text).enumerated()), id: \.offset) { _, paragraph in
+                Text(paragraph.zh)
+                    .font(.body)
+                    .lineSpacing(7)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding()
@@ -654,7 +719,7 @@ struct AIAnalysisView: View {
     }
 
     private func bulletSection(title: String, items: [String]) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 10) {
             Text(title.zh)
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(AppTheme.accent)
@@ -665,6 +730,7 @@ struct AIAnalysisView: View {
                         .foregroundStyle(AppTheme.accent)
                     Text(item.zh)
                         .font(.body)
+                        .lineSpacing(5)
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
@@ -697,6 +763,7 @@ struct AIAnalysisView: View {
                             RoundedRectangle(cornerRadius: 10)
                                 .stroke(AppTheme.accent.opacity(0.35), lineWidth: 1)
                         )
+                        .contentShape(RoundedRectangle(cornerRadius: 10))
                 }
                 .buttonStyle(.plain)
                 .disabled(isFollowupLoading || isLoading)
@@ -707,27 +774,44 @@ struct AIAnalysisView: View {
         .background(RoundedRectangle(cornerRadius: 12).fill(AppTheme.cardFill))
     }
 
-    private func saveCurrent() {
-        guard let analysis else { return }
+    private func persistCurrent(
+        analysis: AuthAPI.AIAnalyzeResponse.Analysis,
+        followUps: [SavedAIFollowUp]
+    ) {
         let content = analysis.savedContent()
-        if var existing = SavedAIAnalysisStore.load().first(where: { $0.id == savedID }) {
-            existing.updatedAt = Date()
-            existing.analysis = content
-            existing.followUps = followUps
-            SavedAIAnalysisStore.upsert(existing)
-            savedID = existing.id
-        } else {
-            let item = SavedAIAnalysis.make(result: result, analysis: content, followUps: followUps)
-            SavedAIAnalysisStore.upsert(item)
-            savedID = item.id
+        let existing = SavedAIAnalysisStore.find(recordID: readingRecordID, result: result)
+            ?? savedID.flatMap { id in SavedAIAnalysisStore.load().first { $0.id == id } }
+        let item = SavedAIAnalysis.make(
+            result: result,
+            analysis: content,
+            followUps: followUps,
+            readingRecordID: readingRecordID ?? existing?.readingRecordID,
+            existingID: existing?.id ?? savedID
+        )
+        SavedAIAnalysisStore.upsert(item)
+        savedID = item.id
+    }
+
+    @MainActor
+    private func applySavedAnalysisIfAvailable() -> Bool {
+        guard let saved = SavedAIAnalysisStore.find(recordID: readingRecordID, result: result) else {
+            return false
         }
-        isDirty = false
+        analysis = AuthAPI.AIAnalyzeResponse.Analysis(saved: saved.analysis)
+        followUps = saved.followUps
+        savedID = saved.id
+        isLoading = false
+        return true
     }
 
     @MainActor
     private func runAnalysis() async {
+        if applySavedAnalysisIfAvailable() {
+            return
+        }
         guard let token = LocalAuthStore.load().accessToken else {
             errorMessage = "请先登录"
+            isLoading = false
             return
         }
         isLoading = true
@@ -737,7 +821,7 @@ struct AIAnalysisView: View {
             let response = try await AuthAPI.analyzeReading(result: result, accessToken: token)
             analysis = response.analysis
             followUps = []
-            isDirty = true
+            persistCurrent(analysis: response.analysis, followUps: [])
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -770,17 +854,16 @@ struct AIAnalysisView: View {
                 message: message,
                 accessToken: token
             )
-            followUps.append(SavedAIFollowUp(
-                user: message,
-                assistant: response.reply,
-                advice: response.advice,
-                askNext: response.askNext
-            ))
-            if savedID != nil {
-                saveCurrent()
-            } else {
-                isDirty = true
-            }
+            let nextFollowUps = followUps + [
+                SavedAIFollowUp(
+                    user: message,
+                    assistant: response.reply,
+                    advice: response.advice,
+                    askNext: response.askNext
+                )
+            ]
+            followUps = nextFollowUps
+            persistCurrent(analysis: analysis, followUps: nextFollowUps)
         } catch {
             draft = message
             errorMessage = error.localizedDescription

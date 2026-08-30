@@ -71,6 +71,14 @@ class HealthResponse(BaseModel):
     service: str = "yizhidao-backend"
 
 
+class AppVersionResponse(BaseModel):
+    ok: bool = True
+    ios: str
+    android: str
+    iosStoreUrl: str
+    androidStoreUrl: str
+
+
 class AIAnalysisBody(BaseModel):
     question: Optional[str] = None
     method: str
@@ -119,3 +127,14 @@ class AIFollowupResponse(BaseModel):
     advice: list[str] = Field(default_factory=list)
     askNext: list[str] = Field(default_factory=list)
     usage: AIUsage
+
+
+class FeedbackSubmitBody(BaseModel):
+    body: str = Field(min_length=1, max_length=2000)
+    contact: Optional[str] = Field(default="", max_length=120)
+    platform: Optional[str] = Field(default="", max_length=16)
+    appVersion: Optional[str] = Field(default="", max_length=32)
+
+
+class FeedbackSubmitResponse(BaseModel):
+    ok: bool = True

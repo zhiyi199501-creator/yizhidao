@@ -142,7 +142,7 @@ final class ReadingGuideTests: XCTestCase {
 }
 
 final class HexagramStoreTests: XCTestCase {
-    func testAllHexagramsHaveXiangTexts() {
+    func testAllHexagramsHaveXiangTexts() throws {
         let store = HexagramStore(bundle: Bundle(for: HexagramStore.self))
         XCTAssertEqual(store.hexagrams.count, 64)
         for h in store.hexagrams {
@@ -163,20 +163,36 @@ final class HexagramStoreTests: XCTestCase {
         XCTAssertEqual(store.hexagram(number: 2)?.yong?.ci.contains("用六"), true)
         XCTAssertEqual(store.hexagram(number: 24)?.yaoci.last?.contains("十年"), true)
         XCTAssertEqual(store.wings.map(\.title), ["系辞传", "说卦传", "序卦传", "杂卦传"])
+        let xici = store.wings.first { $0.title == "系辞传" }
+        XCTAssertEqual(xici?.chapters.first?.paragraphs.first?.hasPrefix("天尊地卑"), true)
+        let lead = try NSRegularExpression(pattern: #"^\d+\.\d+"#)
+        for chapter in xici?.chapters ?? [] {
+            for paragraph in chapter.paragraphs {
+                let range = NSRange(paragraph.startIndex..., in: paragraph)
+                XCTAssertEqual(lead.numberOfMatches(in: paragraph, range: range), 0, paragraph)
+            }
+        }
     }
 }
 
 final class YijingIntroStoreTests: XCTestCase {
-    func testIntroHasEightChapters() {
+    func testIntroHasNineChapters() {
         let store = YijingIntroStore(bundle: Bundle(for: YijingIntroStore.self))
-        XCTAssertEqual(store.chapters.count, 8)
+        XCTAssertEqual(store.chapters.count, 9)
         XCTAssertEqual(store.chapters.map(\.id), [
             "what", "purpose", "yin-yang-bagua", "hexagrams-lines",
-            "how-to-read", "play-the-text", "changing-lines", "path",
+            "how-to-read", "play-the-text", "how-to-cast", "changing-lines", "path",
         ])
         XCTAssertTrue(store.note.isEmpty)
-        XCTAssertTrue(store.chapters[5].paragraphs.joined().contains("观其象"))
-        XCTAssertTrue(store.chapters[6].paragraphs.joined().contains("主看"))
+        XCTAssertTrue(store.chapters[5].plainText.contains("观其象"))
+        XCTAssertTrue(store.chapters[6].plainText.contains("数字起卦"))
+        XCTAssertTrue(store.chapters[6].plainText.contains("输入三数"))
+        XCTAssertTrue(store.chapters[6].plainText.contains("时间起卦"))
+        XCTAssertTrue(store.chapters[6].plainText.contains("金钱起卦"))
+        XCTAssertTrue(store.chapters[7].plainText.contains("主看"))
+        XCTAssertTrue(store.chapters[2].blocks.contains { if case .figure(let kind, _) = $0 { return kind == "bagua" }; return false })
+        XCTAssertTrue(store.chapters[7].blocks.contains { if case .table = $0 { return true }; return false })
+        XCTAssertTrue(store.chapters[8].blocks.contains { if case .links = $0 { return true }; return false })
     }
 }
 

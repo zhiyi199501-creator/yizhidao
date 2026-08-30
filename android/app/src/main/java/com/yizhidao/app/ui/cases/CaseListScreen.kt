@@ -76,7 +76,10 @@ private enum class PositionFilter(val label: String, val position: Int?) {
 }
 
 @Composable
-fun CaseListScreen(container: AppContainer) {
+fun CaseListScreen(
+    container: AppContainer,
+    onBack: (() -> Unit)? = null,
+) {
     val cases by container.caseRepository.cases.collectAsState()
     var selectedHex by remember { mutableStateOf<Int?>(null) }
     var selectedCase by remember { mutableStateOf<CaseStudy?>(null) }
@@ -102,6 +105,7 @@ fun CaseListScreen(container: AppContainer) {
         else -> CaseGroupListScreen(
             container = container,
             cases = cases,
+            onBack = onBack,
             onOpenGroup = { selectedHex = it },
             onRefresh = { scope.launch { container.caseRepository.refresh() } },
         )
@@ -112,35 +116,47 @@ fun CaseListScreen(container: AppContainer) {
 private fun CaseGroupListScreen(
     container: AppContainer,
     cases: List<CaseStudy>,
+    onBack: (() -> Unit)? = null,
     onOpenGroup: (Int) -> Unit,
     onRefresh: () -> Unit,
 ) {
     val grouped = cases.groupBy { it.number }.toSortedMap()
+    val refreshButton: @Composable () -> Unit = {
+        Text(
+            "刷新",
+            fontSize = 15.sp,
+            color = AppTheme.accent,
+            modifier = Modifier
+                .clip(RoundedCornerShape(8.dp))
+                .clickable(onClick = onRefresh)
+                .padding(horizontal = 8.dp, vertical = 4.dp),
+            style = AppTheme.compactText,
+        )
+    }
     Column(Modifier.fillMaxSize()) {
-        Row(
-            Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                "案例",
-                fontSize = 28.sp,
-                fontWeight = FontWeight.Bold,
-                color = AppTheme.ink,
-                style = AppTheme.compactText,
-                modifier = Modifier.weight(1f),
+        if (onBack != null) {
+            PaperBackHeader(
+                title = "案例",
+                onBack = onBack,
+                trailing = refreshButton,
             )
-            Text(
-                "刷新",
-                fontSize = 15.sp,
-                color = AppTheme.accent,
-                modifier = Modifier
-                    .clip(RoundedCornerShape(8.dp))
-                    .clickable(onClick = onRefresh)
-                    .padding(horizontal = 8.dp, vertical = 4.dp),
-                style = AppTheme.compactText,
-            )
+        } else {
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    "案例",
+                    fontSize = 28.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = AppTheme.ink,
+                    style = AppTheme.compactText,
+                    modifier = Modifier.weight(1f),
+                )
+                refreshButton()
+            }
         }
         if (cases.isEmpty()) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {

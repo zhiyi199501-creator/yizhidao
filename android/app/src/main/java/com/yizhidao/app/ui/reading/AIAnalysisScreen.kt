@@ -22,7 +22,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -39,6 +38,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.yizhidao.CastResult
 import com.yizhidao.HexagramStore
+import com.yizhidao.app.ai.AIAnswerFormatter
 import com.yizhidao.app.ai.SavedAIAnalysis
 import com.yizhidao.app.ai.SavedAIAnalysisStore
 import com.yizhidao.app.ai.SavedAIContent
@@ -48,22 +48,26 @@ import com.yizhidao.app.auth.AuthApi
 import com.yizhidao.app.auth.LocalAuthStore
 import com.yizhidao.app.ui.theme.AppTheme
 import com.yizhidao.app.ui.theme.PaperBackHeader
-import com.yizhidao.app.ui.theme.PaperPrimaryButton
+import com.yizhidao.app.ui.theme.PaperHeaderButton
+import com.yizhidao.app.ui.theme.PaperStackIcon
 import com.yizhidao.app.ui.theme.PaperTextField
 import com.yizhidao.app.ui.theme.Text
+import com.yizhidao.app.ui.theme.zh
 import kotlinx.coroutines.launch
 
 @Composable
 fun AIAnalysisScreen(
     result: CastResult,
     saved: SavedAIAnalysis? = null,
+    readingRecordId: String? = null,
     hexagramStore: HexagramStore,
     authStore: LocalAuthStore,
     analysisStore: SavedAIAnalysisStore,
     onBack: () -> Unit,
+    onOpenSimilar: ((CastResult) -> Unit)? = null,
 ) {
     val scope = rememberCoroutineScope()
-    var isLoading by remember { mutableStateOf(false) }
+    var isLoading by remember { mutableStateOf(saved == null) }
     var isFollowupLoading by remember { mutableStateOf(false) }
     var analysis by remember {
         mutableStateOf(
@@ -83,17 +87,63 @@ fun AIAnalysisScreen(
     var draft by remember { mutableStateOf("") }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var savedID by remember { mutableStateOf(saved?.id) }
-    var isDirty by remember { mutableStateOf(false) }
 
     val canSendFollowup = draft.trim().isNotEmpty() &&
         analysis != null &&
         !isLoading &&
         !isFollowupLoading
 
+    fun persistCurrent(
+        current: AuthApi.AIAnalyzeResponse.Analysis,
+        currentFollowUps: List<SavedAIFollowUp>,
+    ) {
+        val content = SavedAIContent(
+            summary = current.summary,
+            focus = current.focus,
+            advice = current.advice,
+            direction = current.direction,
+            risks = current.risks,
+            askNext = current.askNext,
+        )
+        val existing = analysisStore.find(readingRecordId, result)
+            ?: savedID?.let { id -> analysisStore.load().firstOrNull { it.id == id } }
+        val item = SavedAIAnalysis.make(
+            result = result,
+            analysis = content,
+            followUps = currentFollowUps,
+            readingRecordId = readingRecordId ?: existing?.readingRecordId,
+            existingId = existing?.id ?: savedID,
+        )
+        analysisStore.upsert(item)
+        savedID = item.id
+    }
+
+    fun applySaved(existing: SavedAIAnalysis) {
+        analysis = existing.analysis.let {
+            AuthApi.AIAnalyzeResponse.Analysis(
+                summary = it.summary,
+                focus = it.focus,
+                advice = it.advice,
+                direction = it.direction,
+                risks = it.risks,
+                askNext = it.askNext,
+            )
+        }
+        followUps = existing.followUps
+        savedID = existing.id
+        isLoading = false
+    }
+
     fun runAnalysis() {
+        val existing = analysisStore.find(readingRecordId, result)
+        if (existing != null) {
+            applySaved(existing)
+            return
+        }
         val token = authStore.session.value.accessToken
         if (token.isNullOrBlank()) {
             errorMessage = "请先登录"
+            isLoading = false
             return
         }
         scope.launch {
@@ -103,40 +153,13 @@ fun AIAnalysisScreen(
                 val response = AuthApi.analyzeReading(result, token)
                 analysis = response.analysis
                 followUps = emptyList()
-                isDirty = true
+                persistCurrent(response.analysis, emptyList())
             } catch (e: Exception) {
                 errorMessage = AuthApi.describe(e)
             } finally {
                 isLoading = false
             }
         }
-    }
-
-    fun persistCurrent() {
-        val current = analysis ?: return
-        val content = SavedAIContent(
-            summary = current.summary,
-            focus = current.focus,
-            advice = current.advice,
-            direction = current.direction,
-            risks = current.risks,
-            askNext = current.askNext,
-        )
-        val existing = savedID?.let { id -> analysisStore.load().firstOrNull { it.id == id } }
-        if (existing != null) {
-            val updated = existing.copy(
-                updatedAtEpochMs = System.currentTimeMillis(),
-                analysis = content,
-                followUps = followUps,
-            )
-            analysisStore.upsert(updated)
-            savedID = updated.id
-        } else {
-            val item = SavedAIAnalysis.make(result, content, followUps)
-            analysisStore.upsert(item)
-            savedID = item.id
-        }
-        isDirty = false
     }
 
     fun sendFollowup(message: String, fromComposer: Boolean = false) {
@@ -160,17 +183,14 @@ fun AIAnalysisScreen(
                     message = text,
                     accessToken = token,
                 )
-                followUps = followUps + SavedAIFollowUp(
+                val nextFollowUps = followUps + SavedAIFollowUp(
                     user = text,
                     assistant = response.reply,
                     advice = response.advice,
                     askNext = response.askNext,
                 )
-                if (savedID != null) {
-                    persistCurrent()
-                } else {
-                    isDirty = true
-                }
+                followUps = nextFollowUps
+                persistCurrent(current, nextFollowUps)
             } catch (e: Exception) {
                 draft = text
                 errorMessage = AuthApi.describe(e)
@@ -180,28 +200,27 @@ fun AIAnalysisScreen(
         }
     }
 
-    LaunchedEffect(saved?.id) {
-        if (saved == null && analysis == null && !isLoading) {
+    LaunchedEffect(saved?.id, readingRecordId) {
+        if (analysis != null) return@LaunchedEffect
+        val existing = saved ?: analysisStore.find(readingRecordId, result)
+        if (existing != null) {
+            applySaved(existing)
+        } else {
             runAnalysis()
         }
     }
 
     Column(Modifier.fillMaxSize()) {
         PaperBackHeader(
-            title = "AI 解读",
+            title = "问答",
             onBack = onBack,
-            trailing = if (analysis != null) {
+            trailing = if (onOpenSimilar != null) {
                 {
-                    val title = when {
-                        savedID != null && !isDirty -> "已保存"
-                        savedID != null -> "重新保存"
-                        else -> "保存"
-                    }
-                    TextButton(
-                        onClick = { persistCurrent() },
-                        enabled = isDirty || savedID == null,
+                    PaperHeaderButton(
+                        onClick = { onOpenSimilar(result) },
+                        contentDescription = zh("查看同类卦"),
                     ) {
-                        Text(title, color = if (isDirty || savedID == null) AppTheme.accent else AppTheme.secondaryText)
+                        PaperStackIcon()
                     }
                 }
             } else {
@@ -331,21 +350,6 @@ fun AIAnalysisScreen(
             errorMessage?.let {
                 Text(it, fontSize = 12.sp, color = AppTheme.yangRed, style = AppTheme.compactText)
             }
-
-            if (analysis != null && !isLoading) {
-                Text(
-                    "重新解读",
-                    fontSize = 13.sp,
-                    color = AppTheme.secondaryText,
-                    modifier = Modifier
-                        .align(Alignment.CenterHorizontally)
-                        .clickable { runAnalysis() }
-                        .padding(8.dp),
-                    style = AppTheme.compactText,
-                )
-            } else if (!isLoading && analysis == null) {
-                PaperPrimaryButton(onClick = { runAnalysis() }, label = "开始解读")
-            }
         }
 
         if (analysis != null) {
@@ -392,12 +396,13 @@ fun AIAnalysisScreen(
 
 @Composable
 private fun AnalysisCard(title: String, text: String) {
+    val paragraphs = remember(text) { AIAnswerFormatter.paragraphs(text) }
     Column(
         Modifier
             .fillMaxWidth()
             .background(AppTheme.cardFill, RoundedCornerShape(12.dp))
             .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Text(
             title,
@@ -406,7 +411,15 @@ private fun AnalysisCard(title: String, text: String) {
             color = AppTheme.accent,
             style = AppTheme.compactText,
         )
-        Text(text, fontSize = 16.sp, color = AppTheme.ink, style = AppTheme.compactText)
+        paragraphs.forEach { paragraph ->
+            Text(
+                paragraph,
+                fontSize = 16.sp,
+                lineHeight = 27.sp,
+                color = AppTheme.ink,
+                style = AppTheme.compactText,
+            )
+        }
     }
 }
 
@@ -417,7 +430,7 @@ private fun BulletCard(title: String, items: List<String>) {
             .fillMaxWidth()
             .background(AppTheme.cardFill, RoundedCornerShape(12.dp))
             .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Text(
             title,
@@ -431,11 +444,18 @@ private fun BulletCard(title: String, items: List<String>) {
                 Text(
                     "${index + 1}.",
                     fontSize = 15.sp,
+                    lineHeight = 25.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = AppTheme.accent,
                     style = AppTheme.compactText,
                 )
-                Text(item, fontSize = 16.sp, color = AppTheme.ink, style = AppTheme.compactText)
+                Text(
+                    item,
+                    fontSize = 16.sp,
+                    lineHeight = 25.sp,
+                    color = AppTheme.ink,
+                    style = AppTheme.compactText,
+                )
             }
         }
     }
@@ -464,17 +484,20 @@ private fun AskNextCard(questions: List<String>, onPick: (String) -> Unit) {
             style = AppTheme.compactText,
         )
         questions.forEach { question ->
-            Text(
-                question,
-                fontSize = 16.sp,
-                color = AppTheme.ink,
-                modifier = Modifier
+            Box(
+                Modifier
                     .fillMaxWidth()
                     .border(1.dp, AppTheme.accent.copy(alpha = 0.35f), RoundedCornerShape(10.dp))
                     .clickable { onPick(question) }
                     .padding(horizontal = 12.dp, vertical = 10.dp),
-                style = AppTheme.compactText,
-            )
+            ) {
+                Text(
+                    question,
+                    fontSize = 16.sp,
+                    color = AppTheme.ink,
+                    style = AppTheme.compactText,
+                )
+            }
         }
     }
 }

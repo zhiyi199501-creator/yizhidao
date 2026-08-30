@@ -68,7 +68,7 @@ struct ImaExplanationSheet: View {
                     Button("关闭".zh) { dismiss() }
                 }
             }
-            .parchmentBackground()
+            .parchmentBackground(hidesTabBar: false)
             .safeAreaInset(edge: .bottom) {
                 Text(source.zh)
                     .font(.caption2)

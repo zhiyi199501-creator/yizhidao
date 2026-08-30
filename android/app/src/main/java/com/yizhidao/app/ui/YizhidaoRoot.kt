@@ -14,9 +14,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.MenuBook
 import androidx.compose.material.icons.outlined.AccountCircle
 import androidx.compose.material.icons.outlined.AutoAwesome
+import androidx.compose.material.icons.outlined.ChatBubbleOutline
 import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
@@ -42,18 +42,18 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.yizhidao.CastResult
 import com.yizhidao.app.AppContainer
-import com.yizhidao.app.ui.cases.CaseListScreen
 import com.yizhidao.app.ui.casting.CastingHomeScreen
 import com.yizhidao.app.ui.history.HistoryListScreen
 import com.yizhidao.app.ui.history.SimilarHexagramJump
 import com.yizhidao.app.ui.me.MeScreen
+import com.yizhidao.app.ui.qa.QAListScreen
 import com.yizhidao.app.ui.reading.ResultScreen
 import com.yizhidao.app.ui.theme.AppTheme
 
 enum class AppTab(val label: String, val icon: ImageVector) {
     Cast("起卦", Icons.Outlined.AutoAwesome),
     History("历史", Icons.Outlined.Schedule),
-    Cases("案例", Icons.AutoMirrored.Outlined.MenuBook),
+    QA("问答", Icons.Outlined.ChatBubbleOutline),
     Me("我的", Icons.Outlined.AccountCircle),
 }
 
@@ -104,6 +104,7 @@ fun YizhidaoRoot(container: AppContainer) {
                         CastingHomeScreen(
                             container = container,
                             onResult = { pendingResult = it },
+                            onTabBarVisible = { hideTabBar = !it },
                         )
                     }
                 }
@@ -116,7 +117,15 @@ fun YizhidaoRoot(container: AppContainer) {
                     onCloseRecord = { historyOpenId = null },
                     onTabBarVisible = { hideTabBar = !it },
                 )
-                AppTab.Cases -> CaseListScreen(container = container)
+                AppTab.QA -> QAListScreen(
+                    container = container,
+                    onTabBarVisible = { hideTabBar = !it },
+                    onOpenSimilar = { result ->
+                        similarJump = SimilarHexagramJump.from(result)
+                        similarJumpTick += 1
+                        tab = AppTab.History
+                    },
+                )
                 AppTab.Me -> MeScreen(
                     container = container,
                     onTabBarVisible = { hideTabBar = !it },

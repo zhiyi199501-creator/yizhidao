@@ -40,8 +40,15 @@ extension View {
             )
     }
 
-    func parchmentBackground() -> some View {
-        background(AppTheme.parchmentGradient.ignoresSafeArea())
+    /// 宣纸底。默认隐藏底部 Tab（二级页）；四个 Tab 根页传 `hidesTabBar: false`。
+    @ViewBuilder
+    func parchmentBackground(hidesTabBar: Bool = true) -> some View {
+        if hidesTabBar {
+            background(AppTheme.parchmentGradient.ignoresSafeArea())
+                .toolbar(.hidden, for: .tabBar)
+        } else {
+            background(AppTheme.parchmentGradient.ignoresSafeArea())
+        }
     }
 
     /// 点空白收键盘。手势在碰到输入框时直接不接收，避免和弹出键盘抢焦点。
@@ -200,29 +207,18 @@ private struct DismissKeyboardTapInstaller: UIViewRepresentable {
 }
 #endif
 
-struct AIBadgeIcon: View {
-    var compact: Bool = false
-
-    var body: some View {
-        Text("AI".zh)
-            .font(.system(size: compact ? 13 : 15, weight: .bold, design: .rounded))
-            .foregroundStyle(AppTheme.accent)
-            .accessibilityLabel("AI")
-    }
-}
-
 struct AIFloatingButton: View {
     let action: () -> Void
 
     var body: some View {
         Button(action: action) {
-            Text("AI".zh)
-                .font(.system(size: 20, weight: .bold, design: .rounded))
+            Text("问".zh)
+                .font(.system(size: 22, weight: .bold))
                 .foregroundStyle(.white)
                 .frame(width: 50, height: 50)
                 .background(Circle().fill(AppTheme.accent))
         }
         .buttonStyle(.plain)
-        .accessibilityLabel("AI 解读".zh)
+        .accessibilityLabel("问答".zh)
     }
 }

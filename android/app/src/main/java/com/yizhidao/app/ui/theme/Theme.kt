@@ -67,6 +67,8 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
@@ -358,12 +360,14 @@ fun PaperTextField(
     horizontalPadding: Dp = 10.dp,
     leading: @Composable (() -> Unit)? = null,
     trailing: @Composable (() -> Unit)? = null,
+    textAlign: TextAlign = TextAlign.Start,
 ) {
     val textStyle = AppTheme.compactText.merge(
         TextStyle(
             color = AppTheme.ink,
             fontSize = 17.sp,
             lineHeight = 22.sp,
+            textAlign = textAlign,
         ),
     )
     val lineHeight = with(LocalDensity.current) { 22.sp.toDp() }
@@ -402,10 +406,20 @@ fun PaperTextField(
                     Modifier
                         .weight(1f)
                         .then(if (singleLine) Modifier.fillMaxHeight() else Modifier),
-                    contentAlignment = if (singleLine) Alignment.CenterStart else Alignment.TopStart,
+                    contentAlignment = if (singleLine) {
+                        if (textAlign == TextAlign.Center) Alignment.Center else Alignment.CenterStart
+                    } else {
+                        Alignment.TopStart
+                    },
                 ) {
                     if (value.isEmpty()) {
-                        Text(placeholder, color = AppTheme.placeholder, style = textStyle)
+                        Text(
+                            placeholder,
+                            color = AppTheme.placeholder,
+                            textAlign = textAlign,
+                            modifier = if (textAlign == TextAlign.Center) Modifier.fillMaxWidth() else Modifier,
+                            style = textStyle,
+                        )
                     }
                     inner()
                 }
@@ -610,19 +624,21 @@ fun AIFloatingButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val qaLabel = zh("问答")
     Box(
         modifier
             .size(50.dp)
             .shadow(4.dp, CircleShape, clip = false)
             .clip(CircleShape)
             .background(AppTheme.accent)
+            .semantics(mergeDescendants = true) { contentDescription = qaLabel }
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
         Text(
-            "AI",
+            "问",
             color = Color.White,
-            fontSize = 20.sp,
+            fontSize = 22.sp,
             fontWeight = FontWeight.Bold,
             style = AppTheme.compactText,
         )

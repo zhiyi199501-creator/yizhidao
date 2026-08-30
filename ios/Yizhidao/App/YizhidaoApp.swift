@@ -18,7 +18,6 @@ struct YizhidaoApp: App {
         UserDefaults.standard.set(false, forKey: "NSURLSessionHTTP3Enabled")
         _ = HexagramStore.shared
         _ = ImaExplanationStore.shared
-        TapSoundPlayer.shared.prepare()
     }
 
     var body: some Scene {
@@ -49,12 +48,14 @@ struct RootTabView: View {
                     Label("历史".zh, systemImage: "clock")
                 }
                 .tag(AppTab.history)
-            CaseListView()
-                .id(language)
-                .tabItem {
-                    Label("案例".zh, systemImage: "books.vertical")
-                }
-                .tag(AppTab.cases)
+            NavigationStack {
+                AIAnalysisHistoryView()
+            }
+            .id(language)
+            .tabItem {
+                Label("问答".zh, systemImage: "bubble.left.and.bubble.right")
+            }
+            .tag(AppTab.qa)
             MyMenuView()
                 .id(language)
                 .tabItem {
@@ -72,10 +73,15 @@ struct RootTabView: View {
 }
 
 struct MyMenuView: View {
+    @Environment(\.openURL) private var openURL
     @State private var session: LocalUserSession = LocalAuthStore.load()
     @State private var showLoginSheet = false
-    @State private var openAIAnalysisPage = false
-    @State private var pendingOpenAIAnalysis = false
+    @State private var isCheckingUpdate = false
+    @State private var updateResult: UpdateCheckResult?
+
+    private var installedVersion: String {
+        Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? ""
+    }
 
     var body: some View {
         NavigationStack {
@@ -115,42 +121,51 @@ struct MyMenuView: View {
                 }
 
                 Section {
-                    Button {
-                        if session.isLoggedIn {
-                            openAIAnalysisPage = true
-                        } else {
-                            pendingOpenAIAnalysis = true
-                            showLoginSheet = true
-                        }
+                    NavigationLink {
+                        YijingIntroListView()
                     } label: {
-                        HStack {
-                            Label("保存的AI解读".zh, systemImage: "text.book.closed")
-                            Spacer()
-                            if !session.isLoggedIn {
-                                Text("需登录".zh)
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
-                        }
+                        Label("基础入门".zh, systemImage: "text.book.closed")
+                    }
+                    NavigationLink {
+                        ClassicHexagramListView()
+                    } label: {
+                        Label("六十四卦".zh, systemImage: "book")
+                    }
+                    NavigationLink {
+                        ClassicWingListView()
+                    } label: {
+                        Label("四传".zh, systemImage: "scroll")
+                    }
+                    NavigationLink {
+                        CaseListView()
+                    } label: {
+                        Label("案例".zh, systemImage: "books.vertical")
                     }
                 }
 
                 Section {
                     NavigationLink {
-                        YijingIntroListView()
+                        FeedbackView(session: session)
                     } label: {
-                        Label("易经基础入门".zh, systemImage: "text.book.closed")
+                        Label("意见反馈".zh, systemImage: "envelope")
                     }
-                    NavigationLink {
-                        ClassicHexagramListView()
+                    Button {
+                        Task { await checkForUpdate() }
                     } label: {
-                        Label("易经六十四卦".zh, systemImage: "book")
+                        HStack {
+                            Label("检查更新".zh, systemImage: "arrow.clockwise")
+                            Spacer()
+                            if isCheckingUpdate {
+                                ProgressView()
+                            } else if !installedVersion.isEmpty {
+                                Text(installedVersion.zh)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
                     }
-                    NavigationLink {
-                        ClassicWingListView()
-                    } label: {
-                        Label("易经四传".zh, systemImage: "scroll")
-                    }
+                    .foregroundStyle(.primary)
+                    .buttonStyle(.plain)
+                    .disabled(isCheckingUpdate)
                 }
 
                 Section {
@@ -163,10 +178,7 @@ struct MyMenuView: View {
             }
             .navigationTitle("我的".zh)
             .navigationBarTitleDisplayMode(.inline)
-            .parchmentBackground()
-            .navigationDestination(isPresented: $openAIAnalysisPage) {
-                AIAnalysisHistoryView()
-            }
+            .parchmentBackground(hidesTabBar: false)
             .onAppear {
                 session = LocalAuthStore.load()
                 Task { await refreshSessionIfNeeded() }
@@ -176,12 +188,50 @@ struct MyMenuView: View {
                     session = newSession
                     LocalAuthStore.save(newSession)
                     showLoginSheet = false
-                    if pendingOpenAIAnalysis {
-                        pendingOpenAIAnalysis = false
-                        openAIAnalysisPage = true
-                    }
                 }
             }
+            .alert(item: $updateResult) { result in
+                switch result {
+                case .latest(let current):
+                    return Alert(
+                        title: Text("已是最新版本".zh),
+                        message: Text("当前版本 \(current)".zh),
+                        dismissButton: .cancel(Text("好的".zh))
+                    )
+                case .available(let latest, let url):
+                    return Alert(
+                        title: Text("发现新版本".zh),
+                        message: Text("最新版本 \(latest)，可前往商店更新。".zh),
+                        primaryButton: .default(Text("去更新".zh)) { openURL(url) },
+                        secondaryButton: .cancel(Text("以后再说".zh))
+                    )
+                case .failed(let message):
+                    return Alert(
+                        title: Text("检查失败".zh),
+                        message: Text(message.zh),
+                        dismissButton: .cancel(Text("知道了".zh))
+                    )
+                }
+            }
+        }
+    }
+
+    @MainActor
+    private func checkForUpdate() async {
+        guard !isCheckingUpdate else { return }
+        isCheckingUpdate = true
+        defer { isCheckingUpdate = false }
+        do {
+            let info = try await AuthAPI.fetchAppVersion()
+            let latest = info.ios.trimmingCharacters(in: .whitespacesAndNewlines)
+            if isNewerAppVersion(latest, than: installedVersion),
+               let url = URL(string: info.iosStoreUrl), !info.iosStoreUrl.isEmpty {
+                updateResult = .available(latest: latest, url: url)
+            } else {
+                updateResult = .latest(current: installedVersion.isEmpty ? latest : installedVersion)
+            }
+        } catch {
+            updateResult = .failed(LoginError.describe(error))
         }
     }
 
@@ -202,6 +252,38 @@ struct MyMenuView: View {
             // 网络异常时保留本地会话，下次再校验
         }
     }
+}
+
+private enum UpdateCheckResult: Identifiable {
+    case latest(current: String)
+    case available(latest: String, url: URL)
+    case failed(String)
+
+    var id: String {
+        switch self {
+        case .latest(let current): return "latest-\(current)"
+        case .available(let latest, _): return "available-\(latest)"
+        case .failed(let message): return "failed-\(message)"
+        }
+    }
+}
+
+private func versionParts(_ raw: String) -> [Int] {
+    raw.split(separator: ".").map { segment in
+        Int(segment.filter(\.isNumber)) ?? 0
+    }
+}
+
+private func isNewerAppVersion(_ latest: String, than current: String) -> Bool {
+    let newest = versionParts(latest)
+    let installed = versionParts(current)
+    let count = max(newest.count, installed.count)
+    for index in 0..<count {
+        let left = index < newest.count ? newest[index] : 0
+        let right = index < installed.count ? installed[index] : 0
+        if left != right { return left > right }
+    }
+    return false
 }
 
 struct LocalUserSession: Codable {
@@ -327,7 +409,7 @@ struct LoginSheetView: View {
         }
         .sheet(item: $showLegal) { kind in
             NavigationStack {
-                LegalDocumentView(title: kind.title.zh, file: kind.file)
+                LegalDocumentView(title: kind.title.zh, file: kind.file, hidesTabBar: false)
                     .toolbar {
                         ToolbarItem(placement: .cancellationAction) {
                             Button("关闭".zh) { showLegal = nil }
@@ -472,7 +554,7 @@ private struct EmailLoginView: View {
         .navigationBarTitleDisplayMode(.inline)
         .sheet(item: $showLegal) { kind in
             NavigationStack {
-                LegalDocumentView(title: kind.title.zh, file: kind.file)
+                LegalDocumentView(title: kind.title.zh, file: kind.file, hidesTabBar: false)
                     .toolbar {
                         ToolbarItem(placement: .cancellationAction) {
                             Button("关闭".zh) { showLegal = nil }
@@ -906,6 +988,45 @@ enum AuthAPI {
         return decoded
     }
 
+    struct AppVersionResponse: Decodable {
+        let ok: Bool
+        let ios: String
+        let android: String
+        let iosStoreUrl: String
+        let androidStoreUrl: String
+    }
+
+    static func fetchAppVersion() async throws -> AppVersionResponse {
+        var req = jsonRequest(path: "v1/app/version", method: "GET")
+        let data = try await perform(req, fallback: "检查更新失败")
+        let decoded = try JSONDecoder().decode(AppVersionResponse.self, from: data)
+        guard decoded.ok else { throw LoginError.network("检查更新失败") }
+        return decoded
+    }
+
+    static func submitFeedback(
+        body: String,
+        contact: String,
+        accessToken: String?
+    ) async throws {
+        let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? ""
+        let payload: [String: Any] = [
+            "body": body,
+            "contact": contact,
+            "platform": "ios",
+            "appVersion": version,
+        ]
+        var req = jsonRequest(path: "v1/feedback", method: "POST")
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        if let accessToken, !accessToken.isEmpty {
+            req.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+        }
+        req.httpBody = try JSONSerialization.data(withJSONObject: payload)
+        let data = try await perform(req, fallback: "提交失败")
+        let decoded = try JSONDecoder().decode(OkResponse.self, from: data)
+        guard decoded.ok else { throw LoginError.network("提交失败") }
+    }
+
     private struct OkResponse: Decodable {
         let ok: Bool
     }
@@ -1176,9 +1297,9 @@ private struct AIAnalysisHistoryView: View {
         Group {
             if items.isEmpty {
                 ContentUnavailableView(
-                    "还没有保存的解读",
-                    systemImage: "sparkles",
-                    description: Text("觉得合适的 AI 解读，可在结果页点「保存」".zh)
+                    "还没有解读",
+                    systemImage: "bubble.left.and.bubble.right",
+                    description: Text("起卦后点 AI，解读会自动出现在这里".zh)
                 )
             } else {
                 List {
@@ -1203,10 +1324,13 @@ private struct AIAnalysisHistoryView: View {
                 .scrollContentBackground(.hidden)
             }
         }
-        .navigationTitle("保存的AI解读".zh)
+        .navigationTitle("问答".zh)
         .navigationBarTitleDisplayMode(.inline)
-        .parchmentBackground()
+        .parchmentBackground(hidesTabBar: false)
         .onAppear {
+            items = SavedAIAnalysisStore.load()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .savedAIAnalysesDidChange)) { _ in
             items = SavedAIAnalysisStore.load()
         }
     }
@@ -1324,10 +1448,104 @@ private struct ProfileEditView: View {
     }
 }
 
+private struct FeedbackView: View {
+    let session: LocalUserSession
+    @Environment(\.dismiss) private var dismiss
+    @State private var bodyDraft = ""
+    @State private var contactDraft = ""
+    @State private var isSubmitting = false
+    @State private var showSuccess = false
+    @State private var errorMessage: String?
+
+    private var trimmedBody: String {
+        bodyDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private var canSubmit: Bool {
+        trimmedBody.count >= 5 && !isSubmitting
+    }
+
+    var body: some View {
+        List {
+            Section {
+                TextField("想说的话（至少 5 个字）", text: $bodyDraft, axis: .vertical)
+                    .lineLimit(6...12)
+                    .appTextFieldStyle()
+            } header: {
+                Text("意见".zh)
+            } footer: {
+                Text("\(trimmedBody.count)/2000".zh)
+                    .foregroundStyle(.secondary)
+            }
+
+            Section {
+                TextField("邮箱或其它联系方式（选填）", text: $contactDraft)
+                    .appTextFieldStyle()
+                    .textInputAutocapitalization(.never)
+                    .keyboardType(.emailAddress)
+            } header: {
+                Text("联系方式".zh)
+            } footer: {
+                Text(
+                    (session.isLoggedIn
+                     ? "已登录时会带上账号，方便我们对照。"
+                     : "未登录也可以提交。留下联系方式，有进展时方便回你。").zh
+                )
+            }
+        }
+        .navigationTitle("意见反馈".zh)
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button("提交".zh) {
+                    Task { await submit() }
+                }
+                .disabled(!canSubmit)
+            }
+        }
+        .parchmentBackground()
+        .onAppear {
+            if contactDraft.isEmpty {
+                contactDraft = session.email ?? session.phone ?? ""
+            }
+        }
+        .alert("已收到".zh, isPresented: $showSuccess) {
+            Button("好的".zh) { dismiss() }
+        } message: {
+            Text("感谢反馈，我们会尽快查看。".zh)
+        }
+        .alert("提交失败".zh, isPresented: Binding(
+            get: { errorMessage != nil },
+            set: { if !$0 { errorMessage = nil } }
+        )) {
+            Button("知道了".zh, role: .cancel) {}
+        } message: {
+            Text((errorMessage ?? "").zh)
+        }
+    }
+
+    @MainActor
+    private func submit() async {
+        let bodyText = String(trimmedBody.prefix(2000))
+        guard bodyText.count >= 5, !isSubmitting else { return }
+        isSubmitting = true
+        defer { isSubmitting = false }
+        do {
+            try await AuthAPI.submitFeedback(
+                body: bodyText,
+                contact: contactDraft.trimmingCharacters(in: .whitespacesAndNewlines),
+                accessToken: session.accessToken
+            )
+            showSuccess = true
+        } catch {
+            errorMessage = LoginError.describe(error)
+        }
+    }
+}
+
 private struct SettingsView: View {
     @Binding var session: LocalUserSession
     @Environment(\.dismiss) private var dismiss
-    @AppStorage(TapSoundPlayer.defaultsKey) private var tapSound: TapSoundKind = .none
     @State private var showLogoutConfirm = false
     @State private var showDeleteConfirm = false
     @State private var isDeletingAccount = false
@@ -1336,19 +1554,6 @@ private struct SettingsView: View {
 
     var body: some View {
         List {
-            Section {
-                NavigationLink {
-                    TapSoundSettingsView()
-                } label: {
-                    HStack {
-                        Label("按键音效".zh, systemImage: "speaker.wave.2")
-                        Spacer()
-                        Text(tapSound.title.zh)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-            }
-
             Section {
                 NavigationLink {
                     RecycleBinView()
@@ -1408,7 +1613,7 @@ private struct SettingsView: View {
                 Task { await deleteAccount() }
             }
         } message: {
-            Text("注销后，服务器上的账号信息将被永久删除且不可恢复。设备本地的起卦记录与保存的 AI 解读不会自动清除。".zh)
+            Text("注销后，服务器上的账号信息将被永久删除且不可恢复。设备本地的起卦记录与保存的问答不会自动清除。".zh)
         }
         .alert("注销失败".zh, isPresented: Binding(
             get: { deleteErrorMessage != nil },
@@ -1435,39 +1640,6 @@ private struct SettingsView: View {
         } catch {
             deleteErrorMessage = LoginError.describe(error)
         }
-    }
-}
-
-private struct TapSoundSettingsView: View {
-    @AppStorage(TapSoundPlayer.defaultsKey) private var tapSound: TapSoundKind = .none
-
-    var body: some View {
-        List {
-            Section {
-                ForEach(TapSoundKind.allCases) { kind in
-                    Button {
-                        tapSound = kind
-                        TapSoundPlayer.shared.play(kind: kind)
-                    } label: {
-                        HStack {
-                            Text(kind.title.zh)
-                            Spacer()
-                            if tapSound == kind {
-                                Image(systemName: "checkmark")
-                                    .foregroundStyle(AppTheme.accent)
-                            }
-                        }
-                    }
-                    .buttonStyle(.plain)
-                }
-            } footer: {
-                Text("点按「随机」「一键随机」「摇」「一键摇满」时播放。系统静音时不会出声。".zh)
-            }
-        }
-        .scrollContentBackground(.hidden)
-        .navigationTitle("按键音效".zh)
-        .navigationBarTitleDisplayMode(.inline)
-        .parchmentBackground()
     }
 }
 
@@ -1607,11 +1779,13 @@ struct LegalWebView: UIViewRepresentable {
 struct LegalDocumentView: View {
     let title: String
     let file: String
+    var hidesTabBar: Bool = true
 
     var body: some View {
         LegalWebView(fileName: file)
             .ignoresSafeArea(edges: .bottom)
             .navigationTitle(title)
             .navigationBarTitleDisplayMode(.inline)
+            .toolbar(hidesTabBar ? .hidden : .automatic, for: .tabBar)
     }
 }

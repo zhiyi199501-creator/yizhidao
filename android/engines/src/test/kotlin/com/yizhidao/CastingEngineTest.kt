@@ -80,6 +80,15 @@ class CoinCastingEngineTest {
     }
 
     @Test
+    fun tossFacesMapToLine() {
+        val allYang = CoinToss(listOf(true, true, true))
+        assertEquals(3, allYang.yangCount)
+        assertEquals(LineValue.OLD_YANG, allYang.line)
+        val twoYang = CoinToss(listOf(true, false, true))
+        assertEquals(LineValue.YOUNG_YIN, twoYang.line)
+    }
+
+    @Test
     fun allYangHexagramIsQian() {
         val lines = List(6) { LineValue.YOUNG_YANG }
         val result = CoinCastingEngine.cast(lines)

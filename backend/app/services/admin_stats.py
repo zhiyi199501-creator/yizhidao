@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.errors import AppError
-from app.models import AIUsageEvent, User
+from app.models import AIUsageEvent, User, UserFeedback
 from app.services.auth import mask_email, mask_phone
 from app.services.case_store import case_catalog_status
 from app.services.hexagram_store import hexagram_catalog_status
@@ -213,6 +213,10 @@ def overview(db: Session) -> Dict[str, Any]:
     login_mix = {"apple": 0, "google": 0, "email": 0, "phone": 0, "unknown": 0}
     for user in db.scalars(select(User)).all():
         login_mix[primary_login_method(user)] = login_mix.get(primary_login_method(user), 0) + 1
+    feedback_total = int(db.scalar(select(func.count(UserFeedback.id))) or 0)
+    feedback_unread = int(
+        db.scalar(select(func.count(UserFeedback.id)).where(UserFeedback.read_at.is_(None))) or 0
+    )
     return {
         "ok": True,
         "users": {
@@ -223,6 +227,7 @@ def overview(db: Session) -> Dict[str, Any]:
         },
         "aiToday": _event_aggregates(db, today),
         "aiLast7d": _daily_call_series(db, week, 7),
+        "feedback": {"total": feedback_total, "unread": feedback_unread},
         "health": content_health(),
     }
 

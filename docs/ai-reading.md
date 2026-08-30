@@ -1,6 +1,6 @@
-# AI 解读
+# AI 问答
 
-本文件是 AI 解读的机制说明（怎么拼材料、怎么出卡、App 怎么用）。接口路径与 JSON 字段以 `[backend-min-spec.md](backend-min-spec.md)` 为准；提示词原文以 `backend/app/services/ai.py` 为准。改解卦通则先改 App 的 `ReadingGuide` 并补测，再对这里的焦点表。
+本文件说明结果页「问答」怎么拼材料、出卡、App 怎么用。接口路径与 JSON 字段以 `[backend-min-spec.md](backend-min-spec.md)` 为准；提示词原文以 `backend/app/services/ai.py` 为准。改解卦通则先改 App 的 `ReadingGuide` 并补测，再对这里的焦点表。
 
 **状态（2026-08-28）**：扩卡、黄庭进 prompt、按爻裁案例、主看卦辞时附彖辞已合 `main`（[PR #12](https://github.com/zhiyi199501-creator/yizhidao/pull/12)）。生产 `api.yiwanjia.work` 仍是发版前的三字段解读（`summary` / `focus` / `advice` + 追问单段 `reply`）；须重建镜像（含 `ImaExplanations.json`）并发 App 后才现役。
 
@@ -8,7 +8,7 @@
 
 ## 用户路径
 
-结果页悬浮 **AI**（需登录）→ `POST /v1/ai/analyze` → 卡片：事情背景 / 当下 / 方向 / 建议 / 可以接着问。须防只一条，并入建议（条目前加「须防：」），接口仍单独返回 `risks`。所问可空；空时「可以接着问」固定为「我的事业会如何？」「我的感情会如何？」。点短问即发出（不填入输入框），或自写后发 → `POST /v1/ai/followup` → 回复 + 这一轮建议；最新一轮仍给「可以接着问」（须是用户口吻，用「我」）。初次的短问在已有追问后藏掉。可保存到本地「保存的AI解读」；已保存后追问成功会自动更新该条；重新解读后按钮为「重新保存」。
+结果页悬浮 **问**：该占已有问答则直接打开，**禁止重打** `analyze`。没有则自动 `POST /v1/ai/analyze`（需登录）。刚起完的卦进入结果页约 2 秒后自动打开问答，只自动一次。页标题「问答」。卡片：事情背景 / 当下 / 方向 / 建议 / 可以接着问。须防只一条，并入建议（条目前加「须防：」），接口仍单独返回 `risks`。长文由 App `AIAnswerFormatter` 在展示层按句分段，不改存盘。问答详情右上角「同类」与结果页相同（进历史同卦明细）。所问必填（告神幕）；接口仍接受空所问（旧记录），空时「可以接着问」固定为「我的事业会如何？」「我的感情会如何？」。点短问即发出（不填入输入框），或自写后发 → `POST /v1/ai/followup` → 回复 + 这一轮建议；最新一轮仍给「可以接着问」（须是用户口吻，用「我」）。初次的短问在已有追问后藏掉。问答自动保存到本地「问答」Tab（一占一条）；追问成功会更新该条。
 
 旧客户端只读 `summary` / `focus` / `advice` 和追问 `reply`，多出的字段可忽略。
 
@@ -54,7 +54,7 @@
 
 **经文块**（本卦、之卦各一块，《易经证释》所引）：卦名、卦辞、彖辞、大象、六爻辞、六小象。不附文言、用九、用六。
 
-**黄庭讲解**（`explanation_slots` → `ImaExplanations.json`，清洗与 App `ImaAnswerFormatter` 相同：去「思考过程」、出处脚注）：
+**黄庭讲解**（`explanation_slots` → `ImaExplanations.json`，包内原稿已预清洗；运行时与 App `ImaAnswerFormatter` 再洗一遍：去「思考过程」、出处脚注）：
 
 
 | 动爻数 | 必给                                           | 另给                         |
@@ -90,14 +90,14 @@
 
 ## App
 
-- iOS：`ResultView` + `AuthAPI`（`YizhidaoApp.swift`）；保存 `SavedAIAnalysis.swift`（旧本地 JSON 缺新字段当空）
-- Android：`AIAnalysisScreen.kt` + `AuthApi.kt`；保存 `SavedAIAnalysis.kt`
+- iOS：`ResultView` + `AuthAPI`（`YizhidaoApp.swift`）；本地 `SavedAIAnalysis.swift`（一占一条；按 `readingRecordID`，旧 JSON 缺 ID 时按卦象指纹／时刻容差对上；对上了就展示，不再请求）
+- Android：`AIAnalysisScreen.kt` + `AuthApi.kt`；本地 `SavedAIAnalysis.kt`（`readingRecordId`；`find` 读内存列表，同样禁止已存再 analyze）
 - 展示层卡片标题是中文「事情背景」等，不把 JSON 键名秀给用户。须防不单独成卡，只一条并入建议（条目前加「须防：」）
 - 点「可以接着问」直接发出，不填入输入框。所问为空时这两项固定为「我的事业会如何？」「我的感情会如何？」（服务端覆盖，不靠模型）；有所问时模型须用「我」的口吻拟短问
 
 ## 限流与失败
 
-按登录用户，进程内计数（单容器；重启清零）。`analyze` 与 `followup` 共用：两次最短间隔 8 秒；同一用户同时只跑 1 个；自然日 UTC+8 合计 40 次。超限 HTTP 429、`code` 4290。间隔/并发文案「请稍后再试」；当天次数用尽「今天的解读次数用完了，明天再来」。界面不展示剩余次数。`AI_RATE_INTERVAL_SEC` / `AI_RATE_DAILY_LIMIT` 可改。模型失败对外只说「解读没有完成，请稍后重试」或「模型服务暂时不可用，请稍后重试」，不回上游原文。不自动重试、不降级 mock。App 已有错误行和「重新解读」。
+按登录用户，进程内计数（单容器；重启清零）。`analyze` 与 `followup` 共用：两次最短间隔 8 秒；同一用户同时只跑 1 个；自然日 UTC+8 合计 40 次。超限 HTTP 429、`code` 4290。间隔/并发文案「请稍后再试」；当天次数用尽「今天的解读次数用完了，明天再来」。界面不展示剩余次数。`AI_RATE_INTERVAL_SEC` / `AI_RATE_DAILY_LIMIT` 可改。模型失败对外只说「解读没有完成，请稍后重试」或「模型服务暂时不可用，请稍后重试」，不回上游原文。不自动重试、不降级 mock。App 已有错误行。
 
 
 

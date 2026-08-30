@@ -64,6 +64,25 @@ class AIUsageEvent(Base):
     method: Mapped[Optional[str]] = mapped_column(String(32), nullable=True)
 
 
+class UserFeedback(Base):
+    """App 意见反馈。可匿名；有登录则记下 user_id。"""
+
+    __tablename__ = "user_feedback"
+    __table_args__ = (
+        Index("ix_user_feedback_created_at", "created_at"),
+        Index("ix_user_feedback_read_at", "read_at"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    user_id: Mapped[Optional[str]] = mapped_column(String(36), index=True, nullable=True)
+    body: Mapped[str] = mapped_column(Text)
+    contact: Mapped[str] = mapped_column(String(120), default="", server_default="")
+    platform: Mapped[str] = mapped_column(String(16), default="", server_default="")
+    app_version: Mapped[str] = mapped_column(String(32), default="", server_default="")
+    read_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
 class ContentCase(Base):
     """案例工作副本。未发布前不影响 GET /v1/cases。"""
 

@@ -1,10 +1,97 @@
 import Foundation
 
+struct YijingIntroLink: Codable, Hashable, Sendable {
+    let title: String
+    let subtitle: String
+    let route: String
+}
+
+enum YijingIntroBlock: Hashable, Sendable {
+    case paragraph(String)
+    case quote(text: String, cite: String)
+    case list([String])
+    case table([[String]])
+    case figure(kind: String, caption: String)
+    case links([YijingIntroLink])
+
+    var plainText: String {
+        switch self {
+        case .paragraph(let text): return text
+        case .quote(let text, let cite): return cite.isEmpty ? text : "\(text) \(cite)"
+        case .list(let items): return items.joined(separator: " ")
+        case .table(let rows): return rows.joined().joined(separator: " ")
+        case .figure(_, let caption): return caption
+        case .links(let links): return links.map { "\($0.title) \($0.subtitle)" }.joined(separator: " ")
+        }
+    }
+}
+
+extension YijingIntroBlock: Codable {
+    private enum CodingKeys: String, CodingKey {
+        case type, text, cite, items, rows, kind, caption, links
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        let type = try c.decode(String.self, forKey: .type)
+        switch type {
+        case "p":
+            self = .paragraph(try c.decode(String.self, forKey: .text))
+        case "quote":
+            self = .quote(
+                text: try c.decode(String.self, forKey: .text),
+                cite: try c.decodeIfPresent(String.self, forKey: .cite) ?? ""
+            )
+        case "list":
+            self = .list(try c.decode([String].self, forKey: .items))
+        case "table":
+            self = .table(try c.decode([[String]].self, forKey: .rows))
+        case "figure":
+            self = .figure(
+                kind: try c.decode(String.self, forKey: .kind),
+                caption: try c.decodeIfPresent(String.self, forKey: .caption) ?? ""
+            )
+        case "links":
+            self = .links(try c.decode([YijingIntroLink].self, forKey: .links))
+        default:
+            throw DecodingError.dataCorruptedError(forKey: .type, in: c, debugDescription: "Unknown intro block type \(type)")
+        }
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        switch self {
+        case .paragraph(let text):
+            try c.encode("p", forKey: .type)
+            try c.encode(text, forKey: .text)
+        case .quote(let text, let cite):
+            try c.encode("quote", forKey: .type)
+            try c.encode(text, forKey: .text)
+            try c.encode(cite, forKey: .cite)
+        case .list(let items):
+            try c.encode("list", forKey: .type)
+            try c.encode(items, forKey: .items)
+        case .table(let rows):
+            try c.encode("table", forKey: .type)
+            try c.encode(rows, forKey: .rows)
+        case .figure(let kind, let caption):
+            try c.encode("figure", forKey: .type)
+            try c.encode(kind, forKey: .kind)
+            try c.encode(caption, forKey: .caption)
+        case .links(let links):
+            try c.encode("links", forKey: .type)
+            try c.encode(links, forKey: .links)
+        }
+    }
+}
+
 struct YijingIntroChapter: Codable, Identifiable, Hashable, Sendable {
     let id: String
     let title: String
     let subtitle: String
-    let paragraphs: [String]
+    let blocks: [YijingIntroBlock]
+
+    var plainText: String { blocks.map(\.plainText).joined(separator: " ") }
 }
 
 struct YijingIntroBook: Codable, Sendable {

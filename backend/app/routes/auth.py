@@ -4,8 +4,10 @@ from sqlalchemy.orm import Session
 from app.db import get_db
 from app.deps import get_current_user
 from app.models import User
+from app.config import settings
 from app.schemas import (
     AppleLoginRequest,
+    AppVersionResponse,
     AuthLoginResponse,
     EmailLoginRequest,
     EmailSendRequest,
@@ -41,6 +43,20 @@ def _login_response(user: User, token: str) -> AuthLoginResponse:
 @router.get("/health", response_model=HealthResponse)
 def health() -> HealthResponse:
     return HealthResponse()
+
+
+IOS_STORE_URL = "https://apps.apple.com/app/id6804203617"
+ANDROID_STORE_URL = "https://play.google.com/store/apps/details?id=com.yizhidao.app"
+
+
+@router.get("/v1/app/version", response_model=AppVersionResponse)
+def app_version() -> AppVersionResponse:
+    return AppVersionResponse(
+        ios=(settings.app_ios_latest_version or "").strip() or "1.0",
+        android=(settings.app_android_latest_version or "").strip() or "0.1.1",
+        iosStoreUrl=IOS_STORE_URL,
+        androidStoreUrl=ANDROID_STORE_URL,
+    )
 
 
 @router.post("/v1/auth/sms/send", response_model=SMSSendResponse)

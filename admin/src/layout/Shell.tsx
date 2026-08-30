@@ -5,6 +5,7 @@ const LINKS = [
   { to: "/", label: "总览", end: true },
   { to: "/users", label: "用户" },
   { to: "/ai", label: "AI 用量" },
+  { to: "/feedback", label: "反馈" },
   { to: "/cases", label: "案例" },
   { to: "/ima", label: "黄庭" },
   { to: "/jingwen", label: "经文" },

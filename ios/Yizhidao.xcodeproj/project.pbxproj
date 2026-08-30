@@ -11,7 +11,15 @@
 		05FCA4FD8FE7496E8654BB70 /* CastingEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 55D24AD374C54517A647A123 /* CastingEngineTests.swift */; };
 		0A1B2C3D4E5F60718293A4B5 /* ReadingGuide.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60718293A4B5C /* ReadingGuide.swift */; };
 		1242F044DF5942258C78437E /* HexagramStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 260E15D9F01D48DAA9D497EA /* HexagramStore.swift */; };
-		23694EC8A2D14E19869A21DE /* CoinCastView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C7C61C67A8B43748AAC82F1 /* CoinCastView.swift */; };
+		D1A7C0DE000B0000000000B1 /* MethodPickView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1A7C0DE000B0000000000B0 /* MethodPickView.swift */; };
+		D1A7C0DE0001000000000011 /* CastRevealView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1A7C0DE0001000000000010 /* CastRevealView.swift */; };
+		D1A7C0DE0003000000000031 /* CoinTossActView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1A7C0DE0003000000000030 /* CoinTossActView.swift */; };
+		D1A7C0DE0004000000000041 /* CastingActView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1A7C0DE0004000000000040 /* CastingActView.swift */; };
+		D1A7C0DE0006000000000061 /* InvocationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1A7C0DE0006000000000060 /* InvocationView.swift */; };
+		D1A7C0DE0007000000000071 /* StillnessView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1A7C0DE0007000000000070 /* StillnessView.swift */; };
+		D1A7C0DE0008000000000081 /* NumberDrawActView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1A7C0DE0008000000000080 /* NumberDrawActView.swift */; };
+		D1A7C0DE0002000000000021 /* Haptics.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1A7C0DE0002000000000020 /* Haptics.swift */; };
+		D1A7C0DE0005000000000051 /* ShakeDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1A7C0DE0005000000000050 /* ShakeDetector.swift */; };
 		287E6E59BF89490E932CFFC6 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = E1E94CC872B540419C963B30 /* Assets.xcassets */; };
 		3911DF10CA5946C585F2633F /* CoinCastingEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = D342D0677A7543F48A192D75 /* CoinCastingEngine.swift */; };
 		53B6575BFD7B4F319FD3AF72 /* HexagramFigureView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B40D83FECB4427FBDD6C926 /* HexagramFigureView.swift */; };
@@ -19,7 +27,6 @@
 		6EA3A2C6C4E141448CC28EEB /* ReadingRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BBBD6D39ECE4DD39BEA95EF /* ReadingRecord.swift */; };
 		755BF225FDD14B22AFAE8E49 /* CastingHomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E614E289492B467E8E241148 /* CastingHomeView.swift */; };
 		84A157B65C5A4E9A80DDEC3C /* CastingMethod.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5324BB819C354DE18B32CB01 /* CastingMethod.swift */; };
-		88BB561655D74ABDB96ED617 /* DigitalCastView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DBE934520CE8420597117133 /* DigitalCastView.swift */; };
 		8941F8251B6C44C5854F01A6 /* Hexagram.swift in Sources */ = {isa = PBXBuildFile; fileRef = F9BBA2BE8067493FBBAD0119 /* Hexagram.swift */; };
 		91DE366801B3496FB3F80665 /* YizhidaoApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD28779165054160BE1BD459 /* YizhidaoApp.swift */; };
 		A0B1C2D3E4F5060708090A04 /* OAuthSignIn.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0B1C2D3E4F5060708090A02 /* OAuthSignIn.swift */; };
@@ -32,16 +39,13 @@
 		A1B2C3D4E5F60718293A506 /* ImaExplanations.json in Resources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60718293A505 /* ImaExplanations.json */; };
 		A1B2C3D4E5F60718293A522 /* ImaAnswerFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60718293A521 /* ImaAnswerFormatter.swift */; };
 		A1B2C3D4E5F60718293A524 /* ImaAnswerFormatterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60718293A523 /* ImaAnswerFormatterTests.swift */; };
+		A1B2C3D4E5F60718293A532 /* AIAnswerFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60718293A531 /* AIAnswerFormatter.swift */; };
+		A1B2C3D4E5F60718293A534 /* AIAnswerFormatterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60718293A533 /* AIAnswerFormatterTests.swift */; };
 		A1B2C3D4E5F6071893A011 /* AppNavigation.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2C3D4E5F6071893A012 /* AppNavigation.swift */; };
 		A7E2B1C094F84D2A9C6E1D30 /* ReadingRecordRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8F3C2D185E95E3B0D7F2E41 /* ReadingRecordRow.swift */; };
 		B21C91DA1BCB4BCA9CE351AD /* CaseListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E421C3B729BF40ADA8D18489 /* CaseListView.swift */; };
 		C0FFEE0000000000000000A2 /* privacy_policy.html in Resources */ = {isa = PBXBuildFile; fileRef = C0FFEE0000000000000000A1 /* privacy_policy.html */; };
 		C0FFEE0000000000000000B2 /* terms_of_service.html in Resources */ = {isa = PBXBuildFile; fileRef = C0FFEE0000000000000000B1 /* terms_of_service.html */; };
-		C22D4A551C1A551C1A551C21 /* TapSound.swift in Sources */ = {isa = PBXBuildFile; fileRef = C22D4A551C1A551C1A551C20 /* TapSound.swift */; };
-		C22D4A551C1A551C1A551C31 /* tap_bubble.wav in Resources */ = {isa = PBXBuildFile; fileRef = C22D4A551C1A551C1A551C30 /* tap_bubble.wav */; };
-		C22D4A551C1A551C1A551C33 /* tap_click.wav in Resources */ = {isa = PBXBuildFile; fileRef = C22D4A551C1A551C1A551C32 /* tap_click.wav */; };
-		C22D4A551C1A551C1A551C35 /* tap_wood.wav in Resources */ = {isa = PBXBuildFile; fileRef = C22D4A551C1A551C1A551C34 /* tap_wood.wav */; };
-		C22D4A551C1A551C1A551C37 /* tap_jade.wav in Resources */ = {isa = PBXBuildFile; fileRef = C22D4A551C1A551C1A551C36 /* tap_jade.wav */; };
 		C22D4A551C1A551C1A551C41 /* AppLanguage.swift in Sources */ = {isa = PBXBuildFile; fileRef = C22D4A551C1A551C1A551C40 /* AppLanguage.swift */; };
 		C4A8B1D203E54F6A9B7C8E21 /* SavedAIAnalysis.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5B9C2E314F65A7B0C8D9F32 /* SavedAIAnalysis.swift */; };
 		C9D4E3F276A06F4C1E803A52 /* HexagramGroupViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0E5F4A387B17B5D2F9A4C63 /* HexagramGroupViews.swift */; };
@@ -70,7 +74,15 @@
 		0B40D83FECB4427FBDD6C926 /* HexagramFigureView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = HexagramFigureView.swift; path = Features/Casting/HexagramFigureView.swift; sourceTree = "<group>"; };
 		260E15D9F01D48DAA9D497EA /* HexagramStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = HexagramStore.swift; path = Data/HexagramStore.swift; sourceTree = "<group>"; };
 		2A3A7D3A62474756845AF9BE /* Hexagrams.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; name = Hexagrams.json; path = Resources/Hexagrams.json; sourceTree = "<group>"; };
-		3C7C61C67A8B43748AAC82F1 /* CoinCastView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = CoinCastView.swift; path = Features/Casting/CoinCastView.swift; sourceTree = "<group>"; };
+		D1A7C0DE000B0000000000B0 /* MethodPickView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = MethodPickView.swift; path = Features/Casting/MethodPickView.swift; sourceTree = "<group>"; };
+		D1A7C0DE0001000000000010 /* CastRevealView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = CastRevealView.swift; path = Features/Casting/CastRevealView.swift; sourceTree = "<group>"; };
+		D1A7C0DE0003000000000030 /* CoinTossActView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = CoinTossActView.swift; path = Features/Casting/CoinTossActView.swift; sourceTree = "<group>"; };
+		D1A7C0DE0004000000000040 /* CastingActView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = CastingActView.swift; path = Features/Casting/CastingActView.swift; sourceTree = "<group>"; };
+		D1A7C0DE0006000000000060 /* InvocationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = InvocationView.swift; path = Features/Casting/InvocationView.swift; sourceTree = "<group>"; };
+		D1A7C0DE0007000000000070 /* StillnessView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = StillnessView.swift; path = Features/Casting/StillnessView.swift; sourceTree = "<group>"; };
+		D1A7C0DE0008000000000080 /* NumberDrawActView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = NumberDrawActView.swift; path = Features/Casting/NumberDrawActView.swift; sourceTree = "<group>"; };
+		D1A7C0DE0002000000000020 /* Haptics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = Haptics.swift; path = App/Haptics.swift; sourceTree = "<group>"; };
+		D1A7C0DE0005000000000050 /* ShakeDetector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ShakeDetector.swift; path = App/ShakeDetector.swift; sourceTree = "<group>"; };
 		4278B724E3594A7292C2B416 /* CaseModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = CaseModels.swift; path = Features/Cases/CaseModels.swift; sourceTree = "<group>"; };
 		4CCA25932BFA4D12AB89EA0B /* YizhidaoTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = YizhidaoTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		4D59DC6B79544101AE267222 /* HistoryListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = HistoryListView.swift; path = Features/History/HistoryListView.swift; sourceTree = "<group>"; };
@@ -93,20 +105,16 @@
 		A1B2C3D4E5F60718293A505 /* ImaExplanations.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; name = ImaExplanations.json; path = Resources/ImaExplanations.json; sourceTree = "<group>"; };
 		A1B2C3D4E5F60718293A521 /* ImaAnswerFormatter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ImaAnswerFormatter.swift; path = Features/Reading/ImaAnswerFormatter.swift; sourceTree = "<group>"; };
 		A1B2C3D4E5F60718293A523 /* ImaAnswerFormatterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImaAnswerFormatterTests.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F60718293A531 /* AIAnswerFormatter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AIAnswerFormatter.swift; path = Features/Reading/AIAnswerFormatter.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F60718293A533 /* AIAnswerFormatterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIAnswerFormatterTests.swift; sourceTree = "<group>"; };
 		B2C3D4E5F6071893A012 /* AppNavigation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppNavigation.swift; path = App/AppNavigation.swift; sourceTree = "<group>"; };
 		B8F3C2D185E95E3B0D7F2E41 /* ReadingRecordRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ReadingRecordRow.swift; path = Features/History/ReadingRecordRow.swift; sourceTree = "<group>"; };
 		C0FFEE0000000000000000A1 /* privacy_policy.html */ = {isa = PBXFileReference; lastKnownFileType = text.html; name = privacy_policy.html; path = Resources/privacy_policy.html; sourceTree = "<group>"; };
 		C0FFEE0000000000000000B1 /* terms_of_service.html */ = {isa = PBXFileReference; lastKnownFileType = text.html; name = terms_of_service.html; path = Resources/terms_of_service.html; sourceTree = "<group>"; };
-		C22D4A551C1A551C1A551C20 /* TapSound.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = TapSound.swift; path = App/TapSound.swift; sourceTree = "<group>"; };
-		C22D4A551C1A551C1A551C30 /* tap_bubble.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; name = tap_bubble.wav; path = Resources/tap_bubble.wav; sourceTree = "<group>"; };
-		C22D4A551C1A551C1A551C32 /* tap_click.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; name = tap_click.wav; path = Resources/tap_click.wav; sourceTree = "<group>"; };
-		C22D4A551C1A551C1A551C34 /* tap_wood.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; name = tap_wood.wav; path = Resources/tap_wood.wav; sourceTree = "<group>"; };
-		C22D4A551C1A551C1A551C36 /* tap_jade.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; name = tap_jade.wav; path = Resources/tap_jade.wav; sourceTree = "<group>"; };
 		C22D4A551C1A551C1A551C40 /* AppLanguage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppLanguage.swift; path = App/AppLanguage.swift; sourceTree = "<group>"; };
 		D0E5F4A387B17B5D2F9A4C63 /* HexagramGroupViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = HexagramGroupViews.swift; path = Features/History/HexagramGroupViews.swift; sourceTree = "<group>"; };
 		D342D0677A7543F48A192D75 /* CoinCastingEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = CoinCastingEngine.swift; path = Engines/CoinCastingEngine.swift; sourceTree = "<group>"; };
 		D5B9C2E314F65A7B0C8D9F32 /* SavedAIAnalysis.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = SavedAIAnalysis.swift; path = Data/SavedAIAnalysis.swift; sourceTree = "<group>"; };
-		DBE934520CE8420597117133 /* DigitalCastView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = DigitalCastView.swift; path = Features/Casting/DigitalCastView.swift; sourceTree = "<group>"; };
 		DD28779165054160BE1BD459 /* YizhidaoApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = YizhidaoApp.swift; path = App/YizhidaoApp.swift; sourceTree = "<group>"; };
 		E1781F41A2C04E80B1601A9D /* DigitalCastingEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = DigitalCastingEngine.swift; path = Engines/DigitalCastingEngine.swift; sourceTree = "<group>"; };
 		E1E94CC872B540419C963B30 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -144,12 +152,14 @@
 				A0B1C2D3E4F5060708090A02 /* OAuthSignIn.swift */,
 				F5B2C3D4E5F60718293A02 /* AppTheme.swift */,
 				B2C3D4E5F6071893A012 /* AppNavigation.swift */,
-				C22D4A551C1A551C1A551C20 /* TapSound.swift */,
+				D1A7C0DE0002000000000020 /* Haptics.swift */,
+				D1A7C0DE0005000000000050 /* ShakeDetector.swift */,
 				C22D4A551C1A551C1A551C40 /* AppLanguage.swift */,
 				260E15D9F01D48DAA9D497EA /* HexagramStore.swift */,
 				A1B2C3D4E5F60718293A501 /* ImaExplanationStore.swift */,
 				A1B2C3D4E5F60718293A503 /* ImaExplanationViews.swift */,
 				A1B2C3D4E5F60718293A521 /* ImaAnswerFormatter.swift */,
+				A1B2C3D4E5F60718293A531 /* AIAnswerFormatter.swift */,
 				7BBBD6D39ECE4DD39BEA95EF /* ReadingRecord.swift */,
 				D5B9C2E314F65A7B0C8D9F32 /* SavedAIAnalysis.swift */,
 				5324BB819C354DE18B32CB01 /* CastingMethod.swift */,
@@ -161,8 +171,13 @@
 				ECA85F738BC74E21A5C9073A /* KingWenTable.swift */,
 				9DF34D4493C94C639D9DB6BD /* LunarCalendarHelper.swift */,
 				E614E289492B467E8E241148 /* CastingHomeView.swift */,
-				3C7C61C67A8B43748AAC82F1 /* CoinCastView.swift */,
-				DBE934520CE8420597117133 /* DigitalCastView.swift */,
+				D1A7C0DE000B0000000000B0 /* MethodPickView.swift */,
+				D1A7C0DE0001000000000010 /* CastRevealView.swift */,
+				D1A7C0DE0003000000000030 /* CoinTossActView.swift */,
+				D1A7C0DE0004000000000040 /* CastingActView.swift */,
+				D1A7C0DE0006000000000060 /* InvocationView.swift */,
+				D1A7C0DE0007000000000070 /* StillnessView.swift */,
+				D1A7C0DE0008000000000080 /* NumberDrawActView.swift */,
 				0B40D83FECB4427FBDD6C926 /* HexagramFigureView.swift */,
 				78593865F4DD44ABAF281B2A /* ResultView.swift */,
 				4D59DC6B79544101AE267222 /* HistoryListView.swift */,
@@ -177,10 +192,6 @@
 				8393C6C7EE1243889EF8CE5C /* cases.json */,
 				A11C1A551C1A551C1A551C07 /* YijingIntro.json */,
 				A11C1A551C1A551C1A551C09 /* Zhengshi.json */,
-				C22D4A551C1A551C1A551C30 /* tap_bubble.wav */,
-				C22D4A551C1A551C1A551C32 /* tap_click.wav */,
-				C22D4A551C1A551C1A551C34 /* tap_wood.wav */,
-				C22D4A551C1A551C1A551C36 /* tap_jade.wav */,
 				A11C1A551C1A551C1A551C03 /* ClassicYijingStore.swift */,
 				A11C1A551C1A551C1A551C05 /* ClassicYijingViews.swift */,
 				E1E94CC872B540419C963B30 /* Assets.xcassets */,
@@ -204,6 +215,7 @@
 			children = (
 				55D24AD374C54517A647A123 /* CastingEngineTests.swift */,
 				A1B2C3D4E5F60718293A523 /* ImaAnswerFormatterTests.swift */,
+				A1B2C3D4E5F60718293A533 /* AIAnswerFormatterTests.swift */,
 			);
 			path = YizhidaoTests;
 			sourceTree = "<group>";
@@ -305,10 +317,6 @@
 				FBC1E4127C75448A977AD579 /* cases.json in Resources */,
 				A11C1A551C1A551C1A551C08 /* YijingIntro.json in Resources */,
 				A11C1A551C1A551C1A551C0A /* Zhengshi.json in Resources */,
-				C22D4A551C1A551C1A551C31 /* tap_bubble.wav in Resources */,
-				C22D4A551C1A551C1A551C33 /* tap_click.wav in Resources */,
-				C22D4A551C1A551C1A551C35 /* tap_wood.wav in Resources */,
-				C22D4A551C1A551C1A551C37 /* tap_jade.wav in Resources */,
 				287E6E59BF89490E932CFFC6 /* Assets.xcassets in Resources */,
 				F1A2B3C4D5E60718293A6B02 /* PrivacyInfo.xcprivacy in Resources */,
 			);
@@ -325,12 +333,14 @@
 				A0B1C2D3E4F5060708090A04 /* OAuthSignIn.swift in Sources */,
 				E4A1B2C3D4E5F60718293A01 /* AppTheme.swift in Sources */,
 				A1B2C3D4E5F6071893A011 /* AppNavigation.swift in Sources */,
-				C22D4A551C1A551C1A551C21 /* TapSound.swift in Sources */,
+				D1A7C0DE0002000000000021 /* Haptics.swift in Sources */,
+				D1A7C0DE0005000000000051 /* ShakeDetector.swift in Sources */,
 				C22D4A551C1A551C1A551C41 /* AppLanguage.swift in Sources */,
 				1242F044DF5942258C78437E /* HexagramStore.swift in Sources */,
 				A1B2C3D4E5F60718293A502 /* ImaExplanationStore.swift in Sources */,
 				A1B2C3D4E5F60718293A504 /* ImaExplanationViews.swift in Sources */,
 				A1B2C3D4E5F60718293A522 /* ImaAnswerFormatter.swift in Sources */,
+				A1B2C3D4E5F60718293A532 /* AIAnswerFormatter.swift in Sources */,
 				6EA3A2C6C4E141448CC28EEB /* ReadingRecord.swift in Sources */,
 				C4A8B1D203E54F6A9B7C8E21 /* SavedAIAnalysis.swift in Sources */,
 				84A157B65C5A4E9A80DDEC3C /* CastingMethod.swift in Sources */,
@@ -342,8 +352,13 @@
 				CB1B9E21829342AA97B90B04 /* KingWenTable.swift in Sources */,
 				F8C1C3F4E501414DBDDD982A /* LunarCalendarHelper.swift in Sources */,
 				755BF225FDD14B22AFAE8E49 /* CastingHomeView.swift in Sources */,
-				23694EC8A2D14E19869A21DE /* CoinCastView.swift in Sources */,
-				88BB561655D74ABDB96ED617 /* DigitalCastView.swift in Sources */,
+				D1A7C0DE000B0000000000B1 /* MethodPickView.swift in Sources */,
+				D1A7C0DE0001000000000011 /* CastRevealView.swift in Sources */,
+				D1A7C0DE0003000000000031 /* CoinTossActView.swift in Sources */,
+				D1A7C0DE0004000000000041 /* CastingActView.swift in Sources */,
+				D1A7C0DE0006000000000061 /* InvocationView.swift in Sources */,
+				D1A7C0DE0007000000000071 /* StillnessView.swift in Sources */,
+				D1A7C0DE0008000000000081 /* NumberDrawActView.swift in Sources */,
 				53B6575BFD7B4F319FD3AF72 /* HexagramFigureView.swift in Sources */,
 				F4FA069E0E144AD7AD608185 /* ResultView.swift in Sources */,
 				CC351C1DDE89457DA9C2D046 /* HistoryListView.swift in Sources */,
@@ -362,6 +377,7 @@
 			files = (
 				05FCA4FD8FE7496E8654BB70 /* CastingEngineTests.swift in Sources */,
 				A1B2C3D4E5F60718293A524 /* ImaAnswerFormatterTests.swift in Sources */,
+				A1B2C3D4E5F60718293A534 /* AIAnswerFormatterTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

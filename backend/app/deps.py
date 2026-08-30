@@ -31,3 +31,20 @@ def get_current_user(
     if not user:
         raise AppError("登录态无效", code=4003, status_code=401)
     return user
+
+
+def get_optional_user(
+    authorization: Optional[str] = Header(default=None),
+    db: Session = Depends(get_db),
+) -> Optional[User]:
+    """有合法 Bearer 则绑定用户；缺 token 或过期不当成错误（意见反馈可匿名）。"""
+    if not authorization or not authorization.startswith("Bearer "):
+        return None
+    token = authorization[7:].strip()
+    if not token:
+        return None
+    try:
+        user_id = decode_access_token(token)
+    except AppError:
+        return None
+    return db.scalar(select(User).where(User.id == user_id))

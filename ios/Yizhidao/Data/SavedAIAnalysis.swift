@@ -92,6 +92,7 @@ struct SavedAIAnalysis: Codable, Identifiable, Hashable {
     let id: UUID
     let createdAt: Date
     var updatedAt: Date
+    var readingRecordID: UUID?
     let methodRaw: String
     let question: String?
     let primaryNumber: Int
@@ -103,6 +104,34 @@ struct SavedAIAnalysis: Codable, Identifiable, Hashable {
 
     var method: CastingMethod {
         CastingMethod(rawValue: methodRaw) ?? .digitalManual
+    }
+
+    var fingerprint: String {
+        Self.fingerprint(
+            methodRaw: methodRaw,
+            createdAt: createdAt,
+            primaryNumber: primaryNumber,
+            lines: lines
+        )
+    }
+
+    static func fingerprint(
+        methodRaw: String,
+        createdAt: Date,
+        primaryNumber: Int,
+        lines: [Int]
+    ) -> String {
+        let ms = Int64((createdAt.timeIntervalSince1970 * 1000.0).rounded())
+        return "\(methodRaw)|\(ms)|\(primaryNumber)|\(lines.map(String.init).joined(separator: ","))"
+    }
+
+    static func fingerprint(result: CastResult) -> String {
+        fingerprint(
+            methodRaw: result.method.rawValue,
+            createdAt: result.createdAt,
+            primaryNumber: result.primaryNumber,
+            lines: result.lines.map(\.rawValue)
+        )
     }
 
     func toCastResult() -> CastResult {
@@ -121,12 +150,15 @@ struct SavedAIAnalysis: Codable, Identifiable, Hashable {
     static func make(
         result: CastResult,
         analysis: SavedAIContent,
-        followUps: [SavedAIFollowUp]
+        followUps: [SavedAIFollowUp],
+        readingRecordID: UUID? = nil,
+        existingID: UUID? = nil
     ) -> SavedAIAnalysis {
         SavedAIAnalysis(
-            id: UUID(),
-            createdAt: Date(),
+            id: existingID ?? UUID(),
+            createdAt: result.createdAt,
             updatedAt: Date(),
+            readingRecordID: readingRecordID,
             methodRaw: result.method.rawValue,
             question: result.question,
             primaryNumber: result.primaryNumber,
@@ -137,6 +169,75 @@ struct SavedAIAnalysis: Codable, Identifiable, Hashable {
             followUps: followUps
         )
     }
+
+    enum CodingKeys: String, CodingKey {
+        case id, createdAt, updatedAt, readingRecordID, methodRaw, question
+        case primaryNumber, resultingNumber, lines, movingPositions, analysis, followUps
+    }
+
+    init(
+        id: UUID,
+        createdAt: Date,
+        updatedAt: Date,
+        readingRecordID: UUID? = nil,
+        methodRaw: String,
+        question: String?,
+        primaryNumber: Int,
+        resultingNumber: Int?,
+        lines: [Int],
+        movingPositions: [Int],
+        analysis: SavedAIContent,
+        followUps: [SavedAIFollowUp]
+    ) {
+        self.id = id
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+        self.readingRecordID = readingRecordID
+        self.methodRaw = methodRaw
+        self.question = question
+        self.primaryNumber = primaryNumber
+        self.resultingNumber = resultingNumber
+        self.lines = lines
+        self.movingPositions = movingPositions
+        self.analysis = analysis
+        self.followUps = followUps
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(UUID.self, forKey: .id)
+        createdAt = try container.decode(Date.self, forKey: .createdAt)
+        updatedAt = try container.decode(Date.self, forKey: .updatedAt)
+        readingRecordID = try container.decodeIfPresent(UUID.self, forKey: .readingRecordID)
+        methodRaw = try container.decode(String.self, forKey: .methodRaw)
+        question = try container.decodeIfPresent(String.self, forKey: .question)
+        primaryNumber = try container.decode(Int.self, forKey: .primaryNumber)
+        resultingNumber = try container.decodeIfPresent(Int.self, forKey: .resultingNumber)
+        lines = try container.decode([Int].self, forKey: .lines)
+        movingPositions = try container.decode([Int].self, forKey: .movingPositions)
+        analysis = try container.decode(SavedAIContent.self, forKey: .analysis)
+        followUps = try container.decodeIfPresent([SavedAIFollowUp].self, forKey: .followUps) ?? []
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
+        try container.encode(createdAt, forKey: .createdAt)
+        try container.encode(updatedAt, forKey: .updatedAt)
+        try container.encodeIfPresent(readingRecordID, forKey: .readingRecordID)
+        try container.encode(methodRaw, forKey: .methodRaw)
+        try container.encodeIfPresent(question, forKey: .question)
+        try container.encode(primaryNumber, forKey: .primaryNumber)
+        try container.encodeIfPresent(resultingNumber, forKey: .resultingNumber)
+        try container.encode(lines, forKey: .lines)
+        try container.encode(movingPositions, forKey: .movingPositions)
+        try container.encode(analysis, forKey: .analysis)
+        try container.encode(followUps, forKey: .followUps)
+    }
+}
+
+extension Notification.Name {
+    static let savedAIAnalysesDidChange = Notification.Name("yizhidao.savedAIAnalysesDidChange")
 }
 
 enum SavedAIAnalysisStore {
@@ -152,16 +253,63 @@ enum SavedAIAnalysisStore {
     static func save(_ items: [SavedAIAnalysis]) {
         guard let data = try? JSONEncoder().encode(items) else { return }
         UserDefaults.standard.set(data, forKey: key)
+        NotificationCenter.default.post(name: .savedAIAnalysesDidChange, object: nil)
     }
 
     static func upsert(_ item: SavedAIAnalysis) {
         var items = load()
-        if let index = items.firstIndex(where: { $0.id == item.id }) {
+        if let recordID = item.readingRecordID,
+           let index = items.firstIndex(where: { $0.readingRecordID == recordID }) {
+            var merged = item
+            if items[index].id != item.id {
+                merged = SavedAIAnalysis.make(
+                    result: item.toCastResult(),
+                    analysis: item.analysis,
+                    followUps: item.followUps,
+                    readingRecordID: recordID,
+                    existingID: items[index].id
+                )
+            }
+            items[index] = merged
+        } else if let index = items.firstIndex(where: { $0.id == item.id }) {
             items[index] = item
+        } else if let index = items.firstIndex(where: { $0.fingerprint == item.fingerprint }) {
+            items[index] = SavedAIAnalysis.make(
+                result: item.toCastResult(),
+                analysis: item.analysis,
+                followUps: item.followUps,
+                readingRecordID: item.readingRecordID ?? items[index].readingRecordID,
+                existingID: items[index].id
+            )
         } else {
             items.insert(item, at: 0)
         }
         save(items)
+    }
+
+    static func matches(_ item: SavedAIAnalysis, recordID: UUID?, result: CastResult) -> Bool {
+        if let recordID, item.readingRecordID == recordID {
+            return true
+        }
+        if item.fingerprint == SavedAIAnalysis.fingerprint(result: result) {
+            return true
+        }
+        return item.methodRaw == result.method.rawValue
+            && item.primaryNumber == result.primaryNumber
+            && item.lines == result.lines.map(\.rawValue)
+            && abs(item.createdAt.timeIntervalSince(result.createdAt)) < 1
+    }
+
+    static func find(recordID: UUID?, result: CastResult) -> SavedAIAnalysis? {
+        let items = load()
+        if let recordID, let hit = items.first(where: { $0.readingRecordID == recordID }) {
+            return hit
+        }
+        let fp = SavedAIAnalysis.fingerprint(result: result)
+        if let hit = items.first(where: { $0.fingerprint == fp }) {
+            return hit
+        }
+        return items.first { matches($0, recordID: recordID, result: result) }
     }
 
     static func remove(id: UUID) {

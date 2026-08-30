@@ -28,6 +28,7 @@ export function OverviewPage() {
         <h2>总览</h2>
         <div className="meta">
           {data.health.aiMode} · {data.health.model} · {healthBits.join(" · ")}
+          {data.feedback?.unread ? ` · 未读反馈 ${data.feedback.unread}` : ""}
         </div>
       </div>
       <div className="grid stats">
