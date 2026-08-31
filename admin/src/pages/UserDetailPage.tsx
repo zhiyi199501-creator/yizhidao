@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { ApiError, UserDetail, api } from "../api";
 import { LOGIN_LABELS, formatDateTime, formatNumber } from "../format";
-import { Bars, Stat } from "../ui";
+import { Stat, TrendChart } from "../ui";
 
 export function UserDetailPage() {
   const { userId = "" } = useParams();
@@ -47,8 +47,13 @@ export function UserDetailPage() {
         </dl>
       </div>
       <div className="card">
-        <p className="label">近 14 日调用（不含所问与正文）</p>
-        <Bars points={data.daily} />
+        <TrendChart
+          title="近 14 日调用"
+          total={formatNumber(data.daily.reduce((sum, point) => sum + point.calls, 0))}
+          points={data.daily}
+          valueOf={(point) => point.calls}
+          color="var(--chart-calls)"
+        />
       </div>
     </div>
   );

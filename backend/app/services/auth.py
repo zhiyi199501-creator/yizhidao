@@ -71,6 +71,23 @@ def _finish_login(db: Session, user: User) -> Tuple[User, str]:
     return user, issue_access_token(user.id)
 
 
+def nickname_from_email(email: str) -> str:
+    local = email.split("@", 1)[0].strip()
+    if len(local) >= 2:
+        return local[:20]
+    if local:
+        return (local + "用户")[:20]
+    return "邮箱用户"
+
+
+def _iso_dt(value: Optional[datetime]) -> Optional[str]:
+    if value is None:
+        return None
+    if value.tzinfo is None:
+        value = value.replace(tzinfo=timezone.utc)
+    return value.isoformat()
+
+
 def user_to_out(user: User) -> dict:
     from app.services.ai_rate_limit import limiter
     from app.services.iap import daily_limit_for_user
@@ -82,6 +99,9 @@ def user_to_out(user: User) -> dict:
         "nickname": user.nickname,
         "phone": user.phone,
         "email": user.email,
+        "createdAt": _iso_dt(user.created_at),
+        "hasAvatar": user.avatar_updated_at is not None,
+        "avatarUpdatedAt": _iso_dt(user.avatar_updated_at),
         "iapUnlocked": bool(user.iap_unlocked),
         "aiDailyLimit": limit,
         "aiDailyUsed": used,
@@ -199,6 +219,70 @@ def send_email_code(db: Session, email: str) -> int:
     return settings.email_cooldown_sec
 
 
+def _consume_email_code(db: Session, email: str, code: str) -> None:
+    email = validate_email(email)
+    normalized_code = code.strip()
+    if not normalized_code:
+        raise AppError("验证码不能为空", code=4001, status_code=400)
+
+    if (
+        is_email_test_address(email)
+        and settings.dev_email_fixed_code
+        and normalized_code == settings.dev_email_fixed_code
+    ):
+        record = db.scalar(
+            select(EmailCode)
+            .where(EmailCode.email == email, EmailCode.used.is_(False))
+            .order_by(EmailCode.created_at.desc())
+            .limit(1)
+        )
+        if record:
+            record.used = True
+        return
+
+    now = datetime.now(timezone.utc)
+    record = db.scalar(
+        select(EmailCode)
+        .where(EmailCode.email == email, EmailCode.used.is_(False))
+        .order_by(EmailCode.created_at.desc())
+        .limit(1)
+    )
+    if not record:
+        raise AppError("验证码错误或已过期", code=4002, status_code=400)
+
+    expires_at = record.expires_at
+    if expires_at.tzinfo is None:
+        expires_at = expires_at.replace(tzinfo=timezone.utc)
+    if record.code != normalized_code or expires_at < now:
+        raise AppError("验证码错误或已过期", code=4002, status_code=400)
+
+    record.used = True
+
+
+def send_bind_email_code(db: Session, user: User, email: str) -> int:
+    if user.email:
+        raise AppError("已绑定邮箱", code=4001, status_code=400)
+    email = validate_email(email)
+    existing = db.scalar(select(User).where(User.email == email))
+    if existing and existing.id != user.id:
+        raise AppError("该邮箱已被占用", code=4001, status_code=409)
+    return send_email_code(db, email)
+
+
+def bind_user_email(db: Session, user: User, email: str, code: str) -> User:
+    if user.email:
+        raise AppError("已绑定邮箱", code=4001, status_code=400)
+    email = validate_email(email)
+    existing = db.scalar(select(User).where(User.email == email))
+    if existing and existing.id != user.id:
+        raise AppError("该邮箱已被占用", code=4001, status_code=409)
+    _consume_email_code(db, email, code)
+    user.email = email
+    db.commit()
+    db.refresh(user)
+    return user
+
+
 def _get_or_create_user_by_phone(db: Session, phone: str) -> User:
     user = db.scalar(select(User).where(User.phone == phone))
     if not user:
@@ -217,7 +301,7 @@ def _get_or_create_user_by_email(db: Session, email: str) -> User:
         user = User(
             id=f"u_{uuid.uuid4().hex[:12]}",
             email=email,
-            nickname=f"用户{mask_email(email)}",
+            nickname=nickname_from_email(email),
         )
         db.add(user)
     return user
@@ -249,7 +333,7 @@ def _get_or_create_user_by_google(
             id=f"u_{uuid.uuid4().hex[:12]}",
             google_sub=google_sub,
             email=email,
-            nickname=nickname or (mask_email(email) if email else "Google 用户"),
+            nickname=nickname or (nickname_from_email(email) if email else "Google 用户"),
         )
         db.add(user)
     else:
@@ -314,43 +398,7 @@ def login_with_sms(db: Session, phone: str, code: str) -> Tuple[User, str]:
 
 def login_with_email(db: Session, email: str, code: str) -> Tuple[User, str]:
     email = validate_email(email)
-    normalized_code = code.strip()
-    if not normalized_code:
-        raise AppError("验证码不能为空", code=4001, status_code=400)
-
-    if (
-        is_email_test_address(email)
-        and settings.dev_email_fixed_code
-        and normalized_code == settings.dev_email_fixed_code
-    ):
-        user = _get_or_create_user_by_email(db, email)
-        record = db.scalar(
-            select(EmailCode)
-            .where(EmailCode.email == email, EmailCode.used.is_(False))
-            .order_by(EmailCode.created_at.desc())
-            .limit(1)
-        )
-        if record:
-            record.used = True
-        return _finish_login(db, user)
-
-    now = datetime.now(timezone.utc)
-    record = db.scalar(
-        select(EmailCode)
-        .where(EmailCode.email == email, EmailCode.used.is_(False))
-        .order_by(EmailCode.created_at.desc())
-        .limit(1)
-    )
-    if not record:
-        raise AppError("验证码错误或已过期", code=4002, status_code=400)
-
-    expires_at = record.expires_at
-    if expires_at.tzinfo is None:
-        expires_at = expires_at.replace(tzinfo=timezone.utc)
-    if record.code != normalized_code or expires_at < now:
-        raise AppError("验证码错误或已过期", code=4002, status_code=400)
-
-    record.used = True
+    _consume_email_code(db, email, code)
     user = _get_or_create_user_by_email(db, email)
     return _finish_login(db, user)
 
@@ -399,7 +447,46 @@ def login_with_google(db: Session, id_token: str) -> Tuple[User, str]:
     return _finish_login(db, user)
 
 
+def update_user_profile(db: Session, user: User, nickname: Optional[str]) -> User:
+    if nickname is not None:
+        trimmed = nickname.strip()
+        if len(trimmed) < 2 or len(trimmed) > 20:
+            raise AppError("昵称须为 2–20 字", code=4001, status_code=400)
+        user.nickname = trimmed
+    db.commit()
+    db.refresh(user)
+    return user
+
+
+def set_user_avatar(db: Session, user: User, data: bytes) -> User:
+    from app.services.avatar import save_avatar
+
+    try:
+        save_avatar(user.id, data)
+    except ValueError as exc:
+        if str(exc) == "too_large":
+            raise AppError("头像过大（最大 512KB）", code=4001, status_code=400) from exc
+        raise AppError("请上传 JPEG 图片", code=4001, status_code=400) from exc
+    user.avatar_updated_at = datetime.now(timezone.utc)
+    db.commit()
+    db.refresh(user)
+    return user
+
+
+def clear_user_avatar(db: Session, user: User) -> User:
+    from app.services.avatar import delete_avatar
+
+    delete_avatar(user.id)
+    user.avatar_updated_at = None
+    db.commit()
+    db.refresh(user)
+    return user
+
+
 def delete_user_account(db: Session, user: User) -> None:
+    from app.services.avatar import delete_avatar
+
+    delete_avatar(user.id)
     if user.phone:
         db.execute(delete(SMSCode).where(SMSCode.phone == user.phone))
     if user.email:

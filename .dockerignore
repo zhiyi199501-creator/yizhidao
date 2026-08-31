@@ -16,6 +16,7 @@ ios/YizhidaoTests
 docs
 backend/.venv
 backend/*.db
+backend/avatars
 *.md
 !backend/README.md
 !docs/deploy.md

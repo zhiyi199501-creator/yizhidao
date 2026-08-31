@@ -47,14 +47,14 @@ xcodebuild test -project ios/Yizhidao.xcodeproj -scheme Yizhidao -destination 'p
 | `ios/Yizhidao/App/` | 入口、`AppTheme`、`AppNavigation`、登录、「我的」、问答列表 |
 | `ios/Yizhidao/Engines/` | 数字 / 金钱起卦、京房卦序、农历／公历时辰 |
 | `ios/Yizhidao/Domain/` | 模型与 `ReadingGuide` 解卦焦点 |
-| `ios/Yizhidao/Features/` | 起卦 UI、结果（含 AI 追问）、历史（含按卦）、案例（入口在「我的」）、`Reading/UnlockReadingsView`（iOS 买断页，未发） |
+| `ios/Yizhidao/Features/` | 起卦 UI、结果（含 AI 追问）、历史（含按卦）、案例（入口在「我的」）、`Me/ProfileEditView`（资料：头像／昵称／绑邮箱，本地未发）、`Reading/UnlockReadingsView`（iOS 买断页，未发） |
 | `ios/Yizhidao/Data/` | SwiftData `ReadingRecord`、回收站、`SavedAIAnalysis`、经文加载、`ImaExplanationStore`、`UnlockStore`（iOS 买断问答，未发） |
 | `ios/Yizhidao/Resources/Hexagrams.json` | 64 卦（卦辞／彖／象／爻／用九用六／文言）+ 系辞／说卦／序卦／杂卦。编辑根目录 `易经正文编辑表.xlsx` → `python3 scripts/import_jingwen.py` |
 | `ios/Yizhidao/Resources/Zhengshi.json` | 《易经证释》全册阅读稿；由 `scripts/import_zhengshi.py` 从全册 `.doc` 生成，暂未挂「我的」入口 |
 | `ios/Yizhidao/Resources/YijingIntro.json` | 基础入门九章（含怎样起卦）。英文界面另读 `YijingIntro.en.json`。Android `copyIosAssets` 拷这两份 |
 | `ios/Yizhidao/Resources/cases.json` | 讲习案例包内底稿。日常在 `admin/`「案例」编辑并发布（立刻热更新 `GET /v1/cases`）；导出 JSON 再提交本文件。生产镜像未含后台前仍 `docker compose cp`，见 `docs/deploy.md` |
 | `ios/Yizhidao/Resources/ImaExplanations.json` | IMA 黄庭书院讲解（原稿已去出处后标）。后台「黄庭」改 `answer` 立刻影响服务端 AI，App 弹层要发版。`scripts/export_ima_explanations.py` 会覆盖手改 |
-| `admin/` | 内部运营后台（用量 + 内容）。本地 `npm run dev`；生产须重建镜像。不上架 |
+| `admin/` | 内部运营后台（用量 + 内容，白底）。本地 `npm run dev` 或 build 后走 `8080/admin/`；生产须重建镜像。不上架 |
 | `ios/YizhidaoTests/` | 起卦、时辰、`ReadingGuide`、基础入门、`ImaAnswerFormatter`、`AIAnswerFormatter` 单测 |
 | `docs/backend-min-spec.md` | 登录、AI、IAP 验单、案例热更新的接口合同 |
 | `docs/ai-reading.md` | AI 问答机制（prompt、黄庭槽、案例筛选、出卡） |
@@ -73,4 +73,4 @@ xcodebuild test -project ios/Yizhidao.xcodeproj -scheme Yizhidao -destination 'p
 - Android **Debug**：`android/app/build.gradle.kts` 局域网 IP；**Release**：Build Variant = release，Cronet → 同上生产域名。浏览器能开 `/health` 不算过。
 - 本地邮箱：`EMAIL_PROVIDER=mock`；`DEV_EMAIL_FIXED_CODE` 有值则任意合法邮箱用该码，为空则看终端 `[email:mock]`。生产走 SMTP（Resend），审核勿配邮箱白名单。TLS / HTTP/3 / 安卓 Cronet 见 `docs/deploy.md`
 - AI：`backend/.env` 中 `AI_MODE=mock`（规则）或 `openai`（OpenAI **兼容协议**，本机常用 DeepSeek）。机制见 `docs/ai-reading.md`，App 接口见 `docs/backend-min-spec.md`
-- 运营后台（本地）：`ADMIN_PASSWORD` + `cd admin && npm run dev` → `http://127.0.0.1:5173/admin/`。生产尚未挂此页，见 `docs/deploy.md`
+- 运营后台（本地）：`ADMIN_PASSWORD` + `cd admin && npm run dev` → `http://127.0.0.1:5173/admin/`，或 `npm run build` 后开 `http://127.0.0.1:8080/admin/`。生产 `/admin/` 2026-08-31 仍 404（PR #15 已合 `origin/main`），见 `docs/deploy.md`

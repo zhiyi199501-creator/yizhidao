@@ -92,9 +92,11 @@ struct MyMenuView: View {
                             ProfileEditView(session: $session)
                         } label: {
                             HStack(spacing: 10) {
-                                Image(systemName: session.avatarSymbol)
-                                    .font(.title2)
-                                    .foregroundStyle(AppTheme.accent)
+                                ProfileAvatarView(
+                                    name: session.displayName,
+                                    image: session.avatarImagePath == nil ? nil : ProfileAvatarFile.load(),
+                                    size: 40
+                                )
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text(session.displayName.zh)
                                         .foregroundStyle(.primary)
@@ -255,10 +257,10 @@ struct MyMenuView: View {
         guard session.isLoggedIn, let token = session.accessToken, !token.isEmpty else { return }
         do {
             let me = try await AuthAPI.fetchMe(accessToken: token)
-            session.displayName = me.user.nickname
-            session.phone = me.user.phone
-            session.email = me.user.email
+            session = session.applying(account: me.user)
             session.isLoggedIn = true
+            session.accessToken = token
+            session = await ProfileSync.pullAvatar(session: session, user: me.user, accessToken: token)
             LocalAuthStore.save(session)
             UnlockStore.shared.applyQuota(
                 unlocked: me.user.iapUnlocked,
@@ -315,6 +317,8 @@ struct LocalUserSession: Codable {
     var email: String?
     var avatarSymbol: String
     var accessToken: String?
+    var avatarImagePath: String?
+    var avatarUpdatedAt: String?
 
     static let guest = LocalUserSession(
         isLoggedIn: false,
@@ -324,6 +328,16 @@ struct LocalUserSession: Codable {
         avatarSymbol: "person.crop.circle.fill",
         accessToken: nil
     )
+
+    func applying(account user: AuthAPI.AccountUser) -> LocalUserSession {
+        var next = self
+        next.isLoggedIn = true
+        next.displayName = user.nickname
+        next.phone = user.phone ?? next.phone
+        next.email = user.email ?? next.email
+        next.avatarUpdatedAt = user.avatarUpdatedAt
+        return next
+    }
 }
 
 enum LocalAuthStore {
@@ -482,7 +496,7 @@ struct LoginSheetView: View {
                 identityToken: result.identityToken,
                 fullName: result.fullName
             )
-            onSuccess(makeSession(from: resp))
+            onSuccess(await makeSession(from: resp))
         } catch is CancellationError {
             // 用户取消，不提示
         } catch {
@@ -659,7 +673,7 @@ private struct EmailLoginView: View {
         defer { isLoggingIn = false }
         do {
             let resp = try await AuthAPI.loginByEmail(email: trimmedEmail, code: trimmedCode)
-            onSuccess(makeSession(from: resp, email: trimmedEmail))
+            onSuccess(await makeSession(from: resp, email: trimmedEmail))
         } catch {
             errorMessage = LoginError.describe(error)
         }
@@ -872,21 +886,28 @@ private struct LoginConsentRow: View {
 }
 
 @MainActor
-private func makeSession(from resp: AuthAPI.LoginResponse, email: String? = nil) -> LocalUserSession {
+private func makeSession(from resp: AuthAPI.LoginResponse, email: String? = nil) async -> LocalUserSession {
     UnlockStore.shared.applyQuota(
         unlocked: resp.user.iapUnlocked,
         limit: resp.user.aiDailyLimit,
         used: resp.user.aiDailyUsed,
         remaining: resp.user.aiDailyRemaining
     )
-    return LocalUserSession(
+    var session = LocalUserSession(
         isLoggedIn: true,
         displayName: resp.user.nickname,
         phone: resp.user.phone,
         email: resp.user.email ?? email,
         avatarSymbol: "person.crop.circle.fill",
         accessToken: resp.accessToken
+    ).applying(account: resp.user)
+    session = await ProfileSync.pullAvatar(
+        session: session,
+        user: resp.user,
+        accessToken: resp.accessToken
     )
+    LocalAuthStore.save(session)
+    return session
 }
 
 
@@ -922,20 +943,24 @@ enum AuthAPI {
         let cooldownSec: Int
     }
 
+    struct AccountUser: Decodable {
+        let id: String
+        let nickname: String
+        let phone: String?
+        let email: String?
+        let createdAt: String?
+        let hasAvatar: Bool?
+        let avatarUpdatedAt: String?
+        let iapUnlocked: Bool?
+        let aiDailyLimit: Int?
+        let aiDailyUsed: Int?
+        let aiDailyRemaining: Int?
+    }
+
     struct LoginResponse: Decodable {
-        struct User: Decodable {
-            let id: String
-            let nickname: String
-            let phone: String?
-            let email: String?
-            let iapUnlocked: Bool?
-            let aiDailyLimit: Int?
-            let aiDailyUsed: Int?
-            let aiDailyRemaining: Int?
-        }
         let ok: Bool
         let accessToken: String
-        let user: User
+        let user: AccountUser
     }
 
     typealias SMSLoginResponse = LoginResponse
@@ -997,18 +1022,8 @@ enum AuthAPI {
 
 
     struct MeResponse: Decodable {
-        struct User: Decodable {
-            let id: String
-            let nickname: String
-            let phone: String?
-            let email: String?
-            let iapUnlocked: Bool?
-            let aiDailyLimit: Int?
-            let aiDailyUsed: Int?
-            let aiDailyRemaining: Int?
-        }
         let ok: Bool
-        let user: User
+        let user: AccountUser
     }
 
     struct IAPVerifyResponse: Decodable {
@@ -1046,6 +1061,64 @@ enum AuthAPI {
         let decoded = try JSONDecoder().decode(MeResponse.self, from: data)
         guard decoded.ok else { throw LoginError.network("获取用户信息失败".ui("Couldn’t load profile")) }
         return decoded
+    }
+
+    static func updateMe(nickname: String, accessToken: String) async throws -> MeResponse {
+        var req = jsonRequest(path: "v1/me", method: "PATCH")
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        req.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+        req.httpBody = try JSONSerialization.data(withJSONObject: ["nickname": nickname])
+        let data = try await perform(req, fallback: "保存资料失败".ui("Couldn’t save profile"))
+        let decoded = try JSONDecoder().decode(MeResponse.self, from: data)
+        guard decoded.ok else { throw LoginError.network("保存资料失败".ui("Couldn’t save profile")) }
+        return decoded
+    }
+
+    static func sendBindEmailCode(email: String, accessToken: String) async throws -> SMSCodeResponse {
+        var req = jsonRequest(path: "v1/me/email/send", method: "POST")
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        req.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+        req.httpBody = try JSONSerialization.data(withJSONObject: ["email": email])
+        let data = try await perform(req, fallback: "发送验证码失败".ui("Couldn’t send code"))
+        let decoded = try JSONDecoder().decode(SMSCodeResponse.self, from: data)
+        guard decoded.ok else { throw LoginError.network("发送验证码失败".ui("Couldn’t send code")) }
+        return decoded
+    }
+
+    static func bindEmail(email: String, code: String, accessToken: String) async throws -> MeResponse {
+        var req = jsonRequest(path: "v1/me/email/bind", method: "POST")
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        req.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+        req.httpBody = try JSONSerialization.data(withJSONObject: ["email": email, "code": code])
+        let data = try await perform(req, fallback: "绑定失败".ui("Couldn’t link email"))
+        let decoded = try JSONDecoder().decode(MeResponse.self, from: data)
+        guard decoded.ok else { throw LoginError.network("绑定失败".ui("Couldn’t link email")) }
+        return decoded
+    }
+
+    static func uploadAvatar(_ jpeg: Data, accessToken: String) async throws -> MeResponse {
+        var req = jsonRequest(path: "v1/me/avatar", method: "PUT")
+        req.setValue("image/jpeg", forHTTPHeaderField: "Content-Type")
+        req.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+        req.httpBody = jpeg
+        let data = try await perform(req, fallback: "上传头像失败".ui("Couldn’t upload photo"))
+        let decoded = try JSONDecoder().decode(MeResponse.self, from: data)
+        guard decoded.ok else { throw LoginError.network("上传头像失败".ui("Couldn’t upload photo")) }
+        return decoded
+    }
+
+    static func fetchAvatar(accessToken: String) async throws -> Data {
+        var req = jsonRequest(path: "v1/me/avatar", method: "GET")
+        req.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+        let (data, response) = try await session.data(for: req)
+        guard let http = response as? HTTPURLResponse else { throw LoginError.network("网络异常".ui("Network error")) }
+        if http.statusCode == 401 {
+            throw LoginError.unauthorized
+        }
+        guard (200..<300).contains(http.statusCode) else {
+            throw decodeError(data, fallback: "获取头像失败".ui("Couldn’t load photo"))
+        }
+        return data
     }
 
     struct AppVersionResponse: Decodable {
@@ -1438,92 +1511,6 @@ private struct AIAnalysisHistoryView: View {
     }
 }
 
-private struct ProfileEditView: View {
-    @Environment(\.dismiss) private var dismiss
-    @Binding var session: LocalUserSession
-    @State private var nicknameDraft: String
-    @State private var avatarDraft: String
-    @State private var showValidationAlert = false
-    @State private var validationMessage = ""
-
-    private static let avatarOptions: [String] = [
-        "person.crop.circle.fill",
-        "person.fill",
-        "moon.stars.fill",
-        "sun.max.fill",
-        "sparkles",
-        "leaf.fill",
-        "flame.fill",
-        "star.fill"
-    ]
-
-    init(session: Binding<LocalUserSession>) {
-        _session = session
-        _nicknameDraft = State(initialValue: session.wrappedValue.displayName)
-        _avatarDraft = State(initialValue: session.wrappedValue.avatarSymbol)
-    }
-
-    var body: some View {
-        List {
-            Section("头像".ui("Photo")) {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 12) {
-                        ForEach(Self.avatarOptions, id: \.self) { symbol in
-                            Button {
-                                avatarDraft = symbol
-                            } label: {
-                                Image(systemName: symbol)
-                                    .font(.title2)
-                                    .foregroundStyle(avatarDraft == symbol ? .white : AppTheme.accent)
-                                    .frame(width: 44, height: 44)
-                                    .background(
-                                        Circle().fill(
-                                            avatarDraft == symbol
-                                            ? AppTheme.accent
-                                            : Color.black.opacity(0.06)
-                                        )
-                                    )
-                            }
-                            .buttonStyle(.plain)
-                        }
-                    }
-                    .padding(.vertical, 4)
-                }
-            }
-
-            Section("昵称".ui("Name")) {
-                TextField("输入昵称", text: $nicknameDraft)
-                    .appTextFieldStyle()
-            }
-        }
-        .navigationTitle("编辑资料".ui("Profile"))
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button("保存".ui("Save")) {
-                    let trimmed = nicknameDraft.trimmingCharacters(in: .whitespacesAndNewlines)
-                    let limited = String(trimmed.prefix(20))
-                    if !(2...20).contains(limited.count) {
-                        validationMessage = "昵称需为 2-20 个字符"
-                        showValidationAlert = true
-                        return
-                    }
-                    session.displayName = limited
-                    session.avatarSymbol = avatarDraft
-                    LocalAuthStore.save(session)
-                    dismiss()
-                }
-            }
-        }
-        .parchmentBackground()
-        .alert("保存失败".ui("Couldn’t save"), isPresented: $showValidationAlert) {
-            Button("知道了".ui("OK"), role: .cancel) {}
-        } message: {
-            Text(validationMessage.zh)
-        }
-    }
-}
-
 private struct FeedbackView: View {
     let session: LocalUserSession
     @Environment(\.dismiss) private var dismiss
@@ -1678,6 +1665,7 @@ private struct SettingsView: View {
         .alert("确认退出登录？".ui("Sign out?"), isPresented: $showLogoutConfirm) {
             Button("取消".ui("Cancel"), role: .cancel) {}
             Button("退出登录".ui("Sign Out")) {
+                ProfileAvatarFile.clear()
                 session = .guest
                 LocalAuthStore.save(session)
                 UnlockStore.shared.clearLocal()
@@ -1711,6 +1699,7 @@ private struct SettingsView: View {
         defer { isDeletingAccount = false }
         do {
             try await AuthAPI.deleteAccount(accessToken: token)
+            ProfileAvatarFile.clear()
             session = .guest
             LocalAuthStore.save(session)
             UnlockStore.shared.clearLocal()

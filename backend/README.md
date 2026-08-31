@@ -26,7 +26,7 @@ FastAPI 最小后端：Apple / Google / 邮箱 OTP 登录 + AI 问答，接口�
 - 根路径：`http://127.0.0.1:8080/` → 重定向到 `/docs`
 - 健康检查：`GET http://127.0.0.1:8080/health`
 - 接口文档：`http://127.0.0.1:8080/docs`
-- 运营后台（本地）：`.env` 设 `ADMIN_PASSWORD` 后，另开终端 `cd admin && npm run dev` → `http://127.0.0.1:5173/admin/`。已 `npm run build` 时也可开 `http://127.0.0.1:8080/admin/`。本仓库可管案例（工作副本 + 发布）、黄庭 `answer`、经文（只读）、夹具抽检、App 意见反馈。**生产 `/admin/` 尚未挂上**（2026-08-28 404），见 `docs/deploy.md`。
+- 运营后台（本地）：`.env` 设 `ADMIN_PASSWORD` 后，另开终端 `cd admin && npm run dev` → `http://127.0.0.1:5173/admin/`。已 `npm run build` 时也可开 `http://127.0.0.1:8080/admin/`（静态走 `admin/dist`）。本仓库可管案例（工作副本 + 发布）、黄庭 `answer`、经文（只读）、夹具抽检、App 意见反馈。界面白底，勿套 App 宣纸。**生产 `/admin/` 尚未挂上**（2026-08-31 仍 404；PR #15 已合 `origin/main`），见 `docs/deploy.md`。
 
 ## 开发期邮箱验证码（mock）
 

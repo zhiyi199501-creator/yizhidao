@@ -35,22 +35,29 @@ object AuthApi {
     data class SMSCodeResponse(val ok: Boolean, val cooldownSec: Int)
 
     @Serializable
+    data class AccountUser(
+        val id: String,
+        val nickname: String,
+        val phone: String? = null,
+        val email: String? = null,
+        val createdAt: String? = null,
+        val hasAvatar: Boolean? = null,
+        val avatarUpdatedAt: String? = null,
+        val iapUnlocked: Boolean? = null,
+        val aiDailyLimit: Int? = null,
+        val aiDailyUsed: Int? = null,
+        val aiDailyRemaining: Int? = null,
+    )
+
+    @Serializable
     data class LoginResponse(
         val ok: Boolean,
         val accessToken: String,
-        val user: User,
-    ) {
-        @Serializable
-        data class User(
-            val id: String,
-            val nickname: String,
-            val phone: String? = null,
-            val email: String? = null,
-        )
-    }
+        val user: AccountUser,
+    )
 
     @Serializable
-    data class MeResponse(val ok: Boolean, val user: LoginResponse.User)
+    data class MeResponse(val ok: Boolean, val user: AccountUser)
 
     @Serializable
     private data class OkResponse(val ok: Boolean)
@@ -133,6 +140,73 @@ object AuthApi {
         ) { json.decodeFromString<MeResponse>(it) }
         if (!decoded.ok) throw LoginError.Network("获取用户信息失败")
         return decoded
+    }
+
+    suspend fun updateMe(nickname: String, accessToken: String): MeResponse {
+        val decoded = patch(
+            path = "/v1/me",
+            body = buildJsonObject { put("nickname", nickname) }.toString(),
+            accessToken = accessToken,
+            fallback = "保存资料失败",
+        ) { json.decodeFromString<MeResponse>(it) }
+        if (!decoded.ok) throw LoginError.Network("保存资料失败")
+        return decoded
+    }
+
+    suspend fun sendBindEmailCode(email: String, accessToken: String): SMSCodeResponse {
+        val decoded = post(
+            path = "/v1/me/email/send",
+            body = buildJsonObject { put("email", email) }.toString(),
+            accessToken = accessToken,
+            fallback = "发送验证码失败",
+        ) { json.decodeFromString<SMSCodeResponse>(it) }
+        if (!decoded.ok) throw LoginError.Network("发送验证码失败")
+        return decoded
+    }
+
+    suspend fun bindEmail(email: String, code: String, accessToken: String): MeResponse {
+        val decoded = post(
+            path = "/v1/me/email/bind",
+            body = buildJsonObject {
+                put("email", email)
+                put("code", code)
+            }.toString(),
+            accessToken = accessToken,
+            fallback = "绑定失败",
+        ) { json.decodeFromString<MeResponse>(it) }
+        if (!decoded.ok) throw LoginError.Network("绑定失败")
+        return decoded
+    }
+
+    suspend fun uploadAvatar(jpeg: ByteArray, accessToken: String): MeResponse {
+        val (code, text) = AppHttp.requestBytes(
+            url = "$baseUrl/v1/me/avatar",
+            method = "PUT",
+            body = jpeg,
+            headers = mapOf(
+                "Accept" to "application/json",
+                "Content-Type" to "image/jpeg",
+                "Authorization" to "Bearer $accessToken",
+            ),
+        )
+        if (code == 401) throw LoginError.Unauthorized
+        if (code !in 200..299) throw decodeError(String(text, Charsets.UTF_8), "上传头像失败")
+        val decoded = json.decodeFromString<MeResponse>(String(text, Charsets.UTF_8))
+        if (!decoded.ok) throw LoginError.Network("上传头像失败")
+        return decoded
+    }
+
+    suspend fun fetchAvatar(accessToken: String): ByteArray {
+        val (code, bytes) = AppHttp.requestBytes(
+            url = "$baseUrl/v1/me/avatar",
+            method = "GET",
+            headers = mapOf(
+                "Authorization" to "Bearer $accessToken",
+            ),
+        )
+        if (code == 401) throw LoginError.Unauthorized
+        if (code !in 200..299) throw LoginError.Network("获取头像失败")
+        return bytes
     }
 
     @Serializable
@@ -263,6 +337,25 @@ object AuthApi {
         accessToken: String? = null,
         timeoutMs: Int = 20_000,
         crossinline decode: (String) -> T,
+    ): T = send(path, "POST", body, fallback, accessToken, timeoutMs, decode)
+
+    private suspend inline fun <T> patch(
+        path: String,
+        body: String,
+        fallback: String,
+        accessToken: String? = null,
+        timeoutMs: Int = 20_000,
+        crossinline decode: (String) -> T,
+    ): T = send(path, "PATCH", body, fallback, accessToken, timeoutMs, decode)
+
+    private suspend inline fun <T> send(
+        path: String,
+        method: String,
+        body: String,
+        fallback: String,
+        accessToken: String? = null,
+        timeoutMs: Int = 20_000,
+        crossinline decode: (String) -> T,
     ): T {
         val headers = buildMap {
             put("Content-Type", "application/json; charset=utf-8")
@@ -271,7 +364,7 @@ object AuthApi {
         }
         val (code, text) = AppHttp.request(
             url = "$baseUrl$path",
-            method = "POST",
+            method = method,
             body = body,
             headers = headers,
             timeoutMs = timeoutMs,

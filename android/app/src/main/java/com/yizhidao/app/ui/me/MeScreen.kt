@@ -6,7 +6,6 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -25,7 +24,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.text.KeyboardOptions
@@ -110,17 +108,6 @@ import java.time.format.DateTimeFormatter
 
 private val listTimeFmt = DateTimeFormatter.ofPattern("yyyy/M/d HH:mm").withZone(ZoneId.systemDefault())
 
-private val AvatarOptions = listOf(
-    "person.crop.circle.fill",
-    "person.fill",
-    "moon.stars.fill",
-    "sun.max.fill",
-    "sparkles",
-    "leaf.fill",
-    "flame.fill",
-    "star.fill",
-)
-
 private fun avatarIcon(symbol: String): ImageVector = when (symbol) {
     "person.fill" -> Icons.Outlined.Person
     "moon.stars.fill" -> Icons.Outlined.DarkMode
@@ -159,19 +146,19 @@ fun MeScreen(
     val book = container.classicBook
     val language = LocalAppLanguage.current
     val intro = if (language.isEnglish) container.introBookEn else container.introBook
+    val appContext = LocalContext.current.applicationContext
 
-    LaunchedEffect(Unit) {
-        val current = container.authStore.load()
-        if (!current.isLoggedIn || current.accessToken.isNullOrBlank()) return@LaunchedEffect
+    LaunchedEffect(session.isLoggedIn, session.accessToken) {
+        val token = session.accessToken
+        if (!session.isLoggedIn || token.isNullOrBlank()) return@LaunchedEffect
         try {
-            val me = AuthApi.fetchMe(current.accessToken)
-            container.authStore.save(
-                current.copy(
-                    isLoggedIn = true,
-                    displayName = me.user.nickname,
-                    phone = me.user.phone ?: current.phone,
-                    email = me.user.email ?: current.email,
-                ),
+            val me = AuthApi.fetchMe(token)
+            container.authStore.save(session.applying(me.user))
+            ProfileSync.pullAvatar(
+                context = appContext,
+                authStore = container.authStore,
+                user = me.user,
+                accessToken = token,
             )
         } catch (_: LoginError.Unauthorized) {
             container.authStore.logout()
@@ -199,10 +186,11 @@ fun MeScreen(
             onFeedback = { route = MeRoute.Feedback },
             onSettings = { route = MeRoute.Settings },
         )
-        MeRoute.Profile -> ProfileEditPage(
+        MeRoute.Profile -> ProfileScreen(
             session = session,
             authStore = container.authStore,
             onBack = { route = MeRoute.Home },
+            onLogout = { container.authStore.logout() },
         )
         MeRoute.Login -> LoginScreen(
             authStore = container.authStore,
@@ -360,12 +348,24 @@ private fun MeHome(
                         .padding(start = 16.dp, end = 8.dp, top = 12.dp, bottom = 12.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Icon(
-                        avatarIcon(session.avatarSymbol),
-                        contentDescription = null,
-                        tint = if (session.isLoggedIn) AppTheme.accent else AppTheme.secondaryText,
-                        modifier = Modifier.size(32.dp),
-                    )
+                    if (session.isLoggedIn) {
+                        ProfileAvatar(
+                            name = session.displayName,
+                            image = if (session.avatarImagePath == null) {
+                                null
+                            } else {
+                                ProfileAvatarFile.load(LocalContext.current)
+                            },
+                            size = 40.dp,
+                        )
+                    } else {
+                        Icon(
+                            avatarIcon(session.avatarSymbol),
+                            contentDescription = null,
+                            tint = AppTheme.secondaryText,
+                            modifier = Modifier.size(32.dp),
+                        )
+                    }
                     Spacer(Modifier.width(10.dp))
                     Column(Modifier.weight(1f)) {
                         if (session.isLoggedIn) {
@@ -514,133 +514,6 @@ private fun MeHome(
                 }
             } else {
                 null
-            },
-            containerColor = AppTheme.cardFill,
-        )
-    }
-}
-
-@Composable
-private fun ProfileEditPage(
-    session: LocalUserSession,
-    authStore: LocalAuthStore,
-    onBack: () -> Unit,
-) {
-    val language = LocalAppLanguage.current
-    var nicknameDraft by remember { mutableStateOf(session.displayName) }
-    var avatarDraft by remember { mutableStateOf(session.avatarSymbol) }
-    var validationMessage by remember { mutableStateOf<String?>(null) }
-
-    fun save() {
-        val limited = nicknameDraft.trim().take(20)
-        if (limited.length !in 2..20) {
-            validationMessage = language.ui("昵称需为 2-20 个字符", "Name must be 2–20 characters")
-            return
-        }
-        authStore.save(
-            session.copy(
-                displayName = limited,
-                avatarSymbol = avatarDraft,
-            ),
-        )
-        onBack()
-    }
-
-    Column(Modifier.fillMaxSize()) {
-        PaperBackHeader(
-            title = "编辑资料",
-            titleEn = "Profile",
-            onBack = onBack,
-            trailing = {
-                Text(
-                    "保存",
-                    color = AppTheme.accent,
-                    fontSize = 17.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier
-                        .clip(AppTheme.controlShape)
-                        .clickable(onClick = { save() })
-                        .padding(horizontal = 10.dp, vertical = 8.dp),
-                    style = AppTheme.compactText,
-                    en = "Save",
-                )
-            },
-        )
-        Column(
-            Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp)
-                .padding(bottom = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(18.dp),
-        ) {
-            MeCard {
-                Text(
-                    "头像",
-                    fontSize = 13.sp,
-                    color = AppTheme.secondaryText,
-                    modifier = Modifier.padding(start = 16.dp, top = 12.dp, bottom = 4.dp),
-                    style = AppTheme.compactText,
-                    en = "Photo",
-                )
-                Row(
-                    Modifier
-                        .fillMaxWidth()
-                        .horizontalScroll(rememberScrollState())
-                        .padding(horizontal = 16.dp, vertical = 12.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    AvatarOptions.forEach { symbol ->
-                        val selected = avatarDraft == symbol
-                        Box(
-                            Modifier
-                                .size(44.dp)
-                                .clip(CircleShape)
-                                .background(if (selected) AppTheme.accent else Color.Black.copy(alpha = 0.06f))
-                                .clickable { avatarDraft = symbol },
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Icon(
-                                avatarIcon(symbol),
-                                contentDescription = null,
-                                tint = if (selected) Color.White else AppTheme.accent,
-                                modifier = Modifier.size(22.dp),
-                            )
-                        }
-                    }
-                }
-            }
-            MeCard {
-                Text(
-                    "昵称",
-                    fontSize = 13.sp,
-                    color = AppTheme.secondaryText,
-                    modifier = Modifier.padding(start = 16.dp, top = 12.dp, bottom = 4.dp),
-                    style = AppTheme.compactText,
-                    en = "Name",
-                )
-                PaperTextField(
-                    value = nicknameDraft,
-                    onValueChange = { nicknameDraft = it.take(20) },
-                    placeholder = "输入昵称",
-                    placeholderEn = "Your name",
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp)
-                        .padding(bottom = 14.dp),
-                )
-            }
-        }
-    }
-    validationMessage?.let { message ->
-        AlertDialog(
-            onDismissRequest = { validationMessage = null },
-            title = { Text("保存失败", color = AppTheme.ink, style = AppTheme.compactText, en = "Couldn't save") },
-            text = { Text(message, color = AppTheme.ink, style = AppTheme.compactText) },
-            confirmButton = {
-                TextButton(onClick = { validationMessage = null }) {
-                    Text("知道了", color = AppTheme.accent, style = AppTheme.compactText, en = "OK")
-                }
             },
             containerColor = AppTheme.cardFill,
         )

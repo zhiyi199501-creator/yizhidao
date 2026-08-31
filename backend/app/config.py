@@ -88,6 +88,7 @@ class Settings(BaseSettings):
     # App「检查更新」对比的商店最新版本；发版后改 .env，不必发 App
     app_ios_latest_version: str = "1.0"
     app_android_latest_version: str = "0.1.1"
+    avatars_dir: str = ""
 
     def apple_client_ids_list(self):
         return [part.strip() for part in self.apple_client_ids.split(",") if part.strip()]

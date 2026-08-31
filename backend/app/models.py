@@ -16,6 +16,7 @@ class User(Base):
     apple_sub: Mapped[Optional[str]] = mapped_column(String(255), unique=True, index=True, nullable=True)
     google_sub: Mapped[Optional[str]] = mapped_column(String(255), unique=True, index=True, nullable=True)
     nickname: Mapped[str] = mapped_column(String(64))
+    avatar_updated_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     last_login_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     iap_unlocked: Mapped[bool] = mapped_column(Boolean, default=False, server_default="0")

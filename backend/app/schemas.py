@@ -22,6 +22,9 @@ class UserOut(BaseModel):
     nickname: str
     phone: Optional[str] = None
     email: Optional[str] = None
+    createdAt: Optional[str] = None
+    hasAvatar: bool = False
+    avatarUpdatedAt: Optional[str] = None
     iapUnlocked: bool = False
     aiDailyLimit: int = 3
     aiDailyUsed: int = 0
@@ -76,6 +79,15 @@ class GoogleLoginRequest(BaseModel):
 class MeResponse(BaseModel):
     ok: bool = True
     user: UserOut
+
+
+class ProfileUpdateRequest(BaseModel):
+    nickname: Optional[str] = Field(default=None, min_length=2, max_length=20)
+
+
+class EmailBindRequest(BaseModel):
+    email: str = Field(min_length=3, max_length=255)
+    code: str = Field(min_length=4, max_length=8)
 
 
 class OkResponse(BaseModel):

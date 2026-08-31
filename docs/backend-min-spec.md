@@ -45,11 +45,28 @@
 ```json
 {
   "ok": true,
-  "user": { "id": "u_123", "nickname": "用户138****8000", "phone": "13800138000", "email": null, "iapUnlocked": false, "aiDailyLimit": 3, "aiDailyUsed": 0, "aiDailyRemaining": 3 }
+  "user": { "id": "u_123", "nickname": "用户138****8000", "phone": "13800138000", "email": null, "createdAt": "2026-08-30T10:00:00+00:00", "hasAvatar": false, "avatarUpdatedAt": null, "iapUnlocked": false, "aiDailyLimit": 3, "aiDailyUsed": 0, "aiDailyRemaining": 3 }
 }
 ```
 - 无效/过期 token → HTTP 401，`code: 4003`
-- 旧客户端可忽略 `iapUnlocked` / `aiDailyLimit` / `aiDailyUsed` / `aiDailyRemaining`
+- 旧客户端可忽略 `createdAt` / `hasAvatar` / `avatarUpdatedAt` / `iapUnlocked` / `aiDailyLimit` / `aiDailyUsed` / `aiDailyRemaining`
+- 资料页头像与昵称存服务端，换机登录可恢复；邮箱用于身份验证
+
+### 3a) 更新资料
+- `PATCH /v1/me`
+- req: `{ "nickname": "luozhihao" }`（2–20 字）
+- resp: 同 §3
+
+### 3a2) 绑定邮箱
+- `POST /v1/me/email/send` · req: `{ "email": "you@example.com" }` · 须登录且当前账号未绑邮箱
+- `POST /v1/me/email/bind` · req: `{ "email": "you@example.com", "code": "123456" }` · resp 同 §3
+- 绑定后可用邮箱验证码登录同一账号；已占用邮箱 → 409
+
+### 3a3) 头像
+- `PUT /v1/me/avatar` · Body: JPEG（最大 512KB）· Header: `Authorization`
+- `GET /v1/me/avatar` · 返回 JPEG
+- `DELETE /v1/me/avatar` · 清除头像
+- `user.hasAvatar` / `user.avatarUpdatedAt` 在登录与 `GET /v1/me` 中返回。文件落在 `AVATARS_DIR`（空则与 SQLite 同级 `avatars/`，勿提交）
 
 ### 3b) 注销账号
 - `DELETE /v1/me`

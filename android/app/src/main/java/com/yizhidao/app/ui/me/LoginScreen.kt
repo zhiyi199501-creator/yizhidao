@@ -126,16 +126,7 @@ private fun MainLoginPage(
             try {
                 val idToken = GoogleSignInHelper.signIn(context)
                 val resp = AuthApi.loginWithGoogle(idToken)
-                authStore.save(
-                    LocalUserSession(
-                        isLoggedIn = true,
-                        displayName = resp.user.nickname,
-                        phone = resp.user.phone,
-                        email = resp.user.email,
-                        avatarSymbol = "person.crop.circle.fill",
-                        accessToken = resp.accessToken,
-                    ),
-                )
+                ProfileSync.hydrateAfterLogin(context.applicationContext, authStore, resp)
                 onSuccess()
             } catch (e: Exception) {
                 errorMessage = AuthApi.describe(e)
@@ -268,6 +259,7 @@ private fun EmailLoginPage(
     var showConsentDialog by remember { mutableStateOf(false) }
     var pendingAction by remember { mutableStateOf<PendingEmailAction?>(null) }
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
     val language = LocalAppLanguage.current
     val focusManager = LocalFocusManager.current
     val keyboard = LocalSoftwareKeyboardController.current
@@ -311,15 +303,11 @@ private fun EmailLoginPage(
                     isLoggingIn = true
                     try {
                         val resp = AuthApi.loginByEmail(trimmedEmail, trimmedCode)
-                        authStore.save(
-                            LocalUserSession(
-                                isLoggedIn = true,
-                                displayName = resp.user.nickname,
-                                phone = resp.user.phone,
-                                email = resp.user.email ?: trimmedEmail,
-                                avatarSymbol = "person.crop.circle.fill",
-                                accessToken = resp.accessToken,
-                            ),
+                        ProfileSync.hydrateAfterLogin(
+                            context = context.applicationContext,
+                            authStore = authStore,
+                            resp = resp,
+                            email = trimmedEmail,
                         )
                         onSuccess()
                     } catch (e: Exception) {

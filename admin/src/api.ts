@@ -29,6 +29,14 @@ export type RangeKey = "today" | "7d" | "30d";
 
 export type Cost = { configured: boolean; usd: number | null };
 
+export type UsagePoint = {
+  date: string;
+  calls: number;
+  tokens?: number;
+  promptTokens?: number;
+  completionTokens?: number;
+};
+
 export type Overview = {
   ok: boolean;
   users: {
@@ -50,7 +58,7 @@ export type Overview = {
     followup: number;
     cost: Cost;
   };
-  aiLast7d: { date: string; calls: number }[];
+  aiLast7d: UsagePoint[];
   health: {
     aiMode: string;
     model: string;
@@ -88,7 +96,7 @@ export type UsersPage = {
 export type UserDetail = {
   ok: boolean;
   user: AdminUser;
-  daily: { date: string; calls: number }[];
+  daily: UsagePoint[];
 };
 
 export type AiUsage = {
@@ -112,7 +120,7 @@ export type AiUsage = {
   errors: { code: number; count: number }[];
   methods: { method: string; label: string; count: number }[];
   topUsers: { id: string; calls: number }[];
-  series: { date: string; calls: number }[];
+  series: UsagePoint[];
 };
 
 export type AiEventsPage = {

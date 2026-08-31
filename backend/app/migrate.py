@@ -81,6 +81,11 @@ def migrate_db() -> None:
             conn.execute(text("ALTER TABLE users ADD COLUMN iap_original_transaction_id VARCHAR(64)"))
         if "iap_purchased_at" not in existing:
             conn.execute(text("ALTER TABLE users ADD COLUMN iap_purchased_at DATETIME"))
+        if "avatar_updated_at" not in existing:
+            conn.execute(text("ALTER TABLE users ADD COLUMN avatar_updated_at DATETIME"))
+        for leftover in ("signature", "gender", "birthday", "birthday_set", "region"):
+            if leftover in existing:
+                conn.execute(text(f"ALTER TABLE users DROP COLUMN {leftover}"))
         conn.execute(
             text(
                 "CREATE UNIQUE INDEX IF NOT EXISTS ix_users_iap_transaction_id ON users (iap_transaction_id)"
