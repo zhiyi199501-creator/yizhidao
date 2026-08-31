@@ -83,6 +83,7 @@ export type AdminUser = {
   lastLoginAt: string | null;
   aiToday: number;
   aiTotal: number;
+  iapUnlocked: boolean;
 };
 
 export type UsersPage = {

@@ -47,6 +47,7 @@ export function UsersPageView() {
               <th>最近登录</th>
               <th>今日 AI</th>
               <th>累计 AI</th>
+              <th>用户购买</th>
             </tr>
           </thead>
           <tbody>
@@ -65,6 +66,7 @@ export function UsersPageView() {
                 <td>{formatDateTime(user.lastLoginAt)}</td>
                 <td>{formatNumber(user.aiToday)}</td>
                 <td>{formatNumber(user.aiTotal)}</td>
+                <td>{user.iapUnlocked ? "解锁问答" : ""}</td>
               </tr>
             ))}
           </tbody>

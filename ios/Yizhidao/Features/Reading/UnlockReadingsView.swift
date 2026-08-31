@@ -43,11 +43,6 @@ struct UnlockReadingsView: View {
         }
         .navigationTitle("解锁问答".ui("Unlock Readings"))
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button("完成".ui("Done")) { dismiss() }
-            }
-        }
         .parchmentBackground()
         .navigationDestination(item: $legal) { kind in
             LegalDocumentView(title: kind.title, file: kind.file)
@@ -70,9 +65,6 @@ struct UnlockReadingsView: View {
                 }
             Text("易玩家 · 解锁问答".ui("Yiwanjia · Unlock Readings"))
                 .font(.system(size: 22, weight: .bold))
-            Text("一次买断 · 永久解锁 · 绝无订阅".ui("One purchase · Lifetime · No subscription"))
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
         }
         .multilineTextAlignment(.center)
         .frame(maxWidth: .infinity)
@@ -142,7 +134,7 @@ struct UnlockReadingsView: View {
             featureRow(
                 icon: "checkmark.seal.fill",
                 tint: Color(red: 0.35, green: 0.52, blue: 0.92),
-                title: "一次买断，绝无订阅".ui("One purchase, no subscription"),
+                title: "一次买断".ui("One purchase"),
                 detail: "买一次即可，不会按月扣款。".ui("Pay once. No monthly charge.")
             )
             Divider().padding(.leading, 56)
@@ -150,7 +142,7 @@ struct UnlockReadingsView: View {
                 icon: "arrow.clockwise",
                 tint: Color(red: 0.62, green: 0.42, blue: 0.86),
                 title: "换机可恢复".ui("Restore on a new device"),
-                detail: "同一 Apple ID，点恢复购买即可。".ui("Same Apple ID. Use Restore Purchases.")
+                detail: "同一账号登录即可。本机没有时再点恢复购买。".ui("Sign in to the same account. Use Restore Purchases only if this device doesn’t have it.")
             )
         }
         .padding(.vertical, 6)

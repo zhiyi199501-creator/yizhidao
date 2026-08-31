@@ -44,6 +44,8 @@ export function UserDetailPage() {
           <dd>{user.phone || "—"}</dd>
           <dt>登录方式</dt>
           <dd>{user.loginMethods.map((method) => LOGIN_LABELS[method] || method).join(" / ")}</dd>
+          <dt>用户购买</dt>
+          <dd>{user.iapUnlocked ? "解锁问答" : ""}</dd>
         </dl>
       </div>
       <div className="card">

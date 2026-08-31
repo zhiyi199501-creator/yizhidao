@@ -203,6 +203,23 @@ class AdminAndUsageTests(unittest.TestCase):
         self.assertNotIn("google_sub", users[0])
         blob = str(users)
         self.assertNotIn("SECRET", blob)
+        self.assertFalse(users[0]["iapUnlocked"])
+
+    def test_users_show_iap_unlock(self):
+        user = self._create_user("buyer@example.com")
+        db = app_db.SessionLocal()
+        try:
+            stored = db.scalar(select(User).where(User.id == user.id))
+            stored.iap_unlocked = True
+            db.commit()
+        finally:
+            db.close()
+        self._login_admin()
+        resp = self.client.get("/v1/admin/users")
+        self.assertEqual(resp.status_code, 200)
+        buyers = [row for row in resp.json()["users"] if row["id"] == user.id]
+        self.assertEqual(len(buyers), 1)
+        self.assertTrue(buyers[0]["iapUnlocked"])
 
     def test_last_login_at_on_email_login(self):
         from app.models import EmailCode

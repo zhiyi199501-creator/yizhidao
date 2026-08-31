@@ -293,6 +293,7 @@ def serialize_user(user: User, today_calls: int = 0, total_calls: int = 0) -> Di
         "lastLoginAt": iso(user.last_login_at),
         "aiToday": today_calls,
         "aiTotal": total_calls,
+        "iapUnlocked": bool(user.iap_unlocked),
     }
 
 
