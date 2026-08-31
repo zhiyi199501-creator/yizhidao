@@ -259,7 +259,7 @@ fun CastRevealAct(
 
 @Composable
 private fun RevealYaoBar(line: LineValue) {
-    val color = if (line.isYang) Color.Black.copy(alpha = 0.88f) else Color.Black.copy(alpha = 0.85f)
+    val color = if (line.isYang) AppTheme.yangRed else Color.Black.copy(alpha = 0.85f)
     Canvas(Modifier.size(150.dp, 14.dp)) {
         val h = size.height
         val r = CornerRadius(h / 2, h / 2)

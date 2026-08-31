@@ -42,6 +42,7 @@ import com.yizhidao.app.lang.listLabel
 import com.yizhidao.app.lang.numberLabel
 import com.yizhidao.app.ui.theme.AppTheme
 import com.yizhidao.app.ui.theme.PaperChevron
+import com.yizhidao.app.ui.theme.PaperTabTitle
 import com.yizhidao.app.ui.theme.SwipeRevealDelete
 import com.yizhidao.app.ui.theme.Text
 import java.time.ZoneId
@@ -99,15 +100,7 @@ fun QAListScreen(
     }
 
     Column(Modifier.fillMaxSize()) {
-        Text(
-            "问答",
-            fontSize = 28.sp,
-            fontWeight = FontWeight.Bold,
-            color = AppTheme.ink,
-            style = AppTheme.compactText,
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
-            en = "Readings",
-        )
+        PaperTabTitle("问答", "Readings")
         if (items.isEmpty()) {
             Column(
                 Modifier
