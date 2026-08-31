@@ -139,6 +139,20 @@ final class ReadingGuideTests: XCTestCase {
         let f = ReadingGuide.focus(movingPositions: [1, 2, 3, 4, 5, 6])
         XCTAssertEqual(f.kind, .resultingGuaci)
     }
+
+    func testLeadJingwenUsesPrimaryGuaciWhenUnchanging() {
+        let store = HexagramStore(bundle: Bundle(for: HexagramStore.self))
+        let qian = store.hexagram(number: 1)!
+        let text = ReadingGuide.leadJingwen(movingPositions: [], primary: qian, resulting: nil)
+        XCTAssertEqual(text, qian.guaci.trimmingCharacters(in: .whitespacesAndNewlines))
+    }
+
+    func testLeadJingwenUsesMovingYao() {
+        let store = HexagramStore(bundle: Bundle(for: HexagramStore.self))
+        let qian = store.hexagram(number: 1)!
+        let text = ReadingGuide.leadJingwen(movingPositions: [3], primary: qian, resulting: nil)
+        XCTAssertEqual(text, qian.yaoCi(at: 3).trimmingCharacters(in: .whitespacesAndNewlines))
+    }
 }
 
 final class HexagramStoreTests: XCTestCase {

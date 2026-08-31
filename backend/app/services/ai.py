@@ -495,10 +495,18 @@ def _string_list(value) -> list[str]:
 
 
 def _strip_risk_prefix(text: str) -> str:
-    for prefix in ("须防：", "须防:", "須防：", "須防:", "Watch: ", "Watch:", "Caution: ", "Caution:"):
-        if text.startswith(prefix):
-            return text[len(prefix):].strip()
-    return text
+    prefixes = ("须防：", "须防:", "須防：", "須防:", "Watch: ", "Watch:", "Caution: ", "Caution:")
+    t = text.strip()
+    while True:
+        for prefix in prefixes:
+            if t.startswith(prefix):
+                t = t[len(prefix):].strip()
+                break
+        else:
+            break
+    if t in ("须防", "須防", "Watch", "Caution"):
+        return ""
+    return t
 
 
 def _one_risk(items: list[str]) -> list[str]:

@@ -210,6 +210,14 @@ fun CastRevealAct(
                         textAlign = TextAlign.Center,
                         style = AppTheme.compactText,
                     )
+                    Text(
+                        "弟子退",
+                        fontSize = 13.sp,
+                        color = AppTheme.secondaryText,
+                        modifier = Modifier.padding(top = 8.dp),
+                        style = AppTheme.compactText,
+                    )
+                    RitualEnglishCaption("Step back")
                     Box(
                         Modifier
                             .padding(top = 18.dp)
@@ -219,14 +227,14 @@ fun CastRevealAct(
                             .padding(horizontal = 28.dp, vertical = 10.dp),
                     ) {
                         Text(
-                            "弟子退",
+                            "看辞",
                             fontSize = 17.sp,
                             fontWeight = FontWeight.SemiBold,
                             color = AppTheme.parchmentTop,
                             style = AppTheme.compactText,
+                            en = "Read",
                         )
                     }
-                    RitualEnglishCaption("Step back")
                 }
             }
             Spacer(Modifier.weight(1f))

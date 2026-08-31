@@ -91,6 +91,17 @@ class AnalysisStructureTests(unittest.TestCase):
             }
         )
         self.assertEqual(many.risks, ["起步过急；勿忽戒惧"])
+        stacked = _analysis_from_parsed(
+            {
+                "summary": "背景",
+                "focus": "当下",
+                "direction": "方向",
+                "risks": ["须防：须防", "须防"],
+                "advice": ["可做"],
+                "askNext": ["下一问"],
+            }
+        )
+        self.assertEqual(stacked.risks, [])
         block = _previous_analysis_block(analysis)
         self.assertIn("事情背景：背景", block)
         self.assertIn("可再问：下一问", block)

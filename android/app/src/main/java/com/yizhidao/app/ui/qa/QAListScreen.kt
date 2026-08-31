@@ -34,6 +34,9 @@ import com.yizhidao.CastResult
 import com.yizhidao.app.AppContainer
 import com.yizhidao.app.ai.SavedAIAnalysis
 import com.yizhidao.app.ui.reading.AIAnalysisScreen
+import com.yizhidao.app.ui.reading.HexagramChangeArrow
+import com.yizhidao.app.ui.reading.ResultScreen
+import com.yizhidao.digitalMovingYaoLabel
 import com.yizhidao.app.lang.LocalAppLanguage
 import com.yizhidao.app.lang.listLabel
 import com.yizhidao.app.lang.numberLabel
@@ -55,6 +58,7 @@ fun QAListScreen(
     val language = LocalAppLanguage.current
     val items by container.savedAIStore.items.collectAsState()
     var opened by remember { mutableStateOf<SavedAIAnalysis?>(null) }
+    var showResult by remember { mutableStateOf(false) }
     var revealedId by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(opened) {
@@ -65,6 +69,17 @@ fun QAListScreen(
     }
 
     val current = opened
+
+    if (current != null && showResult) {
+        ResultScreen(
+            result = current.toCastResult(),
+            isNew = false,
+            container = container,
+            onBack = { showResult = false },
+            onOpenSimilar = onOpenSimilar,
+        )
+        return
+    }
     if (current != null) {
         AIAnalysisScreen(
             result = current.toCastResult(),
@@ -73,7 +88,11 @@ fun QAListScreen(
             hexagramStore = container.hexagramStore,
             authStore = container.authStore,
             analysisStore = container.savedAIStore,
-            onBack = { opened = null },
+            onBack = {
+                showResult = false
+                opened = null
+            },
+            onOpenResult = { showResult = true },
             onOpenSimilar = onOpenSimilar,
         )
         return
@@ -107,11 +126,11 @@ fun QAListScreen(
                 )
                 Spacer(Modifier.height(8.dp))
                 Text(
-                    "起卦后点 AI，解读会自动出现在这里",
+                    "起卦后点问，解读会自动出现在这里",
                     fontSize = 13.sp,
                     color = AppTheme.secondaryText,
                     style = AppTheme.compactText,
-                    en = "Readings you ask for will appear here",
+                    en = "After you cast, tap Ask. Readings appear here.",
                 )
             }
         } else {
@@ -142,9 +161,14 @@ fun QAListScreen(
                                 contentBackground = Color.White,
                             ) {
                                 val hex = container.hexagramStore.hexagram(item.primaryNumber)
+                                val resultingTitle = item.resultingNumber?.let { n ->
+                                    container.hexagramStore.hexagram(n)?.listLabel(language)
+                                        ?: numberLabel(language, n)
+                                }
                                 QAHistoryRow(
                                     item = item,
                                     title = hex?.listLabel(language) ?: numberLabel(language, item.primaryNumber),
+                                    resultingTitle = resultingTitle,
                                     onClick = {
                                         if (revealedId == item.id) {
                                             revealedId = null
@@ -173,6 +197,7 @@ fun QAListScreen(
 private fun QAHistoryRow(
     item: SavedAIAnalysis,
     title: String,
+    resultingTitle: String?,
     onClick: () -> Unit,
 ) {
     val question = item.question?.takeIf { it.isNotBlank() }
@@ -184,15 +209,34 @@ private fun QAHistoryRow(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(
-                title,
-                fontSize = 17.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = AppTheme.ink,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                style = AppTheme.compactText,
-            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                Text(
+                    title,
+                    fontSize = 17.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = AppTheme.ink,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    style = AppTheme.compactText,
+                )
+                resultingTitle?.let { resulting ->
+                    HexagramChangeArrow(
+                        digitalMovingYaoLabel(item.method, item.movingPositions),
+                    )
+                    Text(
+                        resulting,
+                        fontSize = 17.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = AppTheme.ink,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        style = AppTheme.compactText,
+                    )
+                }
+            }
             Text(
                 listTimeFmt.format(item.updatedAt),
                 fontSize = 12.sp,

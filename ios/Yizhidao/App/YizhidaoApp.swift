@@ -1445,16 +1445,23 @@ private struct AIAnalysisHistoryView: View {
     var body: some View {
         Group {
             if items.isEmpty {
-                ContentUnavailableView(
-                    "还没有解读",
-                    systemImage: "bubble.left.and.bubble.right",
-                    description: Text("起卦后点 AI，解读会自动出现在这里".ui("Readings you ask for will appear here"))
-                )
+                VStack(spacing: 8) {
+                    Spacer()
+                    Text("还没有解读".ui("No readings yet"))
+                        .font(.headline)
+                    Text("起卦后点问，解读会自动出现在这里".ui("After you cast, tap Ask. Readings appear here."))
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 32)
+                    Spacer()
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 List {
                     ForEach(items) { item in
                         NavigationLink {
-                            AIAnalysisView(saved: item)
+                            AIAnalysisView(saved: item, opensResultOnHeaderTap: true)
                         } label: {
                             savedRow(item)
                         }
@@ -1487,12 +1494,34 @@ private struct AIAnalysisHistoryView: View {
     @ViewBuilder
     private func savedRow(_ item: SavedAIAnalysis) -> some View {
         VStack(alignment: .leading, spacing: 4) {
-            if let hex = store.hexagram(number: item.primaryNumber) {
-                Text(hex.listLabel)
-                    .font(.headline)
-            } else {
-                Text("第\(item.primaryNumber)卦".ui("Hexagram \(item.primaryNumber)"))
-                    .font(.headline)
+            HStack(spacing: 6) {
+                if let hex = store.hexagram(number: item.primaryNumber) {
+                    Text(hex.listLabel)
+                        .font(.headline)
+                        .lineLimit(1)
+                } else {
+                    Text("第\(item.primaryNumber)卦".ui("Hexagram \(item.primaryNumber)"))
+                        .font(.headline)
+                        .lineLimit(1)
+                }
+                if let resulting = item.resultingNumber {
+                    HexagramChangeArrow(
+                        movingLabel: ReadingRecordRow.digitalMovingLabel(
+                            method: item.method,
+                            movingPositions: item.movingPositions
+                        )
+                    )
+                    if let hex = store.hexagram(number: resulting) {
+                        Text(hex.listLabel)
+                            .font(.headline)
+                            .lineLimit(1)
+                    } else {
+                        Text("第\(resulting)卦".ui("Hexagram \(resulting)"))
+                            .font(.headline)
+                            .lineLimit(1)
+                    }
+                }
+                Spacer(minLength: 0)
             }
             Text(ReadingRecordRow.timeString(item.updatedAt).zh)
                 .font(.caption)

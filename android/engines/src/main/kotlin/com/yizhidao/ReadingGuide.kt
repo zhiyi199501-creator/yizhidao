@@ -81,6 +81,22 @@ object ReadingGuide {
     const val GENERAL_PRINCIPLE =
         "所问之事，以本卦为目前情况，之卦为将来趋势；并参照两卦卦辞。"
 
+    /** 主看那一句经文（卦辞或爻辞），给问答页作引。经文不英译。 */
+    fun leadJingwen(
+        movingPositions: List<Int>,
+        primary: Hexagram?,
+        resulting: Hexagram?,
+    ): String? {
+        val raw = when (val kind = focus(movingPositions).kind) {
+            ReadingFocus.Kind.PrimaryGuaci, ReadingFocus.Kind.BothGuaci -> primary?.guaci
+            is ReadingFocus.Kind.PrimaryLines -> kind.lead?.let { primary?.yaoCi(it) }
+            is ReadingFocus.Kind.ResultingLines -> kind.lead?.let { resulting?.yaoCi(it) }
+            ReadingFocus.Kind.ResultingGuaci -> resulting?.guaci
+        }
+        val text = raw?.trim().orEmpty()
+        return text.ifEmpty { null }
+    }
+
     private fun staticPositions(moving: List<Int>): List<Int> =
         (1..6).filter { it !in moving }
 

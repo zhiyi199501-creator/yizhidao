@@ -66,6 +66,14 @@ fun InvocationAct(
         Spacer(Modifier.weight(1f))
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
+                "爻变开化之神在上",
+                fontSize = 15.sp,
+                color = AppTheme.ink.copy(alpha = 0.35f),
+                textAlign = TextAlign.Center,
+                style = AppTheme.compactText,
+            )
+            Spacer(Modifier.height(14.dp))
+            Text(
                 "弟子今有",
                 fontSize = 15.sp,
                 color = AppTheme.ink.copy(alpha = 0.35f),

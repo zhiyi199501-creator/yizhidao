@@ -18,18 +18,39 @@ fun aiAdviceDisplayItems(
     risks: List<String> = emptyList(),
     english: Boolean = AppLanguage.current().isEnglish,
 ): List<String> {
-    val prefixes = listOf("须防：", "须防:", "須防：", "須防:", "Watch: ", "Watch:", "Caution: ", "Caution:")
-    val parts = risks.mapNotNull { raw ->
-        var text = raw.trim()
-        if (text.isEmpty()) return@mapNotNull null
-        val prefix = prefixes.firstOrNull { text.startsWith(it) }
-        if (prefix != null) text = text.removePrefix(prefix).trim()
-        text.ifEmpty { null }
-    }
-    if (parts.isEmpty()) return advice
     val label = if (english) "Watch: " else "须防："
     val joiner = if (english) "; " else "；"
-    return advice + listOf("$label${parts.joinToString(joiner)}")
+    val adviceItems = advice.mapNotNull { normalizeAdviceLine(it, label) }
+    val parts = risks.map { stripRiskPrefixes(it) }.filter { it.isNotEmpty() }
+    if (parts.isEmpty()) return adviceItems
+    val merged = parts.joinToString(joiner)
+    val existing = adviceItems.map { stripRiskPrefixes(it) }.toSet()
+    if (merged in existing || parts.all { it in existing }) return adviceItems
+    return adviceItems + listOf("$label$merged")
+}
+
+private val riskColonPrefixes = listOf(
+    "须防：", "须防:", "須防：", "須防:",
+    "Watch: ", "Watch:", "Caution: ", "Caution:",
+)
+private val riskBareWords = setOf("须防", "須防", "Watch", "Caution")
+
+private fun stripRiskPrefixes(raw: String): String {
+    var text = raw.trim()
+    while (true) {
+        val prefix = riskColonPrefixes.firstOrNull { text.startsWith(it) } ?: break
+        text = text.removePrefix(prefix).trim()
+    }
+    return if (text in riskBareWords) "" else text
+}
+
+private fun normalizeAdviceLine(raw: String, label: String): String? {
+    val trimmed = raw.trim()
+    if (trimmed.isEmpty()) return null
+    val hadRiskPrefix = riskColonPrefixes.any { trimmed.startsWith(it) } || trimmed in riskBareWords
+    if (!hadRiskPrefix) return trimmed
+    val body = stripRiskPrefixes(trimmed)
+    return if (body.isEmpty()) null else label + body
 }
 
 @Serializable

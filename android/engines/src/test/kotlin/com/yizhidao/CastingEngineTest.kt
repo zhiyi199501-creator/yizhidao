@@ -180,6 +180,8 @@ class HexagramStoreTest {
             assertEquals("yaoci count #${h.number}", 6, h.yaoci.size)
         }
         val qian = store.hexagram(1) ?: error("missing hexagram 1")
+        assertEquals(qian.guaci.trim(), ReadingGuide.leadJingwen(emptyList(), qian, null))
+        assertEquals(qian.yaoCi(3).trim(), ReadingGuide.leadJingwen(listOf(3), qian, null))
         assertTrue(qian.tuanci.contains("大哉乾元"))
         assertTrue(qian.daxiang.contains("自强不息"))
         assertTrue(qian.xiaoXiang(1).contains("阳在下"))

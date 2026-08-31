@@ -68,6 +68,11 @@ struct InvocationView: View {
 
     private var invocation: some View {
         VStack(spacing: 14) {
+            Text("爻变开化之神在上".zh)
+                .font(.subheadline)
+                .foregroundStyle(.tertiary)
+                .multilineTextAlignment(.center)
+
             Text("弟子今有".zh)
                 .font(.subheadline)
                 .foregroundStyle(.tertiary)

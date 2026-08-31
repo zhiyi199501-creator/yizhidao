@@ -59,6 +59,7 @@ import com.yizhidao.Hexagram
 import com.yizhidao.HexagramStore
 import com.yizhidao.ReadingRecord
 import com.yizhidao.VerificationStatus
+import com.yizhidao.digitalMovingYaoLabel
 import com.yizhidao.app.AppContainer
 import com.yizhidao.app.ui.reading.ResultScreen
 import com.yizhidao.app.ui.theme.AppTheme
@@ -673,21 +674,14 @@ private fun GroupedCard(modifier: Modifier = Modifier, content: @Composable () -
     ) { content() }
 }
 
-private val CastingMethod.isDigital: Boolean
-    get() = this == CastingMethod.DIGITAL_MANUAL || this == CastingMethod.DIGITAL_TIME
-
 @Composable
 private fun hexTitle(hex: Hexagram?, number: Int): String {
     val language = LocalAppLanguage.current
     return hex?.listLabel(language) ?: numberLabel(language, number)
 }
 
-private fun digitalMovingLabel(record: ReadingRecord): String? {
-    if (!record.method.isDigital) return null
-    if (record.movingPositions.size != 1) return null
-    val position = record.movingPositions.first()
-    return MovingPositionFilter.from(position)?.zh
-}
+private fun digitalMovingLabel(record: ReadingRecord): String? =
+    digitalMovingYaoLabel(record.method, record.movingPositions)
 
 private fun verificationColor(status: VerificationStatus): Color = when (status) {
     VerificationStatus.NONE -> Color.Gray

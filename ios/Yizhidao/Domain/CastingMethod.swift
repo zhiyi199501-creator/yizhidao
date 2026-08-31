@@ -14,4 +14,11 @@ enum CastingMethod: String, Codable, CaseIterable, Identifiable, Sendable {
         case .coin: return "六爻金钱卦".ui("Three coins")
         }
     }
+
+    var isDigital: Bool {
+        switch self {
+        case .digitalManual, .digitalTime: return true
+        case .coin: return false
+        }
+    }
 }

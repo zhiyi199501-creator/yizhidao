@@ -19,7 +19,7 @@ struct ReadingRecordRow: View {
                             .lineLimit(1)
                     }
                     if let resulting = record.resultingNumber {
-                        changeArrow
+                        HexagramChangeArrow(movingLabel: digitalMovingLabel)
                         resultingTitle(number: resulting)
                             .lineLimit(1)
                     }
@@ -59,13 +59,17 @@ struct ReadingRecordRow: View {
     }
 
     /// 数字起卦单爻动时的动爻字（初…上）。
-    private var digitalMovingLabel: String? {
-        guard record.isDigitalMethod,
-              record.movingPositions.count == 1,
-              let position = record.movingPositions.first,
+    static func digitalMovingLabel(method: CastingMethod, movingPositions: [Int]) -> String? {
+        guard method.isDigital,
+              movingPositions.count == 1,
+              let position = movingPositions.first,
               let label = MovingPositionFilter.from(position: position)?.label
         else { return nil }
         return label
+    }
+
+    private var digitalMovingLabel: String? {
+        Self.digitalMovingLabel(method: record.method, movingPositions: record.movingPositions)
     }
 
     @ViewBuilder
@@ -78,22 +82,6 @@ struct ReadingRecordRow: View {
                 .padding(.vertical, 2)
                 .background(Self.verificationColor(record.verificationStatus), in: Capsule())
         }
-    }
-
-    private var changeArrow: some View {
-        Text("⟶".zh)
-            .font(.title2)
-            .foregroundStyle(.secondary)
-            .scaleEffect(x: 1.25, y: 1, anchor: .center)
-            .frame(width: 28)
-            .overlay(alignment: .top) {
-                if let digitalMovingLabel {
-                    Text(digitalMovingLabel.zh)
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(.red)
-                        .offset(y: -1)
-                }
-            }
     }
 
     @ViewBuilder
@@ -144,5 +132,25 @@ struct ReadingRecordRow: View {
         if partial > 0 { parts.append("部分 \(partial)".ui("Partly \(partial)")) }
         if unfulfilled > 0 { parts.append("未应验 \(unfulfilled)".ui("Not fulfilled \(unfulfilled)")) }
         return parts.isEmpty ? nil : parts.joined(separator: " · ")
+    }
+}
+
+struct HexagramChangeArrow: View {
+    var movingLabel: String? = nil
+
+    var body: some View {
+        Text("⟶".zh)
+            .font(.title2)
+            .foregroundStyle(.secondary)
+            .scaleEffect(x: 1.25, y: 1, anchor: .center)
+            .frame(width: 28)
+            .overlay(alignment: .top) {
+                if let movingLabel {
+                    Text(movingLabel.zh)
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.red)
+                        .offset(y: -1)
+                }
+            }
     }
 }

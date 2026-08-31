@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// 揭卦：六爻自初至上逐根显形，动爻点朱砂，再压印卦名。
-/// 压印后停住，完成礼仪第四步，点「弟子退」才进结果页。
+/// 压印后停住，出示致谢礼文（「弟子退」是话，不是按钮），点「看辞」才进结果页。
 struct CastRevealView: View {
     let result: CastResult
     var onFinish: () -> Void
@@ -144,20 +144,23 @@ struct CastRevealView: View {
 
     private var thanks: some View {
         VStack(spacing: 18) {
-            Text("感谢爻变开化之神的指示".zh)
-                .font(.footnote)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
+            VStack(spacing: 8) {
+                Text("感谢爻变开化之神的指示".zh)
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                Text("弟子退".zh)
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                RitualEnglishCaption(text: "Step back")
+            }
             Button {
                 finish()
             } label: {
-                VStack(spacing: 4) {
-                    Text("弟子退".zh)
-                        .font(.headline)
-                    RitualEnglishCaption(text: "Step back")
-                }
-                .padding(.horizontal, 28)
-                .padding(.vertical, 10)
+                Text("看辞".ui("Read"))
+                    .font(.headline)
+                    .padding(.horizontal, 28)
+                    .padding(.vertical, 10)
             }
             .buttonStyle(.borderedProminent)
             .tint(AppTheme.accent)

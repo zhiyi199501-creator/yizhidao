@@ -230,7 +230,7 @@
 
 ## AI 问答实现说明
 
-机制（框架、黄庭槽、案例筛选、出卡）见 [`ai-reading.md`](ai-reading.md)。提示词原文以 `backend/app/services/ai.py` 为准。本文件 §8 / §8b 只保留路径与 JSON 字段。
+机制（框架、黄庭槽、案例筛选、展示）见 [`ai-reading.md`](ai-reading.md)。提示词原文以 `backend/app/services/ai.py` 为准。本文件 §8 / §8b 只保留路径与 JSON 字段。
 
 ## 运营与安全最小要求
 - AI：按登录用户限流（间隔 8 秒、同时 1 个、自然日 UTC+8 未购 3 次 / 买断 30 次，含追问）；超限 `4290`。细节见 [`ai-reading.md`](ai-reading.md)

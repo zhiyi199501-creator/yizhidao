@@ -74,6 +74,27 @@ enum ReadingGuide {
     static let generalPrinciple =
         "所问之事，以本卦为目前情况，之卦为将来趋势；并参照两卦卦辞。"
 
+    /// 主看那一句经文（卦辞或爻辞），给问答页作引。经文不英译。
+    static func leadJingwen(
+        movingPositions: [Int],
+        primary: Hexagram?,
+        resulting: Hexagram?
+    ) -> String? {
+        let raw: String?
+        switch focus(movingPositions: movingPositions).kind {
+        case .primaryGuaci, .bothGuaci:
+            raw = primary?.guaci
+        case .primaryLines(_, let lead):
+            raw = lead.flatMap { primary?.yaoCi(at: $0) }
+        case .resultingLines(_, let lead):
+            raw = lead.flatMap { resulting?.yaoCi(at: $0) }
+        case .resultingGuaci:
+            raw = resulting?.guaci
+        }
+        let text = raw?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return text.isEmpty ? nil : text
+    }
+
     private static func staticPositions(moving: [Int]) -> [Int] {
         (1...6).filter { !moving.contains($0) }
     }

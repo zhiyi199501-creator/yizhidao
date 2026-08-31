@@ -29,26 +29,26 @@ struct CastingHomeView: View {
         NavigationStack {
             GeometryReader { geo in
                 let charSize = min(22, max(18, geo.size.width / 16))
-                ZStack {
-                    CastingTaijiMark()
-                        .frame(width: min(geo.size.width * 0.72, 280), height: min(geo.size.width * 0.72, 280))
-                        .rotationEffect(.degrees(spin))
-                        .allowsHitTesting(false)
-
-                    VStack(spacing: 0) {
-                        Spacer(minLength: 12)
+                let taiji = min(geo.size.width * 0.72, 280)
+                VStack(spacing: 0) {
+                    Spacer(minLength: 12)
+                    ZStack {
+                        CastingTaijiMark()
+                            .frame(width: taiji, height: taiji)
+                            .rotationEffect(.degrees(spin))
+                            .allowsHitTesting(false)
                         scrollColumns(charSize: charSize)
-                        Spacer(minLength: 28)
-                        StartCastButton(visible: showSeal) {
-                            showResult = false
-                            request = CastingRequest()
-                        }
-                        RitualEnglishCaption(text: "Cast")
-                            .padding(.top, 10)
-                        Spacer(minLength: 20)
                     }
-                    .padding(.bottom, 8)
+                    Spacer(minLength: 28)
+                    StartCastButton(visible: showSeal) {
+                        showResult = false
+                        request = CastingRequest()
+                    }
+                    RitualEnglishCaption(text: "Cast")
+                        .padding(.top, 10)
+                    Spacer(minLength: 20)
                 }
+                .padding(.bottom, 8)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
             .parchmentBackground(hidesTabBar: false)

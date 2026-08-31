@@ -539,7 +539,9 @@ struct AIAnalysisView: View {
     let result: CastResult
     private let readingRecordID: UUID?
     private let showSimilarHexagramButton: Bool
+    private let opensResultOnHeaderTap: Bool
 
+    @Environment(\.dismiss) private var dismiss
     @Environment(AppNavigation.self) private var appNavigation
     @State private var isLoading: Bool
     @State private var isFollowupLoading = false
@@ -549,6 +551,7 @@ struct AIAnalysisView: View {
     @State private var errorMessage: String?
     @State private var savedID: UUID?
     @State private var showUnlock = false
+    @State private var showCastResult = false
 
     private var store: HexagramStore { .shared }
     private var canSendFollowup: Bool {
@@ -558,10 +561,24 @@ struct AIAnalysisView: View {
             && !isFollowupLoading
     }
 
-    init(result: CastResult, readingRecordID: UUID? = nil, showSimilarHexagramButton: Bool = true) {
+    private var leadJingwen: String? {
+        ReadingGuide.leadJingwen(
+            movingPositions: result.movingPositions,
+            primary: store.hexagram(number: result.primaryNumber),
+            resulting: result.resultingNumber.flatMap { store.hexagram(number: $0) }
+        )
+    }
+
+    init(
+        result: CastResult,
+        readingRecordID: UUID? = nil,
+        showSimilarHexagramButton: Bool = true,
+        opensResultOnHeaderTap: Bool = false
+    ) {
         self.result = result
         self.readingRecordID = readingRecordID
         self.showSimilarHexagramButton = showSimilarHexagramButton
+        self.opensResultOnHeaderTap = opensResultOnHeaderTap
         if let saved = SavedAIAnalysisStore.find(recordID: readingRecordID, result: result) {
             _analysis = State(initialValue: AuthAPI.AIAnalyzeResponse.Analysis(saved: saved.analysis))
             _followUps = State(initialValue: saved.followUps)
@@ -575,10 +592,11 @@ struct AIAnalysisView: View {
         }
     }
 
-    init(saved: SavedAIAnalysis, showSimilarHexagramButton: Bool = true) {
+    init(saved: SavedAIAnalysis, showSimilarHexagramButton: Bool = true, opensResultOnHeaderTap: Bool = false) {
         self.result = saved.toCastResult()
         self.readingRecordID = saved.readingRecordID
         self.showSimilarHexagramButton = showSimilarHexagramButton
+        self.opensResultOnHeaderTap = opensResultOnHeaderTap
         _analysis = State(initialValue: AuthAPI.AIAnalyzeResponse.Analysis(saved: saved.analysis))
         _followUps = State(initialValue: saved.followUps)
         _savedID = State(initialValue: saved.id)
@@ -588,23 +606,25 @@ struct AIAnalysisView: View {
     var body: some View {
         VStack(spacing: 0) {
             ScrollView {
-                VStack(alignment: .leading, spacing: 16) {
+                VStack(alignment: .leading, spacing: 28) {
                     headerSection
 
                     if isLoading {
-                        HStack {
-                            Spacer()
-                            ProgressView("解读中…".ui("Reading…"))
-                            Spacer()
-                        }
-                        .padding(.vertical, 24)
+                        Text("正在玩辞…".ui("Reading the text…"))
+                            .font(.subheadline)
+                            .foregroundStyle(.tertiary)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 40)
                     }
 
                     if let analysis {
-                        analysisSection(title: "事情背景".ui("Background"), text: analysis.summary)
-                        analysisSection(title: "当下".ui("Now"), text: analysis.focus)
+                        if let leadJingwen {
+                            epigraph(leadJingwen)
+                        }
+                        readingSection(title: "事情背景".ui("Background"), text: analysis.summary, prominent: false)
+                        readingSection(title: "当下".ui("Now"), text: analysis.focus, prominent: true)
                         if !analysis.direction.isEmpty {
-                            analysisSection(title: "方向".ui("Direction"), text: analysis.direction)
+                            readingSection(title: "方向".ui("Direction"), text: analysis.direction, prominent: false)
                         }
                         let adviceItems = aiAdviceDisplayItems(advice: analysis.advice, risks: analysis.risks)
                         if !adviceItems.isEmpty {
@@ -620,12 +640,11 @@ struct AIAnalysisView: View {
                     }
 
                     if isFollowupLoading {
-                        HStack {
-                            Spacer()
-                            ProgressView("回复中…".ui("Replying…"))
-                            Spacer()
-                        }
-                        .padding(.vertical, 8)
+                        Text("正在玩辞…".ui("Reading the text…"))
+                            .font(.subheadline)
+                            .foregroundStyle(.tertiary)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 16)
                     }
 
                     if let errorMessage {
@@ -645,6 +664,9 @@ struct AIAnalysisView: View {
         .navigationTitle("问答".ui("Readings"))
         .navigationBarTitleDisplayMode(.inline)
         .parchmentBackground()
+        .navigationDestination(isPresented: $showCastResult) {
+            ResultView(result: result, isNew: false)
+        }
         .sheet(isPresented: $showUnlock) {
             NavigationStack {
                 UnlockReadingsView {
@@ -697,7 +719,7 @@ struct AIAnalysisView: View {
     }
 
     private func followUpTurn(_ turn: SavedAIFollowUp, isLatest: Bool) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 14) {
             HStack {
                 Spacer(minLength: 40)
                 Text(turn.user.zh)
@@ -709,9 +731,18 @@ struct AIAnalysisView: View {
                             .fill(AppTheme.accent.opacity(0.12))
                     )
             }
-            analysisSection(title: "回复".ui("Reply"), text: turn.assistant)
+            ForEach(Array(AIAnswerFormatter.paragraphs(in: turn.assistant).enumerated()), id: \.offset) { _, paragraph in
+                Text(paragraph.zh)
+                    .font(.body)
+                    .lineSpacing(7)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
             if !turn.advice.isEmpty {
-                bulletSection(title: "建议".ui("Advice"), items: turn.advice)
+                bulletSection(
+                    title: "建议".ui("Advice"),
+                    items: aiAdviceDisplayItems(advice: turn.advice, risks: [])
+                )
             }
             if isLatest, !isFollowupLoading {
                 let nextQuestions = turn.askNext.isEmpty ? (analysis?.askNext ?? []) : turn.askNext
@@ -723,37 +754,91 @@ struct AIAnalysisView: View {
     }
 
     private var headerSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            if let primary = store.hexagram(number: result.primaryNumber) {
-                Text(primary.listLabel)
-                    .font(.title3.weight(.bold))
+        Button {
+            if opensResultOnHeaderTap {
+                showCastResult = true
+            } else {
+                dismiss()
             }
-            if let question = result.question, !question.isEmpty {
-                Text("所问：\(question)".ui("Asked: \(question)"))
-                    .font(.body)
+        } label: {
+            HStack(alignment: .top, spacing: 8) {
+                VStack(alignment: .leading, spacing: 8) {
+                    hexagramPairTitle(font: .title3.weight(.bold))
+                    if let question = result.question, !question.isEmpty {
+                        Text(question.zh)
+                            .font(.body)
+                            .foregroundStyle(.primary)
+                    }
+                }
+                Spacer(minLength: 0)
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding()
+            .background(RoundedRectangle(cornerRadius: 12).fill(AppTheme.cardFill))
+            .contentShape(RoundedRectangle(cornerRadius: 12))
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding()
-        .background(RoundedRectangle(cornerRadius: 12).fill(AppTheme.cardFill))
+        .buttonStyle(.plain)
+        .accessibilityLabel("查看卦象结果".ui("See the result"))
     }
 
-    private func analysisSection(title: String, text: String) -> some View {
+    private func hexagramPairTitle(font: Font) -> some View {
+        HStack(spacing: 6) {
+            if let primary = store.hexagram(number: result.primaryNumber) {
+                Text(primary.listLabel)
+                    .font(font)
+                    .lineLimit(1)
+            } else {
+                Text("第\(result.primaryNumber)卦".ui("Hexagram \(result.primaryNumber)"))
+                    .font(font)
+                    .lineLimit(1)
+            }
+            if let resultingNumber = result.resultingNumber {
+                HexagramChangeArrow(
+                    movingLabel: ReadingRecordRow.digitalMovingLabel(
+                        method: result.method,
+                        movingPositions: result.movingPositions
+                    )
+                )
+                if let resulting = store.hexagram(number: resultingNumber) {
+                    Text(resulting.listLabel)
+                        .font(font)
+                        .lineLimit(1)
+                } else {
+                    Text("第\(resultingNumber)卦".ui("Hexagram \(resultingNumber)"))
+                        .font(font)
+                        .lineLimit(1)
+                }
+            }
+        }
+        .padding(.top, 4)
+    }
+
+    private func epigraph(_ text: String) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("主看".ui("Focus"))
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.tertiary)
+            Text(text.zh)
+                .font(.body)
+                .foregroundStyle(.secondary)
+                .lineSpacing(6)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
+    private func readingSection(title: String, text: String, prominent: Bool) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             Text(title.zh)
-                .font(.subheadline.weight(.semibold))
+                .font(prominent ? .headline.weight(.semibold) : .subheadline.weight(.semibold))
                 .foregroundStyle(AppTheme.accent)
             ForEach(Array(AIAnswerFormatter.paragraphs(in: text).enumerated()), id: \.offset) { _, paragraph in
                 Text(paragraph.zh)
-                    .font(.body)
-                    .lineSpacing(7)
+                    .font(prominent ? .title3 : .body)
+                    .lineSpacing(prominent ? 8 : 6)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding()
-        .background(RoundedRectangle(cornerRadius: 12).fill(AppTheme.cardFill))
     }
 
     private func bulletSection(title: String, items: [String]) -> some View {
@@ -773,9 +858,6 @@ struct AIAnalysisView: View {
                 }
             }
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding()
-        .background(RoundedRectangle(cornerRadius: 12).fill(AppTheme.cardFill))
     }
 
     private func askNextSection(_ questions: [String]) -> some View {
@@ -807,9 +889,6 @@ struct AIAnalysisView: View {
                 .disabled(isFollowupLoading || isLoading)
             }
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding()
-        .background(RoundedRectangle(cornerRadius: 12).fill(AppTheme.cardFill))
     }
 
     private func persistCurrent(
