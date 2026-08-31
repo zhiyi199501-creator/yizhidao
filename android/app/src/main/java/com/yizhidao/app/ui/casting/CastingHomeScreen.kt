@@ -16,7 +16,9 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
@@ -43,8 +45,6 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.yizhidao.CastResult
-import com.yizhidao.app.AppContainer
 import com.yizhidao.app.lang.LocalAppLanguage
 import com.yizhidao.app.ui.theme.AppTheme
 import com.yizhidao.app.ui.theme.Text
@@ -69,16 +69,14 @@ private object CastingHomeReveal {
 
 @Composable
 fun CastingHomeScreen(
-    container: AppContainer,
-    onResult: (CastResult) -> Unit,
+    onBeginRitual: () -> Unit,
     onTabBarVisible: (Boolean) -> Unit = {},
 ) {
-    var ritualOpen by remember { mutableStateOf(false) }
     val reduceMotion = LocalContext.current.reduceMotionEnabled()
     var appeared by remember { mutableStateOf(reduceMotion || CastingHomeReveal.didPlay) }
 
-    LaunchedEffect(ritualOpen) {
-        onTabBarVisible(!ritualOpen)
+    LaunchedEffect(Unit) {
+        onTabBarVisible(true)
     }
     LaunchedEffect(reduceMotion) {
         if (reduceMotion || CastingHomeReveal.didPlay) {
@@ -110,10 +108,8 @@ fun CastingHomeScreen(
                 .padding(bottom = 8.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Box(
-                Modifier.weight(1f),
-                contentAlignment = Alignment.Center,
-            ) {
+            Spacer(Modifier.weight(1.2f))
+            Box(contentAlignment = Alignment.Center) {
                 CastingTaijiMark(
                     Modifier
                         .size(taiji)
@@ -125,25 +121,13 @@ fun CastingHomeScreen(
                     reduceMotion = reduceMotion,
                 )
             }
+            Spacer(Modifier.height(28.dp))
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                StartCastSeal(appeared = appeared, reduceMotion = reduceMotion) {
-                    ritualOpen = true
-                }
+                StartCastSeal(appeared = appeared, reduceMotion = reduceMotion, onBegin = onBeginRitual)
                 RitualEnglishCaption("Cast")
             }
-            Box(Modifier.weight(0.28f))
+            Spacer(Modifier.weight(0.85f))
         }
-    }
-
-    if (ritualOpen) {
-        CastingActOverlay(
-            chinese = container.chineseDateSource,
-            store = container.hexagramStore,
-            onFinish = { result ->
-                onResult(result)
-            },
-            onCancel = { ritualOpen = false },
-        )
     }
 }
 

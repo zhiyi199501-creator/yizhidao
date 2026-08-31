@@ -99,6 +99,7 @@ import com.yizhidao.app.ui.reading.ScaledHexagramFigure
 import com.yizhidao.app.ui.reading.ScriptureSourceLine
 import com.yizhidao.app.ui.theme.AppTheme
 import com.yizhidao.app.ui.theme.PaperBackHeader
+import com.yizhidao.app.ui.theme.PaperTabTitle
 import com.yizhidao.app.ui.theme.PaperChevron
 import com.yizhidao.app.ui.theme.SwipeRevealActions
 import com.yizhidao.app.ui.theme.SwipeAction
@@ -316,19 +317,7 @@ private fun MeHome(
     }
 
     Column(Modifier.fillMaxSize()) {
-        Box(
-            Modifier.fillMaxWidth().padding(vertical = 12.dp),
-            contentAlignment = Alignment.Center,
-        ) {
-            Text(
-                "我的",
-                fontSize = 17.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = AppTheme.ink,
-                style = AppTheme.compactText,
-                en = "Me",
-            )
-        }
+        PaperTabTitle("我的", "Me")
         Column(
             Modifier
                 .fillMaxSize()

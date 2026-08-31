@@ -593,6 +593,25 @@ fun PaperStackIcon(
 }
 
 @Composable
+fun PaperTabTitle(title: String, titleEn: String? = null) {
+    Box(
+        Modifier
+            .fillMaxWidth()
+            .padding(vertical = 12.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            title,
+            fontSize = 17.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = AppTheme.ink,
+            style = AppTheme.compactText,
+            en = titleEn,
+        )
+    }
+}
+
+@Composable
 fun PaperBackHeader(
     title: String,
     onBack: () -> Unit,
