@@ -49,6 +49,22 @@ object AppHttp {
     ): Pair<Int, String> = withContext(Dispatchers.IO) {
         try {
             withTimeout(timeoutMs.toLong()) {
+                await(url, method, body?.toByteArray(Charsets.UTF_8), headers)
+            }
+        } catch (e: kotlinx.coroutines.TimeoutCancellationException) {
+            throw SocketTimeoutException("timeout ${timeoutMs}ms").initCause(e)
+        }
+    }.let { (code, bytes) -> code to String(bytes, Charsets.UTF_8) }
+
+    suspend fun requestBytes(
+        url: String,
+        method: String,
+        body: ByteArray? = null,
+        headers: Map<String, String> = emptyMap(),
+        timeoutMs: Int = 20_000,
+    ): Pair<Int, ByteArray> = withContext(Dispatchers.IO) {
+        try {
+            withTimeout(timeoutMs.toLong()) {
                 await(url, method, body, headers)
             }
         } catch (e: kotlinx.coroutines.TimeoutCancellationException) {
@@ -59,9 +75,9 @@ object AppHttp {
     private suspend fun await(
         url: String,
         method: String,
-        body: String?,
+        body: ByteArray?,
         headers: Map<String, String>,
-    ): Pair<Int, String> = suspendCancellableCoroutine { cont ->
+    ): Pair<Int, ByteArray> = suspendCancellableCoroutine { cont ->
         val cronet = engine ?: run {
             cont.resumeWithException(IllegalStateException("AppHttp.init() was not called"))
             return@suspendCancellableCoroutine
@@ -96,7 +112,7 @@ object AppHttp {
 
             override fun onSucceeded(request: UrlRequest, info: UrlResponseInfo) {
                 if (cont.isActive) {
-                    cont.resume(info.httpStatusCode to bytes.toString(Charsets.UTF_8.name()))
+                    cont.resume(info.httpStatusCode to bytes.toByteArray())
                 }
             }
 
@@ -123,7 +139,7 @@ object AppHttp {
                 builder.addHeader("Content-Type", "application/json; charset=utf-8")
             }
             builder.setUploadDataProvider(
-                UploadDataProviders.create(body.toByteArray(Charsets.UTF_8)),
+                UploadDataProviders.create(body),
                 executor,
             )
         }

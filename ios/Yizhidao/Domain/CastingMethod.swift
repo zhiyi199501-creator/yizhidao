@@ -8,12 +8,17 @@ enum CastingMethod: String, Codable, CaseIterable, Identifiable, Sendable {
     var id: String { rawValue }
 
     var displayName: String {
-        let raw: String
         switch self {
-        case .digitalManual: raw = "数字起卦·三数"
-        case .digitalTime: raw = "数字起卦·时间"
-        case .coin: raw = "六爻金钱卦"
+        case .digitalManual: return "数字起卦·三数".ui("Three numbers")
+        case .digitalTime: return "数字起卦·时间".ui("Time")
+        case .coin: return "六爻金钱卦".ui("Three coins")
         }
-        return raw.zh
+    }
+
+    var isDigital: Bool {
+        switch self {
+        case .digitalManual, .digitalTime: return true
+        case .coin: return false
+        }
     }
 }

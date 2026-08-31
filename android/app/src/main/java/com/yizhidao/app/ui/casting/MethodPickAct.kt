@@ -53,6 +53,7 @@ fun MethodPickAct(
             color = AppTheme.accent,
             modifier = Modifier.padding(top = 8.dp),
             style = AppTheme.compactText,
+            en = "How will you take this hexagram?",
         )
         Spacer(Modifier.weight(1f))
         Column(
@@ -62,16 +63,19 @@ fun MethodPickAct(
             MethodButton(
                 title = "数字起卦",
                 subtitle = "三个数定上卦、下卦、动爻",
+                subtitleEn = "Three numbers",
                 onClick = { onPick(CastingIntent.DigitalNumbers) },
             )
             MethodButton(
                 title = "时间起卦",
                 subtitle = "以此刻十二时辰取数",
+                subtitleEn = "Time",
                 onClick = { onPick(CastingIntent.DigitalTime) },
             )
             MethodButton(
                 title = "金钱起卦",
                 subtitle = "三枚铜钱摇六次",
+                subtitleEn = "Three coins",
                 onClick = { onPick(CastingIntent.Coin) },
             )
         }
@@ -83,6 +87,7 @@ fun MethodPickAct(
 private fun MethodButton(
     title: String,
     subtitle: String,
+    subtitleEn: String,
     onClick: () -> Unit,
 ) {
     val shape = RoundedCornerShape(14.dp)
@@ -112,6 +117,7 @@ private fun MethodButton(
             color = AppTheme.secondaryText,
             modifier = Modifier.padding(top = 6.dp),
             style = AppTheme.compactText,
+            en = subtitleEn,
         )
     }
 }

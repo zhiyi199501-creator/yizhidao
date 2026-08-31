@@ -1,17 +1,48 @@
 import Foundation
 
-func aiAdviceDisplayItems(advice: [String], risks: [String]) -> [String] {
-    let parts = risks.compactMap { raw -> String? in
-        var text = raw.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !text.isEmpty else { return nil }
-        for prefix in ["须防：", "须防:", "須防：", "須防:"] where text.hasPrefix(prefix) {
-            text = String(text.dropFirst(prefix.count)).trimmingCharacters(in: .whitespacesAndNewlines)
-            break
-        }
-        return text.isEmpty ? nil : text
+func aiAdviceDisplayItems(
+    advice: [String],
+    risks: [String],
+    english: Bool = AppLanguage.current.isEnglish
+) -> [String] {
+    let label = english ? "Watch: " : "须防："
+    let joiner = english ? "; " : "；"
+    let adviceItems = advice.compactMap { normalizeAdviceLine($0, label: label) }
+    let parts = risks.map(stripRiskPrefixes).filter { !$0.isEmpty }
+    guard !parts.isEmpty else { return adviceItems }
+    let merged = parts.joined(separator: joiner)
+    let existing = Set(adviceItems.map(stripRiskPrefixes))
+    if existing.contains(merged) || parts.allSatisfy({ existing.contains($0) }) {
+        return adviceItems
     }
-    guard !parts.isEmpty else { return advice }
-    return advice + ["须防：\(parts.joined(separator: "；"))"]
+    return adviceItems + ["\(label)\(merged)"]
+}
+
+private let riskColonPrefixes = [
+    "须防：", "须防:", "須防：", "須防:",
+    "Watch: ", "Watch:", "Caution: ", "Caution:",
+]
+private let riskBareWords: Set<String> = ["须防", "須防", "Watch", "Caution"]
+
+private func stripRiskPrefixes(_ raw: String) -> String {
+    var text = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+    while let prefix = riskColonPrefixes.first(where: { text.hasPrefix($0) }) {
+        text = String(text.dropFirst(prefix.count)).trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+    if riskBareWords.contains(text) {
+        return ""
+    }
+    return text
+}
+
+private func normalizeAdviceLine(_ raw: String, label: String) -> String? {
+    let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard !trimmed.isEmpty else { return nil }
+    let hadRiskPrefix = riskColonPrefixes.contains(where: { trimmed.hasPrefix($0) })
+        || riskBareWords.contains(trimmed)
+    guard hadRiskPrefix else { return trimmed }
+    let body = stripRiskPrefixes(trimmed)
+    return body.isEmpty ? nil : label + body
 }
 
 struct SavedAIFollowUp: Codable, Hashable, Identifiable {

@@ -2,6 +2,7 @@ package com.yizhidao.app.ai
 
 import android.content.Context
 import com.yizhidao.CastResult
+import com.yizhidao.app.lang.AppLanguage
 import com.yizhidao.CastingMethod
 import com.yizhidao.LineValue
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -12,17 +13,44 @@ import kotlinx.serialization.json.Json
 import java.time.Instant
 import java.util.UUID
 
-fun aiAdviceDisplayItems(advice: List<String>, risks: List<String> = emptyList()): List<String> {
-    val prefixes = listOf("须防：", "须防:", "須防：", "須防:")
-    val parts = risks.mapNotNull { raw ->
-        var text = raw.trim()
-        if (text.isEmpty()) return@mapNotNull null
-        val prefix = prefixes.firstOrNull { text.startsWith(it) }
-        if (prefix != null) text = text.removePrefix(prefix).trim()
-        text.ifEmpty { null }
+fun aiAdviceDisplayItems(
+    advice: List<String>,
+    risks: List<String> = emptyList(),
+    english: Boolean = AppLanguage.current().isEnglish,
+): List<String> {
+    val label = if (english) "Watch: " else "须防："
+    val joiner = if (english) "; " else "；"
+    val adviceItems = advice.mapNotNull { normalizeAdviceLine(it, label) }
+    val parts = risks.map { stripRiskPrefixes(it) }.filter { it.isNotEmpty() }
+    if (parts.isEmpty()) return adviceItems
+    val merged = parts.joinToString(joiner)
+    val existing = adviceItems.map { stripRiskPrefixes(it) }.toSet()
+    if (merged in existing || parts.all { it in existing }) return adviceItems
+    return adviceItems + listOf("$label$merged")
+}
+
+private val riskColonPrefixes = listOf(
+    "须防：", "须防:", "須防：", "須防:",
+    "Watch: ", "Watch:", "Caution: ", "Caution:",
+)
+private val riskBareWords = setOf("须防", "須防", "Watch", "Caution")
+
+private fun stripRiskPrefixes(raw: String): String {
+    var text = raw.trim()
+    while (true) {
+        val prefix = riskColonPrefixes.firstOrNull { text.startsWith(it) } ?: break
+        text = text.removePrefix(prefix).trim()
     }
-    if (parts.isEmpty()) return advice
-    return advice + listOf("须防：${parts.joinToString("；")}")
+    return if (text in riskBareWords) "" else text
+}
+
+private fun normalizeAdviceLine(raw: String, label: String): String? {
+    val trimmed = raw.trim()
+    if (trimmed.isEmpty()) return null
+    val hadRiskPrefix = riskColonPrefixes.any { trimmed.startsWith(it) } || trimmed in riskBareWords
+    if (!hadRiskPrefix) return trimmed
+    val body = stripRiskPrefixes(trimmed)
+    return if (body.isEmpty()) null else label + body
 }
 
 @Serializable

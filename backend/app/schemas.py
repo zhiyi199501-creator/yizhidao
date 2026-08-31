@@ -22,6 +22,25 @@ class UserOut(BaseModel):
     nickname: str
     phone: Optional[str] = None
     email: Optional[str] = None
+    createdAt: Optional[str] = None
+    hasAvatar: bool = False
+    avatarUpdatedAt: Optional[str] = None
+    iapUnlocked: bool = False
+    aiDailyLimit: int = 3
+    aiDailyUsed: int = 0
+    aiDailyRemaining: int = 3
+
+
+class IAPVerifyRequest(BaseModel):
+    platform: str = "ios"
+    signedTransaction: str = Field(min_length=8)
+
+
+class IAPVerifyResponse(BaseModel):
+    ok: bool = True
+    unlocked: bool = True
+    productId: str
+    aiDailyLimit: int
 
 
 class AuthLoginResponse(BaseModel):
@@ -62,6 +81,15 @@ class MeResponse(BaseModel):
     user: UserOut
 
 
+class ProfileUpdateRequest(BaseModel):
+    nickname: Optional[str] = Field(default=None, min_length=2, max_length=20)
+
+
+class EmailBindRequest(BaseModel):
+    email: str = Field(min_length=3, max_length=255)
+    code: str = Field(min_length=4, max_length=8)
+
+
 class OkResponse(BaseModel):
     ok: bool = True
 
@@ -87,6 +115,7 @@ class AIAnalysisBody(BaseModel):
     movingPositions: list[int] = Field(default_factory=list)
     lines: list[int] = Field(default_factory=list)
     hexTextVersion: str = "yi-zhengshi-2026-08"
+    uiLanguage: str = "zh"
 
 
 class AIAnalysisContent(BaseModel):

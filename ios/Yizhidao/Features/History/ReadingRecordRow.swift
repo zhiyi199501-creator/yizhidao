@@ -10,30 +10,30 @@ struct ReadingRecordRow: View {
             HStack(spacing: 6) {
                 if showPrimaryTitle {
                     if let hex = store.hexagram(number: record.primaryNumber) {
-                        Text("\(hex.symbol) \(hex.name)".zh)
+                        Text(hex.listLabel)
                             .font(.headline)
                             .lineLimit(1)
                     } else {
-                        Text("第\(record.primaryNumber)卦".zh)
+                        Text("第\(record.primaryNumber)卦".ui("Hexagram \(record.primaryNumber)"))
                             .font(.headline)
                             .lineLimit(1)
                     }
                     if let resulting = record.resultingNumber {
-                        changeArrow
+                        HexagramChangeArrow(movingLabel: digitalMovingLabel)
                         resultingTitle(number: resulting)
                             .lineLimit(1)
                     }
                     verificationBadge
                 } else if let resulting = record.resultingNumber {
-                    resultingTitle(number: resulting, prefix: "之卦 · ")
+                    resultingTitle(number: resulting, prefix: "之卦 · ".ui("Relating · "))
                     verificationBadge
                 } else if record.movingPositions.isEmpty {
-                    Text("六爻不变".zh)
+                    Text("六爻不变".ui("No changing lines"))
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(.secondary)
                     verificationBadge
                 } else {
-                    Text("\(record.movingPositions.count) 爻变".zh)
+                    Text("\(record.movingPositions.count) 爻变".ui("\(record.movingPositions.count) changing"))
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(.secondary)
                     verificationBadge
@@ -59,13 +59,17 @@ struct ReadingRecordRow: View {
     }
 
     /// 数字起卦单爻动时的动爻字（初…上）。
-    private var digitalMovingLabel: String? {
-        guard record.isDigitalMethod,
-              record.movingPositions.count == 1,
-              let position = record.movingPositions.first,
+    static func digitalMovingLabel(method: CastingMethod, movingPositions: [Int]) -> String? {
+        guard method.isDigital,
+              movingPositions.count == 1,
+              let position = movingPositions.first,
               let label = MovingPositionFilter.from(position: position)?.label
         else { return nil }
         return label
+    }
+
+    private var digitalMovingLabel: String? {
+        Self.digitalMovingLabel(method: record.method, movingPositions: record.movingPositions)
     }
 
     @ViewBuilder
@@ -80,29 +84,13 @@ struct ReadingRecordRow: View {
         }
     }
 
-    private var changeArrow: some View {
-        Text("⟶".zh)
-            .font(.title2)
-            .foregroundStyle(.secondary)
-            .scaleEffect(x: 1.25, y: 1, anchor: .center)
-            .frame(width: 28)
-            .overlay(alignment: .top) {
-                if let digitalMovingLabel {
-                    Text(digitalMovingLabel.zh)
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(.red)
-                        .offset(y: -1)
-                }
-            }
-    }
-
     @ViewBuilder
     private func resultingTitle(number: Int, prefix: String = "") -> some View {
         if let hex = store.hexagram(number: number) {
-            Text("\(prefix)\(hex.symbol) \(hex.name)".zh)
+            Text(prefix + hex.listLabel)
                 .font(prefix.isEmpty ? .headline : .subheadline.weight(.semibold))
         } else {
-            Text("\(prefix)第\(number)卦".zh)
+            Text(prefix + "第\(number)卦".ui("Hexagram \(number)"))
                 .font(prefix.isEmpty ? .headline : .subheadline.weight(.semibold))
         }
     }
@@ -140,9 +128,29 @@ struct ReadingRecordRow: View {
             }
         }
         var parts: [String] = []
-        if fulfilled > 0 { parts.append("应验 \(fulfilled)") }
-        if partial > 0 { parts.append("部分 \(partial)") }
-        if unfulfilled > 0 { parts.append("未应验 \(unfulfilled)") }
+        if fulfilled > 0 { parts.append("应验 \(fulfilled)".ui("Fulfilled \(fulfilled)")) }
+        if partial > 0 { parts.append("部分 \(partial)".ui("Partly \(partial)")) }
+        if unfulfilled > 0 { parts.append("未应验 \(unfulfilled)".ui("Not fulfilled \(unfulfilled)")) }
         return parts.isEmpty ? nil : parts.joined(separator: " · ")
+    }
+}
+
+struct HexagramChangeArrow: View {
+    var movingLabel: String? = nil
+
+    var body: some View {
+        Text("⟶".zh)
+            .font(.title2)
+            .foregroundStyle(.secondary)
+            .scaleEffect(x: 1.25, y: 1, anchor: .center)
+            .frame(width: 28)
+            .overlay(alignment: .top) {
+                if let movingLabel {
+                    Text(movingLabel.zh)
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.red)
+                        .offset(y: -1)
+                }
+            }
     }
 }

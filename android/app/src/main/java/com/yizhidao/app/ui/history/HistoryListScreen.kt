@@ -25,8 +25,13 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.MenuBook
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import com.yizhidao.app.lang.AppLanguage
+import com.yizhidao.app.lang.LocalAppLanguage
+import com.yizhidao.app.lang.listLabel
+import com.yizhidao.app.lang.localizedName
+import com.yizhidao.app.lang.numberLabel
 import com.yizhidao.app.ui.theme.Text
-import com.yizhidao.app.ui.theme.zh
+import com.yizhidao.app.ui.theme.ui
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -54,6 +59,7 @@ import com.yizhidao.Hexagram
 import com.yizhidao.HexagramStore
 import com.yizhidao.ReadingRecord
 import com.yizhidao.VerificationStatus
+import com.yizhidao.digitalMovingYaoLabel
 import com.yizhidao.app.AppContainer
 import com.yizhidao.app.ui.reading.ResultScreen
 import com.yizhidao.app.ui.theme.AppTheme
@@ -67,12 +73,12 @@ import java.time.format.DateTimeFormatter
 
 private val rowFmt = DateTimeFormatter.ofPattern("yyyy/M/d HH:mm").withZone(ZoneId.systemDefault())
 
-private enum class StatusFilter(val label: String) {
-    All("全部状态"),
-    None("未验证"),
-    Fulfilled("应验"),
-    Partial("部分应验"),
-    Unfulfilled("未应验");
+private enum class StatusFilter(val zh: String, val en: String) {
+    All("全部状态", "All"),
+    None("未验证", "Unverified"),
+    Fulfilled("应验", "Fulfilled"),
+    Partial("部分应验", "Partly fulfilled"),
+    Unfulfilled("未应验", "Not fulfilled");
 
     fun matches(record: ReadingRecord): Boolean = when (this) {
         All -> true
@@ -83,14 +89,14 @@ private enum class StatusFilter(val label: String) {
     }
 }
 
-private enum class MovingPositionFilter(val id: String, val label: String, val position: Int?) {
-    All("all", "全部", null),
-    Chu("1", "初", 1),
-    Er("2", "二", 2),
-    San("3", "三", 3),
-    Si("4", "四", 4),
-    Wu("5", "五", 5),
-    Shang("6", "上", 6);
+private enum class MovingPositionFilter(val id: String, val zh: String, val en: String, val position: Int?) {
+    All("all", "全部", "All", null),
+    Chu("1", "初", "1st", 1),
+    Er("2", "二", "2nd", 2),
+    San("3", "三", "3rd", 3),
+    Si("4", "四", "4th", 4),
+    Wu("5", "五", "5th", 5),
+    Shang("6", "上", "Top", 6);
 
     fun matches(movingPositions: List<Int>): Boolean {
         val p = position ?: return true
@@ -102,15 +108,15 @@ private enum class MovingPositionFilter(val id: String, val label: String, val p
     }
 }
 
-private enum class MovingCountFilter(val id: String, val label: String, val count: Int?) {
-    All("all", "全部", null),
-    Zero("0", "0 动", 0),
-    One("1", "1 动", 1),
-    Two("2", "2 动", 2),
-    Three("3", "3 动", 3),
-    Four("4", "4 动", 4),
-    Five("5", "5 动", 5),
-    Six("6", "6 动", 6);
+private enum class MovingCountFilter(val id: String, val zh: String, val en: String, val count: Int?) {
+    All("all", "全部", "All", null),
+    Zero("0", "0 动", "0 changing", 0),
+    One("1", "1 动", "1 changing", 1),
+    Two("2", "2 动", "2 changing", 2),
+    Three("3", "3 动", "3 changing", 3),
+    Four("4", "4 动", "4 changing", 4),
+    Five("5", "5 动", "5 changing", 5),
+    Six("6", "6 动", "6 changing", 6);
 
     fun matches(movingCount: Int): Boolean {
         val c = count ?: return true
@@ -233,10 +239,11 @@ fun HistoryListScreen(
                 fontWeight = FontWeight.Bold,
                 color = AppTheme.ink,
                 style = AppTheme.compactText,
+                en = "History",
             )
             if (records.isNotEmpty()) {
                 PaperSegmentedRow(
-                    options = listOf("时间", "按卦"),
+                    options = listOf(ui("时间", "Time"), ui("按卦", "By hexagram")),
                     selectedIndex = if (byHexagram) 1 else 0,
                     onSelect = {
                         byHexagram = it == 1
@@ -250,7 +257,7 @@ fun HistoryListScreen(
                     ) {
                         StatusFilter.entries.forEach { filter ->
                             PaperChip(
-                                label = filter.label,
+                                label = ui(filter.zh, filter.en),
                                 selected = statusFilter == filter,
                                 onClick = { statusFilter = filter },
                             )
@@ -276,7 +283,7 @@ fun HistoryListScreen(
             val visible = records.filter { statusFilter.matches(it) }
             if (visible.isEmpty()) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("无匹配记录", color = AppTheme.secondaryText, fontSize = 15.sp)
+                    Text("无匹配记录", color = AppTheme.secondaryText, fontSize = 15.sp, en = "No matching records")
                 }
             } else {
                 GroupedRecordList(
@@ -301,9 +308,9 @@ private fun EmptyHistory() {
                 modifier = Modifier.size(48.dp),
             )
             Spacer(Modifier.height(12.dp))
-            Text("暂无占问", fontSize = 17.sp, fontWeight = FontWeight.SemiBold, color = AppTheme.ink)
+            Text("暂无占问", fontSize = 17.sp, fontWeight = FontWeight.SemiBold, color = AppTheme.ink, en = "No readings yet")
             Spacer(Modifier.height(6.dp))
-            Text("起卦后会自动保存在这里", fontSize = 13.sp, color = AppTheme.secondaryText)
+            Text("起卦后会自动保存在这里", fontSize = 13.sp, color = AppTheme.secondaryText, en = "Casts you make are saved here")
         }
     }
 }
@@ -339,7 +346,7 @@ private fun HexagramGroupList(
                             style = AppTheme.compactText,
                         )
                         Text(
-                            "${items.size} 次",
+                            ui("${items.size} 次", "${items.size} times"),
                             fontSize = 15.sp,
                             color = AppTheme.secondaryText,
                             style = AppTheme.compactText,
@@ -354,7 +361,7 @@ private fun HexagramGroupList(
                                 style = AppTheme.compactText,
                             )
                         }
-                        verificationSummary(items)?.let { summary ->
+                        verificationSummary(items, LocalAppLanguage.current)?.let { summary ->
                             Text(
                                 summary,
                                 fontSize = 12.sp,
@@ -403,7 +410,7 @@ private fun HexagramGroupDetail(
 
     Column(Modifier.fillMaxSize()) {
         PaperBackHeader(
-            title = "${hexTitle(hex, primaryNumber)} · ${records.size} 次",
+            title = "${hexTitle(hex, primaryNumber)} · ${ui("${records.size} 次", "${records.size} times")}",
             onBack = onBack,
         )
         Column(
@@ -414,7 +421,7 @@ private fun HexagramGroupDetail(
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             PaperSegmentedRow(
-                options = listOf("数字起卦", "金钱起卦"),
+                options = listOf(ui("数字起卦", "Three numbers"), ui("金钱起卦", "Three coins")),
                 selectedIndex = if (digitalTab) 0 else 1,
                 onSelect = { digitalTab = it == 0 },
             )
@@ -425,7 +432,7 @@ private fun HexagramGroupDetail(
                 if (digitalTab) {
                     MovingPositionFilter.entries.forEach { filter ->
                         PaperChip(
-                            label = filter.label,
+                            label = ui(filter.zh, filter.en),
                             selected = positionFilter == filter,
                             onClick = { positionFilter = filter },
                         )
@@ -433,7 +440,7 @@ private fun HexagramGroupDetail(
                 } else {
                     MovingCountFilter.entries.forEach { filter ->
                         PaperChip(
-                            label = filter.label,
+                            label = ui(filter.zh, filter.en),
                             selected = countFilter == filter,
                             onClick = { countFilter = filter },
                         )
@@ -445,13 +452,17 @@ private fun HexagramGroupDetail(
         when {
             methodFiltered.isEmpty() -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Text(
-                    if (digitalTab) "该卦尚无数字或时间起卦记录" else "该卦尚无金钱卦记录",
+                    if (digitalTab) {
+                        ui("该卦尚无数字或时间起卦记录", "No three-number or time casts for this hexagram")
+                    } else {
+                        ui("该卦尚无金钱卦记录", "No coin casts for this hexagram")
+                    },
                     color = AppTheme.secondaryText,
                     fontSize = 15.sp,
                 )
             }
             visible.isEmpty() -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text("无匹配记录", color = AppTheme.secondaryText, fontSize = 15.sp)
+                Text("无匹配记录", color = AppTheme.secondaryText, fontSize = 15.sp, en = "No matching records")
             }
             else -> GroupedRecordList(
                 records = visible,
@@ -624,7 +635,7 @@ private fun ChangeArrow(movingLabel: String?) {
 @Composable
 private fun VerificationBadge(status: VerificationStatus) {
     Text(
-        status.displayName,
+        status.localizedName(LocalAppLanguage.current),
         fontSize = 10.sp,
         fontWeight = FontWeight.SemiBold,
         color = Color.White,
@@ -663,18 +674,14 @@ private fun GroupedCard(modifier: Modifier = Modifier, content: @Composable () -
     ) { content() }
 }
 
-private val CastingMethod.isDigital: Boolean
-    get() = this == CastingMethod.DIGITAL_MANUAL || this == CastingMethod.DIGITAL_TIME
-
-private fun hexTitle(hex: Hexagram?, number: Int): String =
-    if (hex != null) "${hex.symbol} ${hex.name}" else "第${number}卦"
-
-private fun digitalMovingLabel(record: ReadingRecord): String? {
-    if (!record.method.isDigital) return null
-    if (record.movingPositions.size != 1) return null
-    val position = record.movingPositions.first()
-    return MovingPositionFilter.from(position)?.label
+@Composable
+private fun hexTitle(hex: Hexagram?, number: Int): String {
+    val language = LocalAppLanguage.current
+    return hex?.listLabel(language) ?: numberLabel(language, number)
 }
+
+private fun digitalMovingLabel(record: ReadingRecord): String? =
+    digitalMovingYaoLabel(record.method, record.movingPositions)
 
 private fun verificationColor(status: VerificationStatus): Color = when (status) {
     VerificationStatus.NONE -> Color.Gray
@@ -683,7 +690,7 @@ private fun verificationColor(status: VerificationStatus): Color = when (status)
     VerificationStatus.UNFULFILLED -> Color(0xFFA64040)
 }
 
-private fun verificationSummary(records: List<ReadingRecord>): String? {
+private fun verificationSummary(records: List<ReadingRecord>, language: AppLanguage): String? {
     var fulfilled = 0
     var partial = 0
     var unfulfilled = 0
@@ -696,9 +703,9 @@ private fun verificationSummary(records: List<ReadingRecord>): String? {
         }
     }
     val parts = buildList {
-        if (fulfilled > 0) add("应验 $fulfilled")
-        if (partial > 0) add("部分 $partial")
-        if (unfulfilled > 0) add("未应验 $unfulfilled")
+        if (fulfilled > 0) add(language.ui("应验 $fulfilled", "Fulfilled $fulfilled"))
+        if (partial > 0) add(language.ui("部分 $partial", "Partly $partial"))
+        if (unfulfilled > 0) add(language.ui("未应验 $unfulfilled", "Not fulfilled $unfulfilled"))
     }
     return parts.takeIf { it.isNotEmpty() }?.joinToString(" · ")
 }

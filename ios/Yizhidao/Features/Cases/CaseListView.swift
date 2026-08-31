@@ -22,9 +22,9 @@ struct CaseListView: View {
         Group {
             if caseStore.cases.isEmpty {
                 ContentUnavailableView(
-                    "暂无案例",
+                    "暂无案例".ui("No cases"),
                     systemImage: "books.vertical",
-                    description: Text("案例数据未加载".zh)
+                    description: Text("案例数据未加载".ui("Cases haven’t loaded"))
                 )
             } else {
                 List(groups) { group in
@@ -40,7 +40,7 @@ struct CaseListView: View {
                 }
             }
         }
-        .navigationTitle("案例".zh)
+        .navigationTitle("案例".ui("Cases"))
         .navigationBarTitleDisplayMode(.inline)
         .parchmentBackground()
         .task {
@@ -52,14 +52,14 @@ struct CaseListView: View {
         VStack(alignment: .leading, spacing: 4) {
             HStack {
                 if let hex = hexStore.hexagram(number: group.number) {
-                    Text("\(hex.symbol) \(hex.name)".zh)
+                    Text(hex.listLabel)
                         .font(.headline)
                 } else {
-                    Text("第\(group.number)卦".zh)
+                    Text("第\(group.number)卦".ui("Hexagram \(group.number)"))
                         .font(.headline)
                 }
                 Spacer()
-                Text("\(group.cases.count) 例".zh)
+                Text("\(group.cases.count) 例".ui("\(group.cases.count)"))
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
@@ -80,10 +80,11 @@ struct CaseGroupDetailView: View {
     }
 
     private var title: String {
+        let count = "\(cases.count) 例".ui("\(cases.count)")
         if let hex = hexStore.hexagram(number: number) {
-            return "\(hex.symbol) \(hex.name) · \(cases.count) 例"
+            return "\(hex.listLabel) · \(count)"
         }
-        return "第\(number)卦 · \(cases.count) 例"
+        return "\("第\(number)卦".ui("Hexagram \(number)")) · \(count)"
     }
 
     var body: some View {
@@ -95,9 +96,9 @@ struct CaseGroupDetailView: View {
 
             if filteredCases.isEmpty {
                 ContentUnavailableView(
-                    "无匹配案例",
+                    "无匹配案例".ui("Nothing matches"),
                     systemImage: "line.3.horizontal.decrease.circle",
-                    description: Text("试试调整上方分类".zh)
+                    description: Text("试试调整上方分类".ui("Try another filter"))
                 )
             } else {
                 List(filteredCases) { study in
@@ -151,11 +152,11 @@ struct CaseRow: View {
         VStack(alignment: .leading, spacing: 4) {
             HStack(spacing: 6) {
                 if let hex = store.hexagram(number: study.number) {
-                    Text("\(hex.symbol) \(hex.name)".zh)
+                    Text(hex.listLabel)
                         .font(.headline)
                         .lineLimit(1)
                 } else {
-                    Text("第\(study.number)卦".zh)
+                    Text("第\(study.number)卦".ui("Hexagram \(study.number)"))
                         .font(.headline)
                         .lineLimit(1)
                 }
@@ -164,11 +165,11 @@ struct CaseRow: View {
                     resultingTitle(number: resulting)
                         .lineLimit(1)
                 } else if study.movingPositions.isEmpty {
-                    Text("六爻不变".zh)
+                    Text("六爻不变".ui("No changing lines"))
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(.secondary)
                 } else {
-                    Text("\(study.movingPositions.count) 爻变".zh)
+                    Text("\(study.movingPositions.count) 爻变".ui("\(study.movingPositions.count) changing"))
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(.secondary)
                 }
@@ -216,10 +217,10 @@ struct CaseRow: View {
     @ViewBuilder
     private func resultingTitle(number: Int) -> some View {
         if let hex = store.hexagram(number: number) {
-            Text("\(hex.symbol) \(hex.name)".zh)
+            Text(hex.listLabel)
                 .font(.headline)
         } else {
-            Text("第\(number)卦".zh)
+            Text("第\(number)卦".ui("Hexagram \(number)"))
                 .font(.headline)
         }
     }
@@ -240,22 +241,22 @@ struct CaseDetailView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
                 if !study.background.isEmpty {
-                    section("背景") {
+                    section("背景".ui("Background")) {
                         Text(study.background.zh).font(.body).lineSpacing(4)
                     }
                 }
                 if !study.question.isEmpty {
-                    section("所问何事") {
+                    section("所问何事".ui("What was asked")) {
                         Text(study.question.zh).font(.body).lineSpacing(4)
                     }
                 }
                 if !study.verification.isEmpty {
-                    section("验证结果") {
+                    section("验证结果".ui("What followed")) {
                         Text(study.verification.zh).font(.body).lineSpacing(4)
                     }
                 }
                 if !study.explanation.isEmpty {
-                    section("讲师解读") {
+                    section("讲师解读".ui("Teacher’s reading")) {
                         Text(study.explanation.zh).font(.body).lineSpacing(4)
                     }
                 }

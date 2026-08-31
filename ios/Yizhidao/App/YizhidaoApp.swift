@@ -18,6 +18,7 @@ struct YizhidaoApp: App {
         UserDefaults.standard.set(false, forKey: "NSURLSessionHTTP3Enabled")
         _ = HexagramStore.shared
         _ = ImaExplanationStore.shared
+        UnlockStore.shared.start()
     }
 
     var body: some Scene {
@@ -29,44 +30,42 @@ struct YizhidaoApp: App {
 }
 
 struct RootTabView: View {
-    @Environment(\.locale) private var systemLocale
+    @Environment(\.locale) private var locale
     @State private var appNavigation = AppNavigation()
 
     var body: some View {
         @Bindable var appNavigation = appNavigation
-        let language = AppLanguage.from(systemLocale)
+        let language = AppLanguage.from(locale)
         TabView(selection: $appNavigation.selectedTab) {
             CastingHomeView()
-                .id(language)
                 .tabItem {
-                    Label("起卦".zh, systemImage: "sparkles")
+                    Label("起卦".ui("Cast"), systemImage: "sparkles")
                 }
                 .tag(AppTab.cast)
             HistoryListView()
-                .id(language)
                 .tabItem {
-                    Label("历史".zh, systemImage: "clock")
+                    Label("历史".ui("History"), systemImage: "clock")
                 }
                 .tag(AppTab.history)
             NavigationStack {
                 AIAnalysisHistoryView()
             }
-            .id(language)
             .tabItem {
-                Label("问答".zh, systemImage: "bubble.left.and.bubble.right")
+                Label("问答".ui("Readings"), systemImage: "bubble.left.and.bubble.right")
             }
             .tag(AppTab.qa)
             MyMenuView()
-                .id(language)
                 .tabItem {
-                    Label("我的".zh, systemImage: "person.crop.circle")
+                    Label("我的".ui("Me"), systemImage: "person.crop.circle")
                 }
                 .tag(AppTab.me)
         }
+        .id(language)
         .tint(AppTheme.accent)
         .preferredColorScheme(.light)
         .environment(\.locale, language.locale)
         .environment(appNavigation)
+        .environment(UnlockStore.shared)
         .animation(nil, value: appNavigation.selectedTab)
         .dismissKeyboardOnBlankTap()
     }
@@ -74,6 +73,7 @@ struct RootTabView: View {
 
 struct MyMenuView: View {
     @Environment(\.openURL) private var openURL
+    @Environment(UnlockStore.self) private var unlock
     @State private var session: LocalUserSession = LocalAuthStore.load()
     @State private var showLoginSheet = false
     @State private var isCheckingUpdate = false
@@ -92,12 +92,19 @@ struct MyMenuView: View {
                             ProfileEditView(session: $session)
                         } label: {
                             HStack(spacing: 10) {
-                                Image(systemName: session.avatarSymbol)
-                                    .font(.title2)
-                                    .foregroundStyle(AppTheme.accent)
+                                ProfileAvatarView(
+                                    name: session.displayName,
+                                    image: session.avatarImagePath == nil ? nil : ProfileAvatarFile.load(),
+                                    size: 40
+                                )
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text(session.displayName.zh)
                                         .foregroundStyle(.primary)
+                                    if let email = session.email, !email.isEmpty {
+                                        Text(email.zh)
+                                            .font(.footnote)
+                                            .foregroundStyle(.secondary)
+                                    }
                                 }
                                 Spacer()
                             }
@@ -107,16 +114,25 @@ struct MyMenuView: View {
                             Image(systemName: "person.crop.circle.badge.exclamationmark")
                                 .foregroundStyle(.secondary)
                             VStack(alignment: .leading, spacing: 2) {
-                                Text("未登录".zh)
-                                Text("支持 Apple / 邮箱登录".zh)
+                                Text("未登录".ui("Not signed in"))
+                                Text("支持 Apple / 邮箱登录".ui("Apple or email"))
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
                             }
                             Spacer()
-                            Button("登录".zh) {
+                            Button("登录".ui("Sign In")) {
                                 showLoginSheet = true
                             }
                         }
+                    }
+
+                    NavigationLink {
+                        UnlockReadingsView()
+                    } label: {
+                        Label(
+                            unlock.isUnlocked ? "已解锁问答".ui("Readings unlocked") : "解锁问答".ui("Unlock Readings"),
+                            systemImage: unlock.isUnlocked ? "checkmark.seal" : "lock.open"
+                        )
                     }
                 }
 
@@ -124,22 +140,22 @@ struct MyMenuView: View {
                     NavigationLink {
                         YijingIntroListView()
                     } label: {
-                        Label("基础入门".zh, systemImage: "text.book.closed")
+                        Label("基础入门".ui("Primer"), systemImage: "text.book.closed")
                     }
                     NavigationLink {
                         ClassicHexagramListView()
                     } label: {
-                        Label("六十四卦".zh, systemImage: "book")
+                        Label("六十四卦".ui("64 Hexagrams"), systemImage: "book")
                     }
                     NavigationLink {
                         ClassicWingListView()
                     } label: {
-                        Label("四传".zh, systemImage: "scroll")
+                        Label("四传".ui("The Wings"), systemImage: "scroll")
                     }
                     NavigationLink {
                         CaseListView()
                     } label: {
-                        Label("案例".zh, systemImage: "books.vertical")
+                        Label("案例".ui("Cases"), systemImage: "books.vertical")
                     }
                 }
 
@@ -147,13 +163,13 @@ struct MyMenuView: View {
                     NavigationLink {
                         FeedbackView(session: session)
                     } label: {
-                        Label("意见反馈".zh, systemImage: "envelope")
+                        Label("意见反馈".ui("Feedback"), systemImage: "envelope")
                     }
                     Button {
                         Task { await checkForUpdate() }
                     } label: {
                         HStack {
-                            Label("检查更新".zh, systemImage: "arrow.clockwise")
+                            Label("检查更新".ui("Check for Update"), systemImage: "arrow.clockwise")
                             Spacer()
                             if isCheckingUpdate {
                                 ProgressView()
@@ -172,11 +188,11 @@ struct MyMenuView: View {
                     NavigationLink {
                         SettingsView(session: $session)
                     } label: {
-                        Label("设置".zh, systemImage: "gearshape")
+                        Label("设置".ui("Settings"), systemImage: "gearshape")
                     }
                 }
             }
-            .navigationTitle("我的".zh)
+            .navigationTitle("我的".ui("Me"))
             .navigationBarTitleDisplayMode(.inline)
             .parchmentBackground(hidesTabBar: false)
             .onAppear {
@@ -188,28 +204,29 @@ struct MyMenuView: View {
                     session = newSession
                     LocalAuthStore.save(newSession)
                     showLoginSheet = false
+                    Task { await UnlockStore.shared.refreshFromServer() }
                 }
             }
             .alert(item: $updateResult) { result in
                 switch result {
                 case .latest(let current):
                     return Alert(
-                        title: Text("已是最新版本".zh),
-                        message: Text("当前版本 \(current)".zh),
-                        dismissButton: .cancel(Text("好的".zh))
+                        title: Text("已是最新版本".ui("You're up to date")),
+                        message: Text("当前版本 \(current)".ui("Version \(current)")),
+                        dismissButton: .cancel(Text("好的".ui("OK")))
                     )
                 case .available(let latest, let url):
                     return Alert(
-                        title: Text("发现新版本".zh),
-                        message: Text("最新版本 \(latest)，可前往商店更新。".zh),
-                        primaryButton: .default(Text("去更新".zh)) { openURL(url) },
-                        secondaryButton: .cancel(Text("以后再说".zh))
+                        title: Text("发现新版本".ui("Update available")),
+                        message: Text("最新版本 \(latest)，可前往商店更新。".ui("Version \(latest) is available.")),
+                        primaryButton: .default(Text("去更新".ui("Update"))) { openURL(url) },
+                        secondaryButton: .cancel(Text("以后再说".ui("Later")))
                     )
                 case .failed(let message):
                     return Alert(
-                        title: Text("检查失败".zh),
+                        title: Text("检查失败".ui("Couldn't check")),
                         message: Text(message.zh),
-                        dismissButton: .cancel(Text("知道了".zh))
+                        dismissButton: .cancel(Text("知道了".ui("OK")))
                     )
                 }
             }
@@ -240,14 +257,21 @@ struct MyMenuView: View {
         guard session.isLoggedIn, let token = session.accessToken, !token.isEmpty else { return }
         do {
             let me = try await AuthAPI.fetchMe(accessToken: token)
-            session.displayName = me.user.nickname
-            session.phone = me.user.phone
-            session.email = me.user.email
+            session = session.applying(account: me.user)
             session.isLoggedIn = true
+            session.accessToken = token
+            session = await ProfileSync.pullAvatar(session: session, user: me.user, accessToken: token)
             LocalAuthStore.save(session)
+            UnlockStore.shared.applyQuota(
+                unlocked: me.user.iapUnlocked,
+                limit: me.user.aiDailyLimit,
+                used: me.user.aiDailyUsed,
+                remaining: me.user.aiDailyRemaining
+            )
         } catch LoginError.unauthorized {
             session = .guest
             LocalAuthStore.save(session)
+            UnlockStore.shared.clearLocal()
         } catch {
             // 网络异常时保留本地会话，下次再校验
         }
@@ -293,6 +317,8 @@ struct LocalUserSession: Codable {
     var email: String?
     var avatarSymbol: String
     var accessToken: String?
+    var avatarImagePath: String?
+    var avatarUpdatedAt: String?
 
     static let guest = LocalUserSession(
         isLoggedIn: false,
@@ -302,6 +328,16 @@ struct LocalUserSession: Codable {
         avatarSymbol: "person.crop.circle.fill",
         accessToken: nil
     )
+
+    func applying(account user: AuthAPI.AccountUser) -> LocalUserSession {
+        var next = self
+        next.isLoggedIn = true
+        next.displayName = user.nickname
+        next.phone = user.phone ?? next.phone
+        next.email = user.email ?? next.email
+        next.avatarUpdatedAt = user.avatarUpdatedAt
+        return next
+    }
 }
 
 enum LocalAuthStore {
@@ -348,7 +384,7 @@ struct LoginSheetView: View {
                             .background(Circle().fill(Color.white.opacity(0.55)))
                     }
                     .buttonStyle(.plain)
-                    .accessibilityLabel("关闭".zh)
+                    .accessibilityLabel("关闭".ui("Close"))
                     Spacer()
                 }
                 .padding(.horizontal, 20)
@@ -367,7 +403,7 @@ struct LoginSheetView: View {
                         HStack(spacing: 8) {
                             Image(systemName: "apple.logo")
                                 .font(.system(size: 17, weight: .medium))
-                            Text("通过 Apple 登录".zh)
+                            Text("通过 Apple 登录".ui("Sign in with Apple"))
                         }
                     }
                     .buttonStyle(LoginPrimaryButtonStyle(fill: .black))
@@ -382,14 +418,14 @@ struct LoginSheetView: View {
                 Spacer(minLength: 24)
 
                 VStack(spacing: 14) {
-                    LoginSectionDivider(title: "其他登录方式".zh)
+                    LoginSectionDivider(title: "其他登录方式".ui("Other ways to sign in"))
                     NavigationLink {
                         EmailLoginView(agreed: $agreed, onSuccess: onSuccess)
                     } label: {
                         HStack(spacing: 8) {
                             Image(systemName: "envelope")
                                 .font(.system(size: 15, weight: .medium))
-                            Text("邮箱登录".zh)
+                            Text("邮箱登录".ui("Email"))
                         }
                     }
                     .buttonStyle(LoginSecondaryButtonStyle())
@@ -412,16 +448,16 @@ struct LoginSheetView: View {
                 LegalDocumentView(title: kind.title.zh, file: kind.file, hidesTabBar: false)
                     .toolbar {
                         ToolbarItem(placement: .cancellationAction) {
-                            Button("关闭".zh) { showLegal = nil }
+                            Button("关闭".ui("Close")) { showLegal = nil }
                         }
                     }
             }
         }
-        .alert("请先同意协议".zh, isPresented: $showConsentAlert) {
-            Button("取消".zh, role: .cancel) {
+        .alert("请先同意协议".ui("Please agree first"), isPresented: $showConsentAlert) {
+            Button("取消".ui("Cancel"), role: .cancel) {
                 pendingAction = nil
             }
-            Button("同意并继续".zh) {
+            Button("同意并继续".ui("Agree and Continue")) {
                 agreed = true
                 let action = pendingAction
                 pendingAction = nil
@@ -430,7 +466,7 @@ struct LoginSheetView: View {
                 }
             }
         } message: {
-            Text("登录前需同意《用户协议》和《隐私政策》。点击「同意并继续」即表示你已阅读并同意。".zh)
+            Text("登录前需同意《用户协议》和《隐私政策》。点击「同意并继续」即表示你已阅读并同意。".ui("Please read and agree to the Terms of Use and Privacy Policy before signing in."))
         }
     }
 
@@ -460,7 +496,7 @@ struct LoginSheetView: View {
                 identityToken: result.identityToken,
                 fullName: result.fullName
             )
-            onSuccess(makeSession(from: resp))
+            onSuccess(await makeSession(from: resp))
         } catch is CancellationError {
             // 用户取消，不提示
         } catch {
@@ -495,10 +531,10 @@ private struct EmailLoginView: View {
                 .frame(height: 28)
 
             VStack(spacing: 8) {
-                Text("邮箱登录".zh)
+                Text("邮箱登录".ui("Email"))
                     .font(.system(size: 22, weight: .semibold))
                     .foregroundStyle(AppTheme.accent)
-                Text("收到验证码后填入即可登录".zh)
+                Text("收到验证码后填入即可登录".ui("Enter the code we send you"))
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             }
@@ -507,7 +543,7 @@ private struct EmailLoginView: View {
 
             VStack(spacing: 12) {
                 LoginFieldRow(systemImage: "envelope") {
-                    TextField("邮箱".zh, text: $email)
+                    TextField("邮箱".ui("Email"), text: $email)
                         .textFieldStyle(.plain)
                         .textInputAutocapitalization(.never)
                         .keyboardType(.emailAddress)
@@ -515,11 +551,11 @@ private struct EmailLoginView: View {
                 }
 
                 LoginFieldRow(systemImage: "number") {
-                    LoginNumberField(text: $code, placeholder: "验证码")
+                    LoginNumberField(text: $code, placeholder: "验证码".ui("Code"))
                     Rectangle()
                         .fill(AppTheme.fieldStroke)
                         .frame(width: 1, height: 22)
-                    Button(cooldownSec > 0 ? "\(cooldownSec)s" : "发送验证码".zh) {
+                    Button(cooldownSec > 0 ? "\(cooldownSec)s" : "发送验证码".ui("Send code")) {
                         requireConsent(then: .sendEmailCode)
                     }
                     .buttonStyle(.plain)
@@ -530,7 +566,7 @@ private struct EmailLoginView: View {
                     .disabled(!canSendCode)
                 }
 
-                Button("登 录".zh) {
+                Button("登 录".ui("Sign In")) {
                     requireConsent(then: .emailLogin)
                 }
                 .buttonStyle(LoginPrimaryButtonStyle(fill: AppTheme.accent))
@@ -540,7 +576,7 @@ private struct EmailLoginView: View {
                 LoginStatusLine(
                     isBusy: isLoggingIn,
                     message: errorMessage,
-                    isError: errorMessage != "验证码已发送"
+                    isError: errorMessage != "验证码已发送".ui("Code sent")
                 )
 
                 LoginConsentRow(agreed: $agreed) { showLegal = $0 }
@@ -557,16 +593,16 @@ private struct EmailLoginView: View {
                 LegalDocumentView(title: kind.title.zh, file: kind.file, hidesTabBar: false)
                     .toolbar {
                         ToolbarItem(placement: .cancellationAction) {
-                            Button("关闭".zh) { showLegal = nil }
+                            Button("关闭".ui("Close")) { showLegal = nil }
                         }
                     }
             }
         }
-        .alert("请先同意协议".zh, isPresented: $showConsentAlert) {
-            Button("取消".zh, role: .cancel) {
+        .alert("请先同意协议".ui("Please agree first"), isPresented: $showConsentAlert) {
+            Button("取消".ui("Cancel"), role: .cancel) {
                 pendingAction = nil
             }
-            Button("同意并继续".zh) {
+            Button("同意并继续".ui("Agree and Continue")) {
                 agreed = true
                 let action = pendingAction
                 pendingAction = nil
@@ -575,7 +611,7 @@ private struct EmailLoginView: View {
                 }
             }
         } message: {
-            Text("登录前需同意《用户协议》和《隐私政策》。点击「同意并继续」即表示你已阅读并同意。".zh)
+            Text("登录前需同意《用户协议》和《隐私政策》。点击「同意并继续」即表示你已阅读并同意。".ui("Please read and agree to the Terms of Use and Privacy Policy before signing in."))
         }
     }
 
@@ -611,7 +647,7 @@ private struct EmailLoginView: View {
     private func sendEmailCode() async {
         let trimmedEmail = email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         guard isValidEmail(trimmedEmail) else {
-            errorMessage = "请输入正确邮箱"
+            errorMessage = "请输入正确邮箱".ui("Enter a valid email")
             return
         }
         isSendingCode = true
@@ -619,7 +655,7 @@ private struct EmailLoginView: View {
         do {
             let resp = try await AuthAPI.sendEmailCode(email: trimmedEmail)
             cooldownSec = max(resp.cooldownSec, 0)
-            errorMessage = "验证码已发送"
+            errorMessage = "验证码已发送".ui("Code sent")
             startCooldown()
         } catch {
             errorMessage = LoginError.describe(error)
@@ -630,14 +666,14 @@ private struct EmailLoginView: View {
         let trimmedEmail = email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         let trimmedCode = code.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedEmail.isEmpty, !trimmedCode.isEmpty else {
-            errorMessage = "请输入邮箱和验证码"
+            errorMessage = "请输入邮箱和验证码".ui("Enter email and code")
             return
         }
         isLoggingIn = true
         defer { isLoggingIn = false }
         do {
             let resp = try await AuthAPI.loginByEmail(email: trimmedEmail, code: trimmedCode)
-            onSuccess(makeSession(from: resp, email: trimmedEmail))
+            onSuccess(await makeSession(from: resp, email: trimmedEmail))
         } catch {
             errorMessage = LoginError.describe(error)
         }
@@ -688,7 +724,7 @@ private struct LoginBrandMark: View {
                     .tracking(8)
                     .padding(.leading, 8)
                     .foregroundStyle(AppTheme.accent)
-                Text("起卦观辞 · 玩占明理".zh)
+                Text("起卦观辞 · 玩占明理".ui("Cast, then contemplate the words"))
                     .font(.footnote)
                     .tracking(1.5)
                     .foregroundStyle(.secondary)
@@ -797,7 +833,7 @@ private struct LoginStatusLine: View {
                 HStack(spacing: 6) {
                     ProgressView()
                         .controlSize(.small)
-                    Text("登录中…".zh)
+                    Text("登录中…".ui("Signing in…"))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -826,20 +862,20 @@ private struct LoginConsentRow: View {
                     .foregroundStyle(agreed ? AppTheme.accent : Color.secondary.opacity(0.45))
             }
             .buttonStyle(.plain)
-            .accessibilityLabel("同意用户协议和隐私政策".zh)
+            .accessibilityLabel("同意用户协议和隐私政策".ui("Agree to Terms of Use and Privacy Policy"))
 
-            Text("已阅读并同意".zh)
+            Text("已阅读并同意".ui("I agree to"))
             Button {
                 onShowLegal(.terms)
             } label: {
-                Text("《用户协议》".zh)
+                Text("《用户协议》".ui("Terms of Use"))
                     .foregroundStyle(AppTheme.accent)
             }
             .buttonStyle(.plain)
             Button {
                 onShowLegal(.privacy)
             } label: {
-                Text("《隐私政策》".zh)
+                Text("《隐私政策》".ui("Privacy Policy"))
                     .foregroundStyle(AppTheme.accent)
             }
             .buttonStyle(.plain)
@@ -849,15 +885,29 @@ private struct LoginConsentRow: View {
     }
 }
 
-private func makeSession(from resp: AuthAPI.LoginResponse, email: String? = nil) -> LocalUserSession {
-    LocalUserSession(
+@MainActor
+private func makeSession(from resp: AuthAPI.LoginResponse, email: String? = nil) async -> LocalUserSession {
+    UnlockStore.shared.applyQuota(
+        unlocked: resp.user.iapUnlocked,
+        limit: resp.user.aiDailyLimit,
+        used: resp.user.aiDailyUsed,
+        remaining: resp.user.aiDailyRemaining
+    )
+    var session = LocalUserSession(
         isLoggedIn: true,
         displayName: resp.user.nickname,
         phone: resp.user.phone,
         email: resp.user.email ?? email,
         avatarSymbol: "person.crop.circle.fill",
         accessToken: resp.accessToken
+    ).applying(account: resp.user)
+    session = await ProfileSync.pullAvatar(
+        session: session,
+        user: resp.user,
+        accessToken: resp.accessToken
     )
+    LocalAuthStore.save(session)
+    return session
 }
 
 
@@ -893,16 +943,24 @@ enum AuthAPI {
         let cooldownSec: Int
     }
 
+    struct AccountUser: Decodable {
+        let id: String
+        let nickname: String
+        let phone: String?
+        let email: String?
+        let createdAt: String?
+        let hasAvatar: Bool?
+        let avatarUpdatedAt: String?
+        let iapUnlocked: Bool?
+        let aiDailyLimit: Int?
+        let aiDailyUsed: Int?
+        let aiDailyRemaining: Int?
+    }
+
     struct LoginResponse: Decodable {
-        struct User: Decodable {
-            let id: String
-            let nickname: String
-            let phone: String?
-            let email: String?
-        }
         let ok: Bool
         let accessToken: String
-        let user: User
+        let user: AccountUser
     }
 
     typealias SMSLoginResponse = LoginResponse
@@ -927,10 +985,10 @@ enum AuthAPI {
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
         req.httpBody = try JSONSerialization.data(withJSONObject: ["email": email])
         let (data, response) = try await session.data(for: req)
-        guard let http = response as? HTTPURLResponse else { throw LoginError.network("网络异常") }
-        guard (200..<300).contains(http.statusCode) else { throw decodeError(data, fallback: "发送验证码失败") }
+        guard let http = response as? HTTPURLResponse else { throw LoginError.network("网络异常".ui("Network error")) }
+        guard (200..<300).contains(http.statusCode) else { throw decodeError(data, fallback: "发送验证码失败".ui("Couldn’t send code")) }
         let decoded = try JSONDecoder().decode(SMSCodeResponse.self, from: data)
-        guard decoded.ok else { throw LoginError.network("发送验证码失败") }
+        guard decoded.ok else { throw LoginError.network("发送验证码失败".ui("Couldn’t send code")) }
         return decoded
     }
 
@@ -939,10 +997,10 @@ enum AuthAPI {
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
         req.httpBody = try JSONSerialization.data(withJSONObject: ["email": email, "code": code])
         let (data, response) = try await session.data(for: req)
-        guard let http = response as? HTTPURLResponse else { throw LoginError.network("网络异常") }
-        guard (200..<300).contains(http.statusCode) else { throw decodeError(data, fallback: "登录失败") }
+        guard let http = response as? HTTPURLResponse else { throw LoginError.network("网络异常".ui("Network error")) }
+        guard (200..<300).contains(http.statusCode) else { throw decodeError(data, fallback: "登录失败".ui("Sign-in failed")) }
         let decoded = try JSONDecoder().decode(LoginResponse.self, from: data)
-        guard decoded.ok else { throw LoginError.network("登录失败") }
+        guard decoded.ok else { throw LoginError.network("登录失败".ui("Sign-in failed")) }
         return decoded
     }
 
@@ -955,37 +1013,112 @@ enum AuthAPI {
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
         req.httpBody = try JSONSerialization.data(withJSONObject: body)
         let (data, response) = try await session.data(for: req)
-        guard let http = response as? HTTPURLResponse else { throw LoginError.network("网络异常") }
-        guard (200..<300).contains(http.statusCode) else { throw decodeError(data, fallback: "Apple 登录失败") }
+        guard let http = response as? HTTPURLResponse else { throw LoginError.network("网络异常".ui("Network error")) }
+        guard (200..<300).contains(http.statusCode) else { throw decodeError(data, fallback: "Apple 登录失败".ui("Apple sign-in failed")) }
         let decoded = try JSONDecoder().decode(LoginResponse.self, from: data)
-        guard decoded.ok else { throw LoginError.network("Apple 登录失败") }
+        guard decoded.ok else { throw LoginError.network("Apple 登录失败".ui("Apple sign-in failed")) }
         return decoded
     }
 
 
     struct MeResponse: Decodable {
-        struct User: Decodable {
-            let id: String
-            let nickname: String
-            let phone: String?
-            let email: String?
-        }
         let ok: Bool
-        let user: User
+        let user: AccountUser
+    }
+
+    struct IAPVerifyResponse: Decodable {
+        let ok: Bool
+        let unlocked: Bool
+        let productId: String
+        let aiDailyLimit: Int
+    }
+
+    static func verifyIAP(signedTransaction: String, accessToken: String) async throws -> IAPVerifyResponse {
+        var req = jsonRequest(path: "v1/iap/verify", method: "POST")
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        req.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+        req.httpBody = try JSONSerialization.data(withJSONObject: [
+            "platform": "ios",
+            "signedTransaction": signedTransaction,
+        ])
+        let data = try await perform(req, fallback: "无法验证购买".ui("Couldn’t verify the purchase"))
+        let decoded = try JSONDecoder().decode(IAPVerifyResponse.self, from: data)
+        guard decoded.ok, decoded.unlocked else {
+            throw LoginError.network("无法验证购买".ui("Couldn’t verify the purchase"))
+        }
+        return decoded
     }
 
     static func fetchMe(accessToken: String) async throws -> MeResponse {
         var req = jsonRequest(path: "v1/me", method: "GET")
         req.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
         let (data, response) = try await session.data(for: req)
-        guard let http = response as? HTTPURLResponse else { throw LoginError.network("网络异常") }
+        guard let http = response as? HTTPURLResponse else { throw LoginError.network("网络异常".ui("Network error")) }
         if http.statusCode == 401 {
             throw LoginError.unauthorized
         }
-        guard (200..<300).contains(http.statusCode) else { throw decodeError(data, fallback: "获取用户信息失败") }
+        guard (200..<300).contains(http.statusCode) else { throw decodeError(data, fallback: "获取用户信息失败".ui("Couldn’t load profile")) }
         let decoded = try JSONDecoder().decode(MeResponse.self, from: data)
-        guard decoded.ok else { throw LoginError.network("获取用户信息失败") }
+        guard decoded.ok else { throw LoginError.network("获取用户信息失败".ui("Couldn’t load profile")) }
         return decoded
+    }
+
+    static func updateMe(nickname: String, accessToken: String) async throws -> MeResponse {
+        var req = jsonRequest(path: "v1/me", method: "PATCH")
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        req.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+        req.httpBody = try JSONSerialization.data(withJSONObject: ["nickname": nickname])
+        let data = try await perform(req, fallback: "保存资料失败".ui("Couldn’t save profile"))
+        let decoded = try JSONDecoder().decode(MeResponse.self, from: data)
+        guard decoded.ok else { throw LoginError.network("保存资料失败".ui("Couldn’t save profile")) }
+        return decoded
+    }
+
+    static func sendBindEmailCode(email: String, accessToken: String) async throws -> SMSCodeResponse {
+        var req = jsonRequest(path: "v1/me/email/send", method: "POST")
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        req.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+        req.httpBody = try JSONSerialization.data(withJSONObject: ["email": email])
+        let data = try await perform(req, fallback: "发送验证码失败".ui("Couldn’t send code"))
+        let decoded = try JSONDecoder().decode(SMSCodeResponse.self, from: data)
+        guard decoded.ok else { throw LoginError.network("发送验证码失败".ui("Couldn’t send code")) }
+        return decoded
+    }
+
+    static func bindEmail(email: String, code: String, accessToken: String) async throws -> MeResponse {
+        var req = jsonRequest(path: "v1/me/email/bind", method: "POST")
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        req.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+        req.httpBody = try JSONSerialization.data(withJSONObject: ["email": email, "code": code])
+        let data = try await perform(req, fallback: "绑定失败".ui("Couldn’t link email"))
+        let decoded = try JSONDecoder().decode(MeResponse.self, from: data)
+        guard decoded.ok else { throw LoginError.network("绑定失败".ui("Couldn’t link email")) }
+        return decoded
+    }
+
+    static func uploadAvatar(_ jpeg: Data, accessToken: String) async throws -> MeResponse {
+        var req = jsonRequest(path: "v1/me/avatar", method: "PUT")
+        req.setValue("image/jpeg", forHTTPHeaderField: "Content-Type")
+        req.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+        req.httpBody = jpeg
+        let data = try await perform(req, fallback: "上传头像失败".ui("Couldn’t upload photo"))
+        let decoded = try JSONDecoder().decode(MeResponse.self, from: data)
+        guard decoded.ok else { throw LoginError.network("上传头像失败".ui("Couldn’t upload photo")) }
+        return decoded
+    }
+
+    static func fetchAvatar(accessToken: String) async throws -> Data {
+        var req = jsonRequest(path: "v1/me/avatar", method: "GET")
+        req.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+        let (data, response) = try await session.data(for: req)
+        guard let http = response as? HTTPURLResponse else { throw LoginError.network("网络异常".ui("Network error")) }
+        if http.statusCode == 401 {
+            throw LoginError.unauthorized
+        }
+        guard (200..<300).contains(http.statusCode) else {
+            throw decodeError(data, fallback: "获取头像失败".ui("Couldn’t load photo"))
+        }
+        return data
     }
 
     struct AppVersionResponse: Decodable {
@@ -998,9 +1131,9 @@ enum AuthAPI {
 
     static func fetchAppVersion() async throws -> AppVersionResponse {
         var req = jsonRequest(path: "v1/app/version", method: "GET")
-        let data = try await perform(req, fallback: "检查更新失败")
+        let data = try await perform(req, fallback: "检查更新失败".ui("Couldn’t check for update"))
         let decoded = try JSONDecoder().decode(AppVersionResponse.self, from: data)
-        guard decoded.ok else { throw LoginError.network("检查更新失败") }
+        guard decoded.ok else { throw LoginError.network("检查更新失败".ui("Couldn’t check for update")) }
         return decoded
     }
 
@@ -1022,9 +1155,9 @@ enum AuthAPI {
             req.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
         }
         req.httpBody = try JSONSerialization.data(withJSONObject: payload)
-        let data = try await perform(req, fallback: "提交失败")
+        let data = try await perform(req, fallback: "提交失败".ui("Couldn’t send"))
         let decoded = try JSONDecoder().decode(OkResponse.self, from: data)
-        guard decoded.ok else { throw LoginError.network("提交失败") }
+        guard decoded.ok else { throw LoginError.network("提交失败".ui("Couldn’t send")) }
     }
 
     private struct OkResponse: Decodable {
@@ -1035,13 +1168,13 @@ enum AuthAPI {
         var req = jsonRequest(path: "v1/me", method: "DELETE")
         req.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
         let (data, response) = try await session.data(for: req)
-        guard let http = response as? HTTPURLResponse else { throw LoginError.network("网络异常") }
+        guard let http = response as? HTTPURLResponse else { throw LoginError.network("网络异常".ui("Network error")) }
         if http.statusCode == 401 {
             throw LoginError.unauthorized
         }
-        guard (200..<300).contains(http.statusCode) else { throw decodeError(data, fallback: "注销账号失败") }
+        guard (200..<300).contains(http.statusCode) else { throw decodeError(data, fallback: "注销账号失败".ui("Couldn’t delete account")) }
         let decoded = try JSONDecoder().decode(OkResponse.self, from: data)
-        guard decoded.ok else { throw LoginError.network("注销账号失败") }
+        guard decoded.ok else { throw LoginError.network("注销账号失败".ui("Couldn’t delete account")) }
     }
 
     struct AIAnalyzeResponse: Decodable {
@@ -1147,6 +1280,7 @@ enum AuthAPI {
             "movingPositions": result.movingPositions,
             "lines": result.lines.map(\.rawValue),
             "hexTextVersion": "yi-zhengshi-2026-08",
+            "uiLanguage": AppLanguage.current.isEnglish ? "en" : "zh",
         ]
         if let question = result.question {
             payload["question"] = question
@@ -1160,9 +1294,9 @@ enum AuthAPI {
         req.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
         req.timeoutInterval = aiTimeout
         req.httpBody = try JSONSerialization.data(withJSONObject: payload)
-        let data = try await perform(req, fallback: "解读失败")
+        let data = try await perform(req, fallback: "解读失败".ui("Couldn’t generate a reading"))
         let decoded = try JSONDecoder().decode(AIAnalyzeResponse.self, from: data)
-        guard decoded.ok else { throw LoginError.network("解读失败") }
+        guard decoded.ok else { throw LoginError.network("解读失败".ui("Couldn’t generate a reading")) }
         return decoded
     }
 
@@ -1179,6 +1313,7 @@ enum AuthAPI {
             "movingPositions": result.movingPositions,
             "lines": result.lines.map(\.rawValue),
             "hexTextVersion": "yi-zhengshi-2026-08",
+            "uiLanguage": AppLanguage.current.isEnglish ? "en" : "zh",
             "message": message,
             "previousAnalysis": analysis.previousAnalysisPayload(),
             "conversation": conversation.map {
@@ -1201,9 +1336,9 @@ enum AuthAPI {
         req.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
         req.timeoutInterval = aiTimeout
         req.httpBody = try JSONSerialization.data(withJSONObject: payload)
-        let data = try await perform(req, fallback: "追问失败")
+        let data = try await perform(req, fallback: "追问失败".ui("Couldn’t send the follow-up"))
         let decoded = try JSONDecoder().decode(AIFollowupResponse.self, from: data)
-        guard decoded.ok, !decoded.reply.isEmpty else { throw LoginError.network("追问失败") }
+        guard decoded.ok, !decoded.reply.isEmpty else { throw LoginError.network("追问失败".ui("Couldn’t send the follow-up")) }
         return decoded
     }
 
@@ -1244,17 +1379,22 @@ enum AuthAPI {
         do {
             (data, response) = try await session.data(for: request)
         } catch let error as URLError where error.code == .timedOut || error.code == .networkConnectionLost {
-            throw LoginError.network("请求超时，请稍后重试")
+            throw LoginError.network("请求超时，请稍后重试".ui("Timed out. Please try again."))
         }
-        guard let http = response as? HTTPURLResponse else { throw LoginError.network("网络异常") }
+        guard let http = response as? HTTPURLResponse else { throw LoginError.network("网络异常".ui("Network error")) }
         guard (200..<300).contains(http.statusCode) else { throw decodeError(data, fallback: fallback) }
         return data
     }
 
     private static func decodeError(_ data: Data, fallback: String) -> LoginError {
-        if let envelope = try? JSONDecoder().decode(ErrorEnvelope.self, from: data),
-           let message = envelope.message, !message.isEmpty {
-            return .network(message)
+        if let envelope = try? JSONDecoder().decode(ErrorEnvelope.self, from: data) {
+            let message = (envelope.message?.isEmpty == false) ? envelope.message! : fallback
+            if envelope.code == 4290 {
+                return .rateLimited(message: message, dailyDone: message.contains("明天再来"))
+            }
+            if envelope.message?.isEmpty == false {
+                return .network(message)
+            }
         }
         return .network(fallback)
     }
@@ -1263,12 +1403,21 @@ enum AuthAPI {
 enum LoginError: LocalizedError {
     case network(String)
     case unauthorized
+    case rateLimited(message: String, dailyDone: Bool)
 
     var errorDescription: String? {
         switch self {
         case .network(let message): return message
-        case .unauthorized: return "登录已过期，请重新登录"
+        case .rateLimited(let message, _): return message
+        case .unauthorized: return "登录已过期，请重新登录".ui("Session expired. Please sign in again.")
         }
+    }
+
+    static func isDailyQuotaExhausted(_ error: Error) -> Bool {
+        if case .rateLimited(_, true) = error as? LoginError {
+            return true
+        }
+        return false
     }
 
     static func describe(_ error: Error) -> String {
@@ -1278,11 +1427,11 @@ enum LoginError: LocalizedError {
         if let url = error as? URLError {
             switch url.code {
             case .timedOut:
-                return "连接超时：\(AuthAPI.debugEndpoint)"
+                return "连接超时：\(AuthAPI.debugEndpoint)".ui("Timed out: \(AuthAPI.debugEndpoint)")
             case .cannotConnectToHost, .cannotFindHost, .networkConnectionLost, .notConnectedToInternet:
-                return "连不上 \(AuthAPI.debugEndpoint)"
+                return "连不上 \(AuthAPI.debugEndpoint)".ui("Can’t reach \(AuthAPI.debugEndpoint)")
             default:
-                return "网络异常（\(url.code.rawValue)）：\(AuthAPI.debugEndpoint)"
+                return "网络异常（\(url.code.rawValue)）：\(AuthAPI.debugEndpoint)".ui("Network error (\(url.code.rawValue)): \(AuthAPI.debugEndpoint)")
             }
         }
         return error.localizedDescription
@@ -1296,16 +1445,23 @@ private struct AIAnalysisHistoryView: View {
     var body: some View {
         Group {
             if items.isEmpty {
-                ContentUnavailableView(
-                    "还没有解读",
-                    systemImage: "bubble.left.and.bubble.right",
-                    description: Text("起卦后点 AI，解读会自动出现在这里".zh)
-                )
+                VStack(spacing: 8) {
+                    Spacer()
+                    Text("还没有解读".ui("No readings yet"))
+                        .font(.headline)
+                    Text("起卦后点问，解读会自动出现在这里".ui("After you cast, tap Ask. Readings appear here."))
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 32)
+                    Spacer()
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 List {
                     ForEach(items) { item in
                         NavigationLink {
-                            AIAnalysisView(saved: item)
+                            AIAnalysisView(saved: item, opensResultOnHeaderTap: true)
                         } label: {
                             savedRow(item)
                         }
@@ -1317,14 +1473,14 @@ private struct AIAnalysisHistoryView: View {
                                 Image(systemName: "trash.fill")
                             }
                             .tint(.red)
-                            .accessibilityLabel("删除".zh)
+                            .accessibilityLabel("删除".ui("Delete"))
                         }
                     }
                 }
                 .scrollContentBackground(.hidden)
             }
         }
-        .navigationTitle("问答".zh)
+        .navigationTitle("问答".ui("Readings"))
         .navigationBarTitleDisplayMode(.inline)
         .parchmentBackground(hidesTabBar: false)
         .onAppear {
@@ -1338,12 +1494,34 @@ private struct AIAnalysisHistoryView: View {
     @ViewBuilder
     private func savedRow(_ item: SavedAIAnalysis) -> some View {
         VStack(alignment: .leading, spacing: 4) {
-            if let hex = store.hexagram(number: item.primaryNumber) {
-                Text("\(hex.symbol) \(hex.name)".zh)
-                    .font(.headline)
-            } else {
-                Text("第\(item.primaryNumber)卦".zh)
-                    .font(.headline)
+            HStack(spacing: 6) {
+                if let hex = store.hexagram(number: item.primaryNumber) {
+                    Text(hex.listLabel)
+                        .font(.headline)
+                        .lineLimit(1)
+                } else {
+                    Text("第\(item.primaryNumber)卦".ui("Hexagram \(item.primaryNumber)"))
+                        .font(.headline)
+                        .lineLimit(1)
+                }
+                if let resulting = item.resultingNumber {
+                    HexagramChangeArrow(
+                        movingLabel: ReadingRecordRow.digitalMovingLabel(
+                            method: item.method,
+                            movingPositions: item.movingPositions
+                        )
+                    )
+                    if let hex = store.hexagram(number: resulting) {
+                        Text(hex.listLabel)
+                            .font(.headline)
+                            .lineLimit(1)
+                    } else {
+                        Text("第\(resulting)卦".ui("Hexagram \(resulting)"))
+                            .font(.headline)
+                            .lineLimit(1)
+                    }
+                }
+                Spacer(minLength: 0)
             }
             Text(ReadingRecordRow.timeString(item.updatedAt).zh)
                 .font(.caption)
@@ -1358,92 +1536,6 @@ private struct AIAnalysisHistoryView: View {
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
             }
-        }
-    }
-}
-
-private struct ProfileEditView: View {
-    @Environment(\.dismiss) private var dismiss
-    @Binding var session: LocalUserSession
-    @State private var nicknameDraft: String
-    @State private var avatarDraft: String
-    @State private var showValidationAlert = false
-    @State private var validationMessage = ""
-
-    private static let avatarOptions: [String] = [
-        "person.crop.circle.fill",
-        "person.fill",
-        "moon.stars.fill",
-        "sun.max.fill",
-        "sparkles",
-        "leaf.fill",
-        "flame.fill",
-        "star.fill"
-    ]
-
-    init(session: Binding<LocalUserSession>) {
-        _session = session
-        _nicknameDraft = State(initialValue: session.wrappedValue.displayName)
-        _avatarDraft = State(initialValue: session.wrappedValue.avatarSymbol)
-    }
-
-    var body: some View {
-        List {
-            Section("头像".zh) {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 12) {
-                        ForEach(Self.avatarOptions, id: \.self) { symbol in
-                            Button {
-                                avatarDraft = symbol
-                            } label: {
-                                Image(systemName: symbol)
-                                    .font(.title2)
-                                    .foregroundStyle(avatarDraft == symbol ? .white : AppTheme.accent)
-                                    .frame(width: 44, height: 44)
-                                    .background(
-                                        Circle().fill(
-                                            avatarDraft == symbol
-                                            ? AppTheme.accent
-                                            : Color.black.opacity(0.06)
-                                        )
-                                    )
-                            }
-                            .buttonStyle(.plain)
-                        }
-                    }
-                    .padding(.vertical, 4)
-                }
-            }
-
-            Section("昵称".zh) {
-                TextField("输入昵称", text: $nicknameDraft)
-                    .appTextFieldStyle()
-            }
-        }
-        .navigationTitle("编辑资料".zh)
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button("保存".zh) {
-                    let trimmed = nicknameDraft.trimmingCharacters(in: .whitespacesAndNewlines)
-                    let limited = String(trimmed.prefix(20))
-                    if !(2...20).contains(limited.count) {
-                        validationMessage = "昵称需为 2-20 个字符"
-                        showValidationAlert = true
-                        return
-                    }
-                    session.displayName = limited
-                    session.avatarSymbol = avatarDraft
-                    LocalAuthStore.save(session)
-                    dismiss()
-                }
-            }
-        }
-        .parchmentBackground()
-        .alert("保存失败".zh, isPresented: $showValidationAlert) {
-            Button("知道了".zh, role: .cancel) {}
-        } message: {
-            Text(validationMessage.zh)
         }
     }
 }
@@ -1472,7 +1564,7 @@ private struct FeedbackView: View {
                     .lineLimit(6...12)
                     .appTextFieldStyle()
             } header: {
-                Text("意见".zh)
+                Text("意见".ui("Feedback"))
             } footer: {
                 Text("\(trimmedBody.count)/2000".zh)
                     .foregroundStyle(.secondary)
@@ -1484,7 +1576,7 @@ private struct FeedbackView: View {
                     .textInputAutocapitalization(.never)
                     .keyboardType(.emailAddress)
             } header: {
-                Text("联系方式".zh)
+                Text("联系方式".ui("Contact (optional)"))
             } footer: {
                 Text(
                     (session.isLoggedIn
@@ -1493,11 +1585,11 @@ private struct FeedbackView: View {
                 )
             }
         }
-        .navigationTitle("意见反馈".zh)
+        .navigationTitle("意见反馈".ui("Feedback"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                Button("提交".zh) {
+                Button("提交".ui("Send")) {
                     Task { await submit() }
                 }
                 .disabled(!canSubmit)
@@ -1509,16 +1601,16 @@ private struct FeedbackView: View {
                 contactDraft = session.email ?? session.phone ?? ""
             }
         }
-        .alert("已收到".zh, isPresented: $showSuccess) {
-            Button("好的".zh) { dismiss() }
+        .alert("已收到".ui("Received"), isPresented: $showSuccess) {
+            Button("好的".ui("OK")) { dismiss() }
         } message: {
-            Text("感谢反馈，我们会尽快查看。".zh)
+            Text("感谢反馈，我们会尽快查看。".ui("Thank you. We’ll look at this soon."))
         }
-        .alert("提交失败".zh, isPresented: Binding(
+        .alert("提交失败".ui("Couldn’t send"), isPresented: Binding(
             get: { errorMessage != nil },
             set: { if !$0 { errorMessage = nil } }
         )) {
-            Button("知道了".zh, role: .cancel) {}
+            Button("知道了".ui("OK"), role: .cancel) {}
         } message: {
             Text((errorMessage ?? "").zh)
         }
@@ -1559,7 +1651,7 @@ private struct SettingsView: View {
                     RecycleBinView()
                 } label: {
                     HStack {
-                        Label("回收站".zh, systemImage: "trash")
+                        Label("回收站".ui("Trash"), systemImage: "trash")
                         Spacer()
                         Text("\(recycleCount)".zh)
                             .foregroundStyle(.secondary)
@@ -1569,23 +1661,23 @@ private struct SettingsView: View {
 
             Section {
                 NavigationLink {
-                    LegalDocumentView(title: "隐私政策".zh, file: "privacy_policy")
+                    LegalDocumentView(title: "隐私政策".ui("Privacy Policy"), file: "privacy_policy")
                 } label: {
-                    Label("隐私政策".zh, systemImage: "lock.shield")
+                    Label("隐私政策".ui("Privacy Policy"), systemImage: "lock.shield")
                 }
                 NavigationLink {
-                    LegalDocumentView(title: "用户协议".zh, file: "terms_of_service")
+                    LegalDocumentView(title: "用户协议".ui("Terms of Use"), file: "terms_of_service")
                 } label: {
-                    Label("用户协议".zh, systemImage: "doc.text")
+                    Label("用户协议".ui("Terms of Use"), systemImage: "doc.text")
                 }
             }
 
             if session.isLoggedIn {
                 Section {
-                    Button("退出登录".zh) {
+                    Button("退出登录".ui("Sign Out")) {
                         showLogoutConfirm = true
                     }
-                    Button("注销账号".zh, role: .destructive) {
+                    Button("注销账号".ui("Delete Account"), role: .destructive) {
                         showDeleteConfirm = true
                     }
                     .disabled(isDeletingAccount)
@@ -1593,33 +1685,35 @@ private struct SettingsView: View {
             }
         }
         .scrollContentBackground(.hidden)
-        .navigationTitle("设置".zh)
+        .navigationTitle("设置".ui("Settings"))
         .navigationBarTitleDisplayMode(.inline)
         .parchmentBackground()
         .onAppear {
             recycleCount = HistoryTrashStore.load().count
         }
-        .alert("确认退出登录？".zh, isPresented: $showLogoutConfirm) {
-            Button("取消".zh, role: .cancel) {}
-            Button("退出登录".zh) {
+        .alert("确认退出登录？".ui("Sign out?"), isPresented: $showLogoutConfirm) {
+            Button("取消".ui("Cancel"), role: .cancel) {}
+            Button("退出登录".ui("Sign Out")) {
+                ProfileAvatarFile.clear()
                 session = .guest
                 LocalAuthStore.save(session)
+                UnlockStore.shared.clearLocal()
                 dismiss()
             }
         }
-        .alert("确认注销账号？".zh, isPresented: $showDeleteConfirm) {
-            Button("取消".zh, role: .cancel) {}
-            Button("注销账号".zh, role: .destructive) {
+        .alert("确认注销账号？".ui("Delete this account?"), isPresented: $showDeleteConfirm) {
+            Button("取消".ui("Cancel"), role: .cancel) {}
+            Button("注销账号".ui("Delete Account"), role: .destructive) {
                 Task { await deleteAccount() }
             }
         } message: {
-            Text("注销后，服务器上的账号信息将被永久删除且不可恢复。设备本地的起卦记录与保存的问答不会自动清除。".zh)
+            Text("注销后，服务器上的账号信息将被永久删除且不可恢复。设备本地的起卦记录与保存的问答不会自动清除。".ui("This permanently deletes your account on the server. Casts and readings saved on this device stay until you remove them."))
         }
-        .alert("注销失败".zh, isPresented: Binding(
+        .alert("注销失败".ui("Couldn’t delete account"), isPresented: Binding(
             get: { deleteErrorMessage != nil },
             set: { if !$0 { deleteErrorMessage = nil } }
         )) {
-            Button("知道了".zh, role: .cancel) {}
+            Button("知道了".ui("OK"), role: .cancel) {}
         } message: {
             Text((deleteErrorMessage ?? "").zh)
         }
@@ -1634,8 +1728,10 @@ private struct SettingsView: View {
         defer { isDeletingAccount = false }
         do {
             try await AuthAPI.deleteAccount(accessToken: token)
+            ProfileAvatarFile.clear()
             session = .guest
             LocalAuthStore.save(session)
+            UnlockStore.shared.clearLocal()
             dismiss()
         } catch {
             deleteErrorMessage = LoginError.describe(error)
@@ -1655,7 +1751,7 @@ private struct RecycleBinView: View {
                 ContentUnavailableView(
                     "回收站为空",
                     systemImage: "trash",
-                    description: Text("删除的记录会先放在这里，可恢复".zh)
+                    description: Text("删除的记录会先放在这里，可恢复".ui("Deleted casts wait here until you restore or erase them"))
                 )
             } else {
                 List {
@@ -1663,20 +1759,20 @@ private struct RecycleBinView: View {
                         VStack(alignment: .leading, spacing: 4) {
                             HStack(spacing: 6) {
                                 if let hex = store.hexagram(number: entry.primaryNumber) {
-                                    Text("\(hex.symbol) \(hex.name)".zh)
+                                    Text(hex.listLabel)
                                         .font(.headline)
                                 } else {
-                                    Text("第\(entry.primaryNumber)卦".zh)
+                                    Text("第\(entry.primaryNumber)卦".ui("Hexagram \(entry.primaryNumber)"))
                                         .font(.headline)
                                 }
                                 if let resulting = entry.resultingNumber {
                                     Text("→".zh)
                                         .foregroundStyle(.secondary)
                                     if let hex = store.hexagram(number: resulting) {
-                                        Text("\(hex.symbol) \(hex.name)".zh)
+                                        Text(hex.listLabel)
                                             .font(.headline)
                                     } else {
-                                        Text("第\(resulting)卦".zh)
+                                        Text("第\(resulting)卦".ui("Hexagram \(resulting)"))
                                             .font(.headline)
                                     }
                                 }
@@ -1692,7 +1788,7 @@ private struct RecycleBinView: View {
                             }
                         }
                         .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                            Button("恢复".zh) {
+                            Button("恢复".ui("Restore")) {
                                 modelContext.insert(entry.toReadingRecord())
                                 try? modelContext.save()
                                 HistoryTrashStore.remove(entryID: entry.id)
@@ -1700,7 +1796,7 @@ private struct RecycleBinView: View {
                             }
                             .tint(.green)
 
-                            Button("彻底删除".zh, role: .destructive) {
+                            Button("彻底删除".ui("Delete forever"), role: .destructive) {
                                 HistoryTrashStore.remove(entryID: entry.id)
                                 entries = HistoryTrashStore.load()
                             }
@@ -1711,26 +1807,26 @@ private struct RecycleBinView: View {
                 .scrollContentBackground(.hidden)
             }
         }
-        .navigationTitle("回收站".zh)
+        .navigationTitle("回收站".ui("Trash"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             if !entries.isEmpty {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("清空".zh) {
+                    Button("清空".ui("Empty")) {
                         showClearConfirm = true
                     }
                     .tint(.red)
                 }
             }
         }
-        .alert("确认清空？".zh, isPresented: $showClearConfirm) {
-            Button("取消".zh, role: .cancel) {}
-            Button("确定".zh, role: .destructive) {
+        .alert("确认清空？".ui("Empty the trash?"), isPresented: $showClearConfirm) {
+            Button("取消".ui("Cancel"), role: .cancel) {}
+            Button("确定".ui("Empty"), role: .destructive) {
                 HistoryTrashStore.clearAll()
                 entries = []
             }
         } message: {
-            Text("回收站中的记录将被彻底删除，无法恢复。".zh)
+            Text("回收站中的记录将被彻底删除，无法恢复。".ui("These records will be permanently deleted."))
         }
         .parchmentBackground()
         .onAppear {
@@ -1746,15 +1842,17 @@ enum LegalDocKind: String, Identifiable {
     var id: String { rawValue }
     var title: String {
         switch self {
-        case .terms: return "用户协议"
-        case .privacy: return "隐私政策"
+        case .terms: return "用户协议".ui("Terms of Use")
+        case .privacy: return "隐私政策".ui("Privacy Policy")
         }
     }
     var file: String {
+        let base: String
         switch self {
-        case .terms: return "terms_of_service"
-        case .privacy: return "privacy_policy"
+        case .terms: base = "terms_of_service"
+        case .privacy: base = "privacy_policy"
         }
+        return AppLanguage.current.isEnglish ? "\(base).en" : base
     }
 }
 

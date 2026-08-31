@@ -52,7 +52,7 @@ private final class AppleSignInCoordinator: NSObject, ASAuthorizationControllerD
               let tokenData = credential.identityToken,
               let token = String(data: tokenData, encoding: .utf8)
         else {
-            continuation.resume(throwing: LoginError.network("Apple 登录失败"))
+            continuation.resume(throwing: LoginError.network("Apple 登录失败".ui("Apple sign-in failed")))
             return
         }
         let fullName: String? = {

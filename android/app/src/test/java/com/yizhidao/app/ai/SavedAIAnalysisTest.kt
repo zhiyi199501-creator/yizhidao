@@ -13,10 +13,39 @@ class SavedAIAnalysisTest {
         val items = aiAdviceDisplayItems(
             advice = listOf("先明确边界"),
             risks = listOf("起步过急易失节奏", "须防：已带前缀", "  "),
+            english = false,
         )
         assertEquals(
             listOf("先明确边界", "须防：起步过急易失节奏；已带前缀"),
             items,
+        )
+    }
+
+    @Test
+    fun dropsBareRiskWordSoPrefixDoesNotDouble() {
+        assertEquals(
+            listOf("先明确边界"),
+            aiAdviceDisplayItems(
+                advice = listOf("先明确边界"),
+                risks = listOf("须防"),
+                english = false,
+            ),
+        )
+        assertEquals(
+            listOf("先明确边界"),
+            aiAdviceDisplayItems(
+                advice = listOf("先明确边界", "须防：须防"),
+                risks = emptyList(),
+                english = false,
+            ),
+        )
+        assertEquals(
+            listOf("须防：勿躁进"),
+            aiAdviceDisplayItems(
+                advice = listOf("须防：须防：勿躁进"),
+                risks = emptyList(),
+                english = false,
+            ),
         )
     }
 

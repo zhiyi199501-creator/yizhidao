@@ -44,6 +44,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.yizhidao.app.ui.theme.AppTheme
 import com.yizhidao.app.ui.theme.Text
+import com.yizhidao.app.ui.theme.ui
 import com.yizhidao.app.ui.theme.zh
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -138,6 +139,7 @@ fun StillnessAct(
                         color = AppTheme.ink.copy(alpha = 0.35f),
                         modifier = Modifier.clickable { finish() },
                         style = AppTheme.compactText,
+                        en = "Skip",
                     )
                 },
             )
@@ -212,6 +214,7 @@ fun StillnessAct(
                     modifier = Modifier.height(22.dp),
                     style = AppTheme.compactText,
                 )
+                RitualEnglishCaption("Hold to settle")
             }
             Spacer(Modifier.weight(1f))
         }
@@ -229,7 +232,7 @@ fun RitualTopBar(
             .padding(top = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        val cancelLabel = zh("取消起卦")
+        val cancelLabel = ui("取消起卦", "Cancel")
         Text(
             "✕",
             fontSize = 16.sp,

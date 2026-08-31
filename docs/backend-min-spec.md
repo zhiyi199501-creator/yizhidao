@@ -1,4 +1,4 @@
-# 易玩家最小后端接口（登录 + AI + 案例热更新）
+# 易玩家最小后端接口（登录 + AI + IAP + 案例热更新）
 
 本文件是接口合同（路径与字段），以仓库 `backend/app/schemas.py` 为准。App Release 基址：`https://api.yiwanjia.work`（仅海外上架）。`GET /v1/cases` 于 2026-08-17 上线。AI 扩卡（`direction` / `risks` / `askNext`、追问 `advice`）已合 `main`（PR #12，2026-08-28）；生产镜像未重建前仍是三字段解读。旧客户端只依赖三字段与追问单段 `reply`，多出的字段可忽略。
 
@@ -34,7 +34,7 @@
 {
   "ok": true,
   "accessToken": "jwt-or-session-token",
-  "user": { "id": "u_123", "nickname": "用户138****8000", "phone": "13800138000", "email": null }
+  "user": { "id": "u_123", "nickname": "用户138****8000", "phone": "13800138000", "email": null, "iapUnlocked": false, "aiDailyLimit": 3, "aiDailyUsed": 0, "aiDailyRemaining": 3 }
 }
 ```
 
@@ -45,10 +45,28 @@
 ```json
 {
   "ok": true,
-  "user": { "id": "u_123", "nickname": "用户138****8000", "phone": "13800138000", "email": null }
+  "user": { "id": "u_123", "nickname": "用户138****8000", "phone": "13800138000", "email": null, "createdAt": "2026-08-30T10:00:00+00:00", "hasAvatar": false, "avatarUpdatedAt": null, "iapUnlocked": false, "aiDailyLimit": 3, "aiDailyUsed": 0, "aiDailyRemaining": 3 }
 }
 ```
 - 无效/过期 token → HTTP 401，`code: 4003`
+- 旧客户端可忽略 `createdAt` / `hasAvatar` / `avatarUpdatedAt` / `iapUnlocked` / `aiDailyLimit` / `aiDailyUsed` / `aiDailyRemaining`
+- 资料页头像与昵称存服务端，换机登录可恢复；邮箱用于身份验证
+
+### 3a) 更新资料
+- `PATCH /v1/me`
+- req: `{ "nickname": "luozhihao" }`（2–20 字）
+- resp: 同 §3
+
+### 3a2) 绑定邮箱
+- `POST /v1/me/email/send` · req: `{ "email": "you@example.com" }` · 须登录且当前账号未绑邮箱
+- `POST /v1/me/email/bind` · req: `{ "email": "you@example.com", "code": "123456" }` · resp 同 §3
+- 绑定后可用邮箱验证码登录同一账号；已占用邮箱 → 409
+
+### 3a3) 头像
+- `PUT /v1/me/avatar` · Body: JPEG（最大 512KB）· Header: `Authorization`
+- `GET /v1/me/avatar` · 返回 JPEG
+- `DELETE /v1/me/avatar` · 清除头像
+- `user.hasAvatar` / `user.avatarUpdatedAt` 在登录与 `GET /v1/me` 中返回。文件落在 `AVATARS_DIR`（空则与 SQLite 同级 `avatars/`，勿提交）
 
 ### 3b) 注销账号
 - `DELETE /v1/me`
@@ -57,7 +75,7 @@
 - 删除 `users` 行及该手机号/邮箱下未用验证码；token 随后失效（再 `GET /v1/me` → 401）
 
 ### 3c) 法律与支持页（App Store）
-- `GET /privacy` · `GET /terms` · `GET /support` → HTML（无鉴权）
+- `GET /privacy` · `GET /terms` · `GET /support` → HTML（无鉴权）。`?lang=en` 或 `Accept-Language: en*` 出英文本；生产镜像未发前仍是中文页
 
 ### 4) 发送邮箱验证码
 - `POST /v1/auth/email/send`
@@ -105,7 +123,8 @@
   "resultingNumber": 26,
   "movingPositions": [1],
   "lines": [7,8,8,7,7,9],
-  "hexTextVersion": "yi-zhengshi-2026-08"
+  "hexTextVersion": "yi-zhengshi-2026-08",
+  "uiLanguage": "zh"
 }
 ```
 - resp:
@@ -140,6 +159,17 @@
 }
 ```
 - 旧客户端只读 `reply`
+
+### 8c) 内购验单（iOS StoreKit 2）
+- `POST /v1/iap/verify`
+- Header: `Authorization: Bearer <access_token>`
+- req:
+```json
+{ "platform": "ios", "signedTransaction": "<jws>" }
+```
+- resp: `{ "ok": true, "unlocked": true, "productId": "com.yizhidao.app.ai.unlock", "aiDailyLimit": 30 }`
+- 只记交易号与权益，不存所问或解读正文。同一 `transactionId` 只能绑一个用户；同用户再验视为恢复。其他用户再用同一交易号 → HTTP **409**、`code: 4001`、文案「该购买已绑定其他账号」。凭证无效 → HTTP 400、`code: 4001`。
+- `IAP_VERIFY_MODE=mock|apple`。生产无 `ALLOW_INSECURE_MOCK_IAP` 时强制 `apple`。本机 Xcode StoreKit Configuration 须 `mock`。生产镜像未发前此路由 **404**。
 
 ### 9) 案例列表（公开，供 App 热更新）
 - `GET /v1/cases`
@@ -176,7 +206,7 @@
 - App 对比本地版本；服务端版本用 `.env` 的 `APP_IOS_LATEST_VERSION` / `APP_ANDROID_LATEST_VERSION`，发版后改这里不必发 App
 
 ## 错误码（最小）
-- `4001` 参数错误
+- `4001` 参数错误（含无效购买凭证；跨账号占用交易号时 HTTP 409）
 - `4002` 验证码错误或过期
 - `4003` 登录态无效
 - `4290` 限流（验证码冷却；AI 间隔/并发为「请稍后再试」，当天次数用尽为「今天的解读次数用完了，明天再来」）
@@ -200,10 +230,10 @@
 
 ## AI 问答实现说明
 
-机制（框架、黄庭槽、案例筛选、出卡）见 [`ai-reading.md`](ai-reading.md)。提示词原文以 `backend/app/services/ai.py` 为准。本文件 §8 / §8b 只保留路径与 JSON 字段。
+机制（框架、黄庭槽、案例筛选、展示）见 [`ai-reading.md`](ai-reading.md)。提示词原文以 `backend/app/services/ai.py` 为准。本文件 §8 / §8b 只保留路径与 JSON 字段。
 
 ## 运营与安全最小要求
-- AI：按登录用户限流（间隔 8 秒、同时 1 个、自然日 UTC+8 合计 40 次含追问）；超限 `4290`。细节见 [`ai-reading.md`](ai-reading.md)
+- AI：按登录用户限流（间隔 8 秒、同时 1 个、自然日 UTC+8 未购 3 次 / 买断 30 次，含追问）；超限 `4290`。细节见 [`ai-reading.md`](ai-reading.md)
 - 发短信/邮箱验证码另有冷却，同用 `4290`
 - 分环境密钥（dev/staging/prod）
 - 勿将 `backend/.env`、密钥提交进仓库

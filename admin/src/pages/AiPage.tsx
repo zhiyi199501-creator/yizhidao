@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { AiEventsPage, AiUsage, ApiError, RangeKey, api } from "../api";
 import { KIND_LABELS, formatCost, formatDateTime, formatNumber, formatPercent } from "../format";
-import { Bars, Stat } from "../ui";
+import { Stat, TrendChart } from "../ui";
 
 const RANGES: { id: RangeKey; label: string }[] = [
   { id: "today", label: "今天" },
@@ -62,9 +62,25 @@ export function AiPage() {
               hint={formatCost(data.summary.cost.configured, data.summary.cost.usd)}
             />
           </div>
-          <div className="card">
-            <p className="label">调用趋势</p>
-            <Bars points={data.series} />
+          <div className="grid trend-grid">
+            <div className="card">
+              <TrendChart
+                title="API 请求次数"
+                total={formatNumber(data.summary.calls)}
+                points={data.series}
+                valueOf={(point) => point.calls}
+                color="var(--chart-calls)"
+              />
+            </div>
+            <div className="card">
+              <TrendChart
+                title="Tokens"
+                total={formatNumber(data.summary.tokens)}
+                points={data.series}
+                valueOf={(point) => point.tokens ?? 0}
+                color="var(--chart-tokens)"
+              />
+            </div>
           </div>
           <div className="grid" style={{ gridTemplateColumns: "1fr 1fr 1fr" }}>
             <div className="card">

@@ -106,13 +106,21 @@ final class YijingIntroStore {
     private var rawSource: String = ""
     private var rawNote: String = ""
     private var rawChapters: [YijingIntroChapter] = []
+    private var englishChapters: [YijingIntroChapter] = []
 
     var source: String { rawSource.zh }
     var note: String { rawNote.zh }
-    var chapters: [YijingIntroChapter] { rawChapters.map(\.zhDisplayed) }
+    var chapters: [YijingIntroChapter] { displayedChapters(english: AppLanguage.current.isEnglish) }
 
     init(bundle: Bundle = .main) {
         load(from: bundle)
+    }
+
+    func displayedChapters(english: Bool) -> [YijingIntroChapter] {
+        if english, !englishChapters.isEmpty {
+            return englishChapters.map(\.zhDisplayed)
+        }
+        return rawChapters.map(\.zhDisplayed)
     }
 
     func load(from bundle: Bundle) {
@@ -127,6 +135,13 @@ final class YijingIntroStore {
             rawChapters = book.chapters
         } catch {
             assertionFailure("Failed to load YijingIntro.json: \(error)")
+        }
+        if let enURL = bundle.url(forResource: "YijingIntro.en", withExtension: "json") {
+            do {
+                englishChapters = try JSONDecoder().decode(YijingIntroBook.self, from: Data(contentsOf: enURL)).chapters
+            } catch {
+                assertionFailure("Failed to load YijingIntro.en.json: \(error)")
+            }
         }
     }
 }

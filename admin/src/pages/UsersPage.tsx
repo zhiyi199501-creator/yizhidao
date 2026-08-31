@@ -40,22 +40,22 @@ export function UsersPageView() {
         <table>
           <thead>
             <tr>
-              <th>用户</th>
+              <th>用户 ID</th>
+              <th>昵称</th>
+              <th>邮箱</th>
               <th>登录</th>
-              <th>注册</th>
               <th>最近登录</th>
               <th>今日 AI</th>
               <th>累计 AI</th>
+              <th>用户购买</th>
             </tr>
           </thead>
           <tbody>
             {(data?.users || []).map((user) => (
               <tr key={user.id} className="clickable" onClick={() => navigate(`/users/${user.id}`)}>
-                <td>
-                  <div>{user.nickname}</div>
-                  <div className="muted mono">{user.id}</div>
-                  <div className="muted">{user.email || user.phone || "—"}</div>
-                </td>
+                <td className="mono">{user.id}</td>
+                <td>{user.nickname}</td>
+                <td>{user.email || "—"}</td>
                 <td>
                   {user.loginMethods.map((method) => (
                     <span className="badge" key={method}>
@@ -63,10 +63,10 @@ export function UsersPageView() {
                     </span>
                   ))}
                 </td>
-                <td>{formatDateTime(user.createdAt)}</td>
                 <td>{formatDateTime(user.lastLoginAt)}</td>
                 <td>{formatNumber(user.aiToday)}</td>
                 <td>{formatNumber(user.aiTotal)}</td>
+                <td>{user.iapUnlocked ? "解锁问答" : ""}</td>
               </tr>
             ))}
           </tbody>

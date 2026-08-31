@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// 揭卦：六爻自初至上逐根显形，动爻点朱砂，再压印卦名。
-/// 压印后停住，完成礼仪第四步，点「弟子退」才进结果页。
+/// 压印后停住，出示致谢礼文（「弟子退」是话，不是按钮），点「看辞」才进结果页。
 struct CastRevealView: View {
     let result: CastResult
     var onFinish: () -> Void
@@ -73,7 +73,7 @@ struct CastRevealView: View {
             sequence = nil
         }
         .accessibilityElement(children: .contain)
-        .accessibilityAction(named: Text("跳过动画".zh)) { skipAnimation() }
+        .accessibilityAction(named: Text("跳过动画".ui("Skip animation"))) { skipAnimation() }
     }
 
     @ViewBuilder
@@ -128,11 +128,11 @@ struct CastRevealView: View {
 
     private var seal: some View {
         VStack(spacing: 8) {
-            Text(primary?.displayName ?? "第\(result.primaryNumber)卦".zh)
+            Text(primary?.displayName ?? "第\(result.primaryNumber)卦".ui("Hexagram \(result.primaryNumber)"))
                 .font(.system(size: 36, weight: .bold))
                 .foregroundStyle(AppTheme.accent)
             if let resulting {
-                Text("之 \(resulting.displayName)".zh)
+                Text("之 \(resulting.displayName)".ui("Relating · \(resulting.displayName)"))
                     .font(.title3)
                     .foregroundStyle(.secondary)
             }
@@ -144,14 +144,20 @@ struct CastRevealView: View {
 
     private var thanks: some View {
         VStack(spacing: 18) {
-            Text("感谢爻变开化之神的指示".zh)
-                .font(.footnote)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
+            VStack(spacing: 8) {
+                Text("感谢爻变开化之神的指示".zh)
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                Text("弟子退".zh)
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                RitualEnglishCaption(text: "Step back")
+            }
             Button {
                 finish()
             } label: {
-                Text("弟子退".zh)
+                Text("看辞".ui("Read"))
                     .font(.headline)
                     .padding(.horizontal, 28)
                     .padding(.vertical, 10)
@@ -166,7 +172,7 @@ struct CastRevealView: View {
     }
 
     private var skipHint: some View {
-        Text("轻点跳过动画".zh)
+        Text("轻点跳过动画".ui("Tap to skip"))
             .font(.caption2)
             .foregroundStyle(.tertiary)
             .opacity(showsThanks || didFinish ? 0 : 1)

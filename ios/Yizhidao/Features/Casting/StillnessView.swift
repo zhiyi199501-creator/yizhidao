@@ -43,7 +43,8 @@ struct StillnessView: View {
                         Text(promptText.zh)
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
-                            .frame(height: 22)
+                        RitualEnglishCaption(text: "Hold to settle")
+                            .frame(height: 18)
                     }
                 }
                 Spacer()
@@ -72,9 +73,9 @@ struct StillnessView: View {
                     .font(.body.weight(.semibold))
                     .foregroundStyle(.secondary)
             }
-            .accessibilityLabel("取消起卦".zh)
+            .accessibilityLabel("取消起卦".ui("Cancel casting"))
             Spacer()
-            Button("跳过".zh) { finish() }
+            Button("跳过".ui("Skip")) { finish() }
                 .font(.subheadline)
                 .foregroundStyle(.tertiary)
         }
@@ -129,8 +130,8 @@ struct StillnessView: View {
                 }
         )
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("凝心一会".zh)
-        .accessibilityHint("按住，满了继续".zh)
+        .accessibilityLabel("凝心一会".ui("Hold to settle"))
+        .accessibilityHint("按住，满了继续".ui("Hold until the circle fills"))
         .accessibilityAddTraits(.isButton)
         .accessibilityAction { finish() }
     }

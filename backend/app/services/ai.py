@@ -22,8 +22,38 @@ def _yao_name(position: int) -> str:
     return names.get(position, str(position))
 
 
-def _focus_text(moving: List[int]) -> str:
+def _yao_name_en(position: int) -> str:
+    names = {1: "first", 2: "second", 3: "third", 4: "fourth", 5: "fifth", 6: "top"}
+    return names.get(position, str(position))
+
+
+def _focus_text(moving: List[int], english: bool = False) -> str:
     count = len(moving)
+    if english:
+        if count == 0:
+            return "No line moved. Attend to the Judgment of the primary hexagram."
+        if count == 1:
+            return f"One line moved. Attend to the {_yao_name_en(moving[0])} line of the primary hexagram."
+        if count == 2:
+            lead = moving[-1]
+            return (
+                "Two lines moved. Attend to both moving lines of the primary hexagram; "
+                f"the {_yao_name_en(lead)} line leads."
+            )
+        if count == 3:
+            return "Three lines moved. Attend to the Judgments of both hexagrams; the primary leads."
+        if count == 4:
+            statics = [p for p in range(1, 7) if p not in moving]
+            lead = statics[0] if statics else 1
+            return (
+                "Four lines moved. Attend to the two still lines of the relating hexagram; "
+                f"the {_yao_name_en(lead)} line leads."
+            )
+        if count == 5:
+            statics = [p for p in range(1, 7) if p not in moving]
+            lead = statics[0] if statics else 1
+            return f"Five lines moved. Attend to the still {_yao_name_en(lead)} line of the relating hexagram."
+        return "All six lines moved. Attend to the Judgment of the relating hexagram."
     if count == 0:
         return "六爻皆不变，主看本卦卦辞。"
     if count == 1:
@@ -133,7 +163,7 @@ def _focus_scripture_block(
 
 def _reading_sketch(body: AIAnalysisBody) -> str:
     moving = sorted(set(p for p in body.movingPositions if 1 <= p <= 6))
-    question = (body.question or "").strip() or "（用户未填写所问）"
+    question = (body.question or "").strip()
     parts = [
         f"起卦方式：{_method_label(body.method)}",
         f"所问：{question}",
@@ -307,7 +337,7 @@ def _cases_block(
 def _build_prompt(body: AIAnalysisBody) -> str:
     moving = sorted(set(p for p in body.movingPositions if 1 <= p <= 6))
     focus = _focus_text(moving)
-    question = (body.question or "").strip() or "（用户未填写所问）"
+    question = (body.question or "").strip()
 
     parts = [
         f"起卦方式：{_method_label(body.method)}",
@@ -323,51 +353,72 @@ def _build_prompt(body: AIAnalysisBody) -> str:
     parts.append(f"解卦焦点：{focus}")
     parts.append(_explanations_block(body.primaryNumber, body.resultingNumber, moving))
     parts.append(_cases_block(body.primaryNumber, body.resultingNumber, moving))
-    parts.append(
-        "解读框架：卦辞看事情背景（先参本卦卦辞讲解，彖辞助理解格局，勿另起一套背景）；"
-        "大象辞看占者宜努力的方向；动爻之爻辞与小象看当下情形（无动爻时，当下参本卦卦辞与大象）。"
-        "黄庭讲解用于理解辞义；讲习案例若附上则只作取象参照。结论必须针对本次所问。"
-        "请分别写清事情背景、当下、方向、须防（一条）与建议，并给出用户可直接点选发出的短追问（用「我」的口吻）。"
-        "若用户未填写所问：建议里请其点选事业或感情方向；可再问由系统固定，不必自拟。"
-    )
+    if _ui_english(body):
+        parts.insert(0, EN_OUTPUT_LOCK)
+        parts.append(
+            "Write the cards in English. Quote any scripture in the original Chinese; do not translate the 经文. "
+            "Judgment (卦辞) → background; the Image (大象) → direction; moving-line texts → the present. "
+            "Huangting notes help you read the words; cases are only for taking images, never copy their stories. "
+            "Fill summary, focus, direction, one caution, advice, and short follow-ups in the user's voice (I / my)."
+        )
+    else:
+        parts.append(
+            "解读框架：卦辞看事情背景（先参本卦卦辞讲解，彖辞助理解格局，勿另起一套背景）；"
+            "大象辞看占者宜努力的方向；动爻之爻辞与小象看当下情形（无动爻时，当下参本卦卦辞与大象）。"
+            "黄庭讲解用于理解辞义；讲习案例若附上则只作取象参照。结论必须针对本次所问。"
+            "请分别写清事情背景、当下、方向、须防（一条）与建议，并给出用户可直接点选发出的短追问（用「我」的口吻）。"
+        )
     return "\n\n".join(parts)
 
 
-def _question_blank(question: Optional[str]) -> bool:
-    return not (question or "").strip()
+def _ui_english(body: AIAnalysisBody) -> bool:
+    return (body.uiLanguage or "zh").lower().startswith("en")
 
 
-EMPTY_QUESTION_ASK_NEXT = ["我的事业会如何？", "我的感情会如何？"]
-
-
-def _apply_empty_question_ask_next(question: Optional[str], analysis: AIAnalysisContent) -> AIAnalysisContent:
-    if _question_blank(question):
-        analysis.askNext = list(EMPTY_QUESTION_ASK_NEXT)
-    return analysis
+EN_OUTPUT_LOCK = (
+    "OUTPUT LANGUAGE: English. "
+    "Every JSON string you write (summary, focus, direction, risks, advice, askNext, reply) must be English. "
+    "The materials below are Chinese. Quote 经文 in Chinese; do not translate it. "
+    "Do not write the cards, reply, or advice in Chinese."
+)
 
 
 def _analyze_mock(body: AIAnalysisBody) -> Tuple[AIAnalysisContent, AIUsage]:
     moving = sorted(set(p for p in body.movingPositions if 1 <= p <= 6))
-    focus = _focus_text(moving)
+    english = _ui_english(body)
+    focus = _focus_text(moving, english=english)
     question = (body.question or "").strip()
-    if question:
-        summary = f"就「{question}」而言，宜先辨本卦与动变之消息，再按解卦通则取舍。"
+    clip = question if len(question) <= 16 else question[:16] + "…"
+    if english:
+        summary = f"On “{question}”, first read the primary hexagram and its changes, then keep to the reading rule."
         advice = [
-            "对照卦辞与动爻，把所问落到一件可做之事上。",
-            "占得仅供参考，关键仍在于审时度势、守中而行。",
+            "Set the question against the Judgment and the moving lines, and name one thing you can do.",
+            "The cast is for contemplation, not a verdict. Keep to the mean.",
         ]
-        clip = question if len(question) <= 16 else question[:16] + "…"
         ask_next = [
-            f"我「{clip}」接下来会怎样？",
-            "我眼下最该先做什么？",
+            f"What happens next with “{clip}”?",
+            "What should I do first?",
         ]
-    else:
-        summary = "所问未明，宜先回观本卦与动变之消息，再按解卦通则取舍。"
-        advice = [
-            "可点下面的「我的事业会如何？」或「我的感情会如何？」，把方向补上再往下问。",
-            "占得仅供参考，关键仍在于审时度势、守中而行。",
-        ]
-        ask_next = list(EMPTY_QUESTION_ASK_NEXT)
+        if body.resultingNumber is None and moving:
+            advice.insert(0, "A line has moved. Stay with that line; do not rush to the relating hexagram.")
+        risks = ["Do not take an auspicious phrase as a free pass, or a caution as a stop."]
+        return AIAnalysisContent(
+            summary=summary,
+            focus=focus,
+            direction="Match the Image of the primary hexagram. Act from the center, and spend your strength where it can still be spent.",
+            risks=risks,
+            advice=advice,
+            askNext=ask_next,
+        ), AIUsage(promptTokens=0, completionTokens=0)
+    summary = f"就「{question}」而言，宜先辨本卦与动变之消息，再按解卦通则取舍。"
+    advice = [
+        "对照卦辞与动爻，把所问落到一件可做之事上。",
+        "占得仅供参考，关键仍在于审时度势、守中而行。",
+    ]
+    ask_next = [
+        f"我「{clip}」接下来会怎样？",
+        "我眼下最该先做什么？",
+    ]
     if body.resultingNumber is None and moving:
         advice.insert(0, "动爻已显，宜细玩动爻辞义，不必急求之卦。")
     risks = ["勿只看吉辞而忽其戒惧，亦勿因一句凶辞即停步不前。"]
@@ -444,10 +495,18 @@ def _string_list(value) -> list[str]:
 
 
 def _strip_risk_prefix(text: str) -> str:
-    for prefix in ("须防：", "须防:", "須防：", "須防:"):
-        if text.startswith(prefix):
-            return text[len(prefix):].strip()
-    return text
+    prefixes = ("须防：", "须防:", "須防：", "須防:", "Watch: ", "Watch:", "Caution: ", "Caution:")
+    t = text.strip()
+    while True:
+        for prefix in prefixes:
+            if t.startswith(prefix):
+                t = t[len(prefix):].strip()
+                break
+        else:
+            break
+    if t in ("须防", "須防", "Watch", "Caution"):
+        return ""
+    return t
 
 
 def _one_risk(items: list[str]) -> list[str]:
@@ -470,7 +529,22 @@ def _analysis_from_parsed(parsed: dict) -> AIAnalysisContent:
     )
 
 
-def _previous_analysis_block(prev: AIAnalysisContent) -> str:
+def _previous_analysis_block(prev: AIAnalysisContent, english: bool = False) -> str:
+    if english:
+        parts = [
+            "Earlier reading:",
+            f"Background: {prev.summary}",
+            f"Present: {prev.focus}",
+        ]
+        if prev.direction:
+            parts.append(f"Direction: {prev.direction}")
+        if prev.risks:
+            parts.append("Watch: " + "; ".join(prev.risks))
+        if prev.advice:
+            parts.append("Advice: " + "; ".join(prev.advice))
+        if prev.askNext:
+            parts.append("Ask next: " + "; ".join(prev.askNext))
+        return "\n".join(parts)
     parts = [
         "此前解读：",
         f"事情背景：{prev.summary}",
@@ -488,23 +562,36 @@ def _previous_analysis_block(prev: AIAnalysisContent) -> str:
 
 
 def _analyze_openai(body: AIAnalysisBody) -> Tuple[AIAnalysisContent, AIUsage]:
-    system_prompt = (
-        "你是「易玩家」的易经解读助手。依据提供的卦象与经文（《易经证释》所引）做占问解读。"
-        "解读须按：卦辞→事情背景；大象辞→占者宜努力的方向；动爻之爻辞与小象→当下情形。"
-        "本卦卦辞的黄庭书院讲解是事情大背景，须先消化再写事情背景；"
-        "主看卦辞时另附彖辞讲解，只用来理解卦辞格局，不要与卦辞讲解重复成两套背景。"
-        "大象与焦点爻辞讲解帮助理解辞义。"
-        "结论从卦象、卦辞、彖辞、大象辞、爻辞、小象辞中归纳，紧扣「解卦焦点」。"
-        "不要整段照抄讲解原文。若附有与本次焦点爻位相关的讲习案例，可参照其取象、应事与验证，"
-        "但必须针对本次所问与动爻，不可把案例原事或结论直接套到用户身上。"
-        "正文不要重复卡片标题。只输出 JSON，不要 markdown，格式："
-        '{"summary":"事情背景2-4句，据卦辞","focus":"当下2-4句，据动爻爻辞/小象；无动爻则据卦辞与大象","direction":"方向2-3句，据大象辞","risks":["须防一条"],"advice":["可做1","可做2"],"askNext":["我接下来会怎样？","我最该先做什么？"]}'
-        "askNext 必须是用户会亲口问出的短句（用「我」），不要写成对用户的提问或建议。"
-        "须防只写一条。"
-        "若所问未填，advice 须请用户点选事业或感情方向；askNext 仍可随便写，服务端会改成「我的事业会如何？」「我的感情会如何？」。"
-    )
+    if _ui_english(body):
+        system_prompt = (
+            f"{EN_OUTPUT_LOCK} "
+            "You are the Yijing reading assistant for 易玩家. Use the hexagrams and the Chinese scripture "
+            "as quoted in 《易经证释》. Write every card in English. Quote any 经文 in the original Chinese; "
+            "do not translate the scripture, Wilhelm, or Legge. "
+            "Judgment (卦辞) → background; the Image (大象) → direction; moving-line texts and 小象 → the present. "
+            "Huangting notes help you read the words; do not copy them. Cases are only for taking images; "
+            "never paste their stories onto the user. "
+            "Do not repeat card titles in the body. JSON only, no markdown: "
+            '{"summary":"2-4 sentences from the Judgment","focus":"2-4 sentences from the moving line; if none, from Judgment and Image","direction":"2-3 sentences from the Image","risks":["one caution"],"advice":["do 1","do 2"],"askNext":["What happens next?","What should I do first?"]}'
+            "askNext must be short questions the user would say (I / my), not advice to the user. One caution only."
+        )
+    else:
+        system_prompt = (
+            "你是「易玩家」的易经解读助手。依据提供的卦象与经文（《易经证释》所引）做占问解读。"
+            "解读须按：卦辞→事情背景；大象辞→占者宜努力的方向；动爻之爻辞与小象→当下情形。"
+            "本卦卦辞的黄庭书院讲解是事情大背景，须先消化再写事情背景；"
+            "主看卦辞时另附彖辞讲解，只用来理解卦辞格局，不要与卦辞讲解重复成两套背景。"
+            "大象与焦点爻辞讲解帮助理解辞义。"
+            "结论从卦象、卦辞、彖辞、大象辞、爻辞、小象辞中归纳，紧扣「解卦焦点」。"
+            "不要整段照抄讲解原文。若附有与本次焦点爻位相关的讲习案例，可参照其取象、应事与验证，"
+            "但必须针对本次所问与动爻，不可把案例原事或结论直接套到用户身上。"
+            "正文不要重复卡片标题。只输出 JSON，不要 markdown，格式："
+            '{"summary":"事情背景2-4句，据卦辞","focus":"当下2-4句，据动爻爻辞/小象；无动爻则据卦辞与大象","direction":"方向2-3句，据大象辞","risks":["须防一条"],"advice":["可做1","可做2"],"askNext":["我接下来会怎样？","我最该先做什么？"]}'
+            "askNext 必须是用户会亲口问出的短句（用「我」），不要写成对用户的提问或建议。"
+            "须防只写一条。"
+        )
     parsed, usage = _complete_json(system_prompt, _build_prompt(body))
-    analysis = _apply_empty_question_ask_next(body.question, _analysis_from_parsed(parsed))
+    analysis = _analysis_from_parsed(parsed)
     if (
         not analysis.summary
         or not analysis.focus
@@ -518,30 +605,53 @@ def _analyze_openai(body: AIAnalysisBody) -> Tuple[AIAnalysisContent, AIUsage]:
 
 
 def _followup_prompt(body: AIFollowupBody) -> str:
+    english = _ui_english(body)
     parts = [
         _reading_sketch(body),
-        _previous_analysis_block(body.previousAnalysis),
+        _previous_analysis_block(body.previousAnalysis, english=english),
     ]
     if body.conversation:
-        parts.append("此前追问：")
+        parts.append("Earlier follow-ups:" if english else "此前追问：")
         for index, turn in enumerate(body.conversation[-10:], start=1):
-            line = f"{index}. 用户：{turn.user}\n   助手：{turn.assistant}"
-            if turn.advice:
-                line += "\n   建议：" + "；".join(turn.advice)
+            if english:
+                line = f"{index}. User: {turn.user}\n   Assistant: {turn.assistant}"
+                if turn.advice:
+                    line += "\n   Advice: " + "; ".join(turn.advice)
+            else:
+                line = f"{index}. 用户：{turn.user}\n   助手：{turn.assistant}"
+                if turn.advice:
+                    line += "\n   建议：" + "；".join(turn.advice)
             parts.append(line)
-    parts.append(f"用户最新追问或补充：{body.message.strip()}")
-    if body.message.strip() in EMPTY_QUESTION_ASK_NEXT:
-        parts.append("用户点选了所问方向（事业或感情），请按该方向收窄此前解读，并可请其再用一句话落到具体事情上。")
-    parts.append(
-        "请针对这条追问/补充作答，以解卦焦点和此前解读为准，可修正或细化，不要另起一卦之占，不要重贴经文。"
-        "答复后必须给出针对这一轮的建议，以及用户可以继续追问的短句。"
-    )
+    if english:
+        parts.insert(0, EN_OUTPUT_LOCK)
+        parts.append(f"Latest follow-up: {body.message.strip()}")
+        parts.append(
+            "Answer this follow-up in English. Quote any scripture in Chinese; do not translate the 经文. "
+            "Stay with the same cast. Give advice for this turn, and short follow-ups in the user's voice (I / my)."
+        )
+    else:
+        parts.append(f"用户最新追问或补充：{body.message.strip()}")
+        parts.append(
+            "请针对这条追问/补充作答，以解卦焦点和此前解读为准，可修正或细化，不要另起一卦之占，不要重贴经文。"
+            "答复后必须给出针对这一轮的建议，以及用户可以继续追问的短句。"
+        )
     return "\n\n".join(parts)
 
 
 def _followup_mock(body: AIFollowupBody) -> Tuple[str, list[str], list[str], AIUsage]:
     text = body.message.strip()
     clipped = text if len(text) <= 40 else text[:40] + "…"
+    if _ui_english(body):
+        reply = f"Noted: “{clipped}”. Keep it against the moving line and the earlier reading; do not start a new cast."
+        advice = [
+            "Fold this into the same reading. Stay with the focus; do not invent a second story.",
+            "The cast is for contemplation. Do one thing that is still in reach.",
+        ]
+        ask_next = [
+            "If things shift, should I hold or turn?",
+            "What should I do first?",
+        ]
+        return reply, advice, ask_next, AIUsage(promptTokens=0, completionTokens=0)
     reply = f"已记下你的补充「{clipped}」。请仍对照本卦动爻与此前解读，把新背景收进判断里。"
     advice = [
         "把这条补充收进判断，仍以解卦焦点为主，不要另起一套说法。",
@@ -555,16 +665,26 @@ def _followup_mock(body: AIFollowupBody) -> Tuple[str, list[str], list[str], AIU
 
 
 def _followup_openai(body: AIFollowupBody) -> Tuple[str, list[str], list[str], AIUsage]:
-    system_prompt = (
-        "你是「易玩家」的易经解读助手。用户已得到初次解读，现在追问或补充背景。"
-        "结合解卦焦点、焦点经文与此前解读作答；有新背景时据此调整判断。"
-        "不要另起一卦之占。用户可能点选「可以接着问」里的短问（含「我的事业会如何？」「我的感情会如何？」以补方向），或自己补充背景；针对这一条作答即可。"
-        "askNext 必须是用户会亲口问出的短句（用「我」）。"
-        "不要重贴经文，不要整段照抄讲解。"
-        "答复之后必须另给建议（可做之事）和可继续追问的短句。"
-        "正文不要重复卡片标题。只输出 JSON，不要 markdown，格式："
-        '{"reply":"针对追问的答复，可分2-6句","advice":["可做1","可做2"],"askNext":["我会怎样？","我最该先做什么？"]}'
-    )
+    if _ui_english(body):
+        system_prompt = (
+            f"{EN_OUTPUT_LOCK} "
+            "You are the Yijing reading assistant for 易玩家. The user already has a first reading and is following up. "
+            "Stay with the same cast. Write reply, advice, and askNext in English; quote any scripture in Chinese. "
+            "They may tap a short askNext or add background. Answer this turn only. "
+            "askNext must be questions the user would say (I / my). JSON only: "
+            '{"reply":"English, 2-6 sentences. Quote 经文 in Chinese.","advice":["English do 1","English do 2"],"askNext":["What happens next?","What should I do first?"]}'
+        )
+    else:
+        system_prompt = (
+            "你是「易玩家」的易经解读助手。用户已得到初次解读，现在追问或补充背景。"
+            "结合解卦焦点、焦点经文与此前解读作答；有新背景时据此调整判断。"
+            "不要另起一卦之占。用户可能点选「可以接着问」里的短问，或自己补充背景；针对这一条作答即可。"
+            "askNext 必须是用户会亲口问出的短句（用「我」）。"
+            "不要重贴经文，不要整段照抄讲解。"
+            "答复之后必须另给建议（可做之事）和可继续追问的短句。"
+            "正文不要重复卡片标题。只输出 JSON，不要 markdown，格式："
+            '{"reply":"针对追问的答复，可分2-6句","advice":["可做1","可做2"],"askNext":["我会怎样？","我最该先做什么？"]}'
+        )
     parsed, usage = _complete_json(system_prompt, _followup_prompt(body))
     reply = str(parsed.get("reply", "")).strip()
     advice = _string_list(parsed.get("advice"))

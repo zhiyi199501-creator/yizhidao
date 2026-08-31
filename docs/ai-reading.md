@@ -1,14 +1,14 @@
 # AI 问答
 
-本文件说明结果页「问答」怎么拼材料、出卡、App 怎么用。接口路径与 JSON 字段以 `[backend-min-spec.md](backend-min-spec.md)` 为准；提示词原文以 `backend/app/services/ai.py` 为准。改解卦通则先改 App 的 `ReadingGuide` 并补测，再对这里的焦点表。
+本文件说明结果页「问答」怎么拼材料、出 JSON、App 怎么展示。接口路径与 JSON 字段以 `[backend-min-spec.md](backend-min-spec.md)` 为准；提示词原文以 `backend/app/services/ai.py` 为准。改解卦通则先改 App 的 `ReadingGuide` 并补测，再对这里的焦点表。
 
-**状态（2026-08-28）**：扩卡、黄庭进 prompt、按爻裁案例、主看卦辞时附彖辞已合 `main`（[PR #12](https://github.com/zhiyi199501-creator/yizhidao/pull/12)）。生产 `api.yiwanjia.work` 仍是发版前的三字段解读（`summary` / `focus` / `advice` + 追问单段 `reply`）；须重建镜像（含 `ImaExplanations.json`）并发 App 后才现役。
+**状态（2026-08-31）**：扩卡、黄庭进 prompt、按爻裁案例、主看卦辞时附彖辞已合 `origin/main`（[PR #12](https://github.com/zhiyi199501-creator/yizhidao/pull/12)）。生产 `api.yiwanjia.work` 仍是发版前的三字段解读（`summary` / `focus` / `advice` + 追问单段 `reply`）；须重建镜像（含 `ImaExplanations.json`）并发 App 后才现役。买断额度（未购 3 / 买断 30）已提交 `feature/iap-unlock-readings`，未合 `origin/main`；生产 `POST /v1/iap/verify` 仍 404。
 
 这不是对话 agent，也不是多跳 RAG：本地起卦算完卦象，后端一次 Chat Completions，强制 JSON。密钥只在服务端。
 
 ## 用户路径
 
-结果页悬浮 **问**：该占已有问答则直接打开，**禁止重打** `analyze`。没有则自动 `POST /v1/ai/analyze`（需登录）。刚起完的卦进入结果页约 2 秒后自动打开问答，只自动一次。页标题「问答」。卡片：事情背景 / 当下 / 方向 / 建议 / 可以接着问。须防只一条，并入建议（条目前加「须防：」），接口仍单独返回 `risks`。长文由 App `AIAnswerFormatter` 在展示层按句分段，不改存盘。问答详情右上角「同类」与结果页相同（进历史同卦明细）。所问必填（告神幕）；接口仍接受空所问（旧记录），空时「可以接着问」固定为「我的事业会如何？」「我的感情会如何？」。点短问即发出（不填入输入框），或自写后发 → `POST /v1/ai/followup` → 回复 + 这一轮建议；最新一轮仍给「可以接着问」（须是用户口吻，用「我」）。初次的短问在已有追问后藏掉。问答自动保存到本地「问答」Tab（一占一条）；追问成功会更新该条。
+结果页悬浮 **问**：该占已有问答则直接打开，**禁止重打** `analyze`。没有则自动 `POST /v1/ai/analyze`（需登录）。刚起完的卦进入结果页约 2 秒后自动打开问答，只自动一次。页标题「问答」。正文是一篇回示：页头本卦 ⟶ 之卦＋所问（数字起卦单爻动时箭头上标初…上，点回结果页看辞），主看经文作淡引，事情背景在当下前，当下略大，其次方向／建议；不要四张同模卡。须防只一条，并入建议（条目前加「须防：」，勿叠成「须防：须防」；英文界面加 `Watch:`），接口仍单独返回 `risks`。长文由 App `AIAnswerFormatter` 在展示层按句分段，不改存盘。问答详情右上角「同类」与结果页相同（进历史同卦明细）。所问必填（告神幕）。点短问即发出（不填入输入框），或自写后发 → `POST /v1/ai/followup` → 答文直接接在问句下（不要「回复」标题）+ 这一轮建议；最新一轮仍给「可以接着问」（须是用户口吻，中文用「我」、英文用 I / my）。初次的短问在已有追问后藏掉。问答自动保存到本地「问答」Tab（一占一条，列表本卦⟶之卦＋所问）；追问成功会更新该条。等待「正在玩辞…」；空态「起卦后点问」。英文界面请求带 `uiLanguage: "en"`：正文用英文，经文仍引中文，不英译证释。
 
 旧客户端只读 `summary` / `focus` / `advice` 和追问 `reply`，多出的字段可忽略。
 
@@ -21,7 +21,7 @@
 ## 解读框架
 
 
-| 材料                     | 卡片                     |
+| 材料                     | 字段                     |
 | ---------------------- | ---------------------- |
 | 卦辞（彖助理解格局）             | 事情背景 `summary`         |
 | 大象辞                    | 方向 `direction`         |
@@ -30,7 +30,7 @@
 | 用户可直接发出的短句             | 可以接着问 `askNext`        |
 
 
-黄庭讲解用来读懂辞义，禁止整段照抄。讲习案例只作取象，禁止把案例原事或结论套到用户身上。彖与卦辞讲解勿写成两套背景。正文不要重复卡片标题。
+黄庭讲解用来读懂辞义，禁止整段照抄。讲习案例只作取象，禁止把案例原事或结论套到用户身上。彖与卦辞讲解勿写成两套背景。正文不要重复段标题。
 
 动爻位 1=初 … 6=上。二动「上动」= 两动爻中位次较高者；四动「下静」= 之卦两静爻中位次较低者。与结果页「主看」一致：
 
@@ -92,12 +92,13 @@
 
 - iOS：`ResultView` + `AuthAPI`（`YizhidaoApp.swift`）；本地 `SavedAIAnalysis.swift`（一占一条；按 `readingRecordID`，旧 JSON 缺 ID 时按卦象指纹／时刻容差对上；对上了就展示，不再请求）
 - Android：`AIAnalysisScreen.kt` + `AuthApi.kt`；本地 `SavedAIAnalysis.kt`（`readingRecordId`；`find` 读内存列表，同样禁止已存再 analyze）
-- 展示层卡片标题是中文「事情背景」等，不把 JSON 键名秀给用户。须防不单独成卡，只一条并入建议（条目前加「须防：」）
-- 点「可以接着问」直接发出，不填入输入框。所问为空时这两项固定为「我的事业会如何？」「我的感情会如何？」（服务端覆盖，不靠模型）；有所问时模型须用「我」的口吻拟短问
+- 展示层标题是中文「事情背景」「当下」等（英文界面已有对应壳文案），不把 JSON 键名秀给用户。须防不单独成卡，只一条并入建议（条目前加「须防：」或 `Watch:`，勿叠成「须防：须防」）。正文不要四张同模白卡。
+- 点「可以接着问」直接发出，不填入输入框。模型须用用户口吻拟短问
+- `analyze` / `followup` 可选 `uiLanguage`（`zh` 默认，`en` 写英文正文、引中文辞）。英文时 prompt 开头锁输出语言，追问说明也用英文，避免材料中文把正文拽回中文
 
 ## 限流与失败
 
-按登录用户，进程内计数（单容器；重启清零）。`analyze` 与 `followup` 共用：两次最短间隔 8 秒；同一用户同时只跑 1 个；自然日 UTC+8 合计 40 次。超限 HTTP 429、`code` 4290。间隔/并发文案「请稍后再试」；当天次数用尽「今天的解读次数用完了，明天再来」。界面不展示剩余次数。`AI_RATE_INTERVAL_SEC` / `AI_RATE_DAILY_LIMIT` 可改。模型失败对外只说「解读没有完成，请稍后重试」或「模型服务暂时不可用，请稍后重试」，不回上游原文。不自动重试、不降级 mock。App 已有错误行。
+按登录用户，进程内计数（单容器；重启清零）。`analyze` 与 `followup` 共用：两次最短间隔 8 秒；同一用户同时只跑 1 个；自然日 UTC+8 合计未购 **3** 次、买断 **30** 次（`AI_RATE_DAILY_LIMIT` / `AI_RATE_DAILY_LIMIT_UNLOCK`）。超限 HTTP 429、`code` 4290。间隔/并发文案「请稍后再试」；当天次数用尽「今天的解读次数用完了，明天再来」。解锁问答页展示当日剩余次数；问答结果页不展示。未购用尽时 iOS 出「解锁问答」。模型失败对外只说「解读没有完成，请稍后重试」或「模型服务暂时不可用，请稍后重试」，不回上游原文。不自动重试、不降级 mock。App 已有错误行。
 
 
 
@@ -112,6 +113,8 @@
 | `backend/app/services/hexagram_store.py`                                                                 | 经文                      |
 | `backend/app/routes/ai.py`                                                                               | 需登录的 analyze / followup；限流 |
 | `backend/app/services/ai_rate_limit.py`                                                                  | 按用户间隔 / 当日次数 / 并发       |
+| `backend/app/services/iap.py` / `routes/iap.py`                                                          | StoreKit 2 验单与买断额度（本地未发） |
+| `backend/tests/test_iap.py`                                                                              | 验单、同用户恢复、跨用户 409、额度快照 |
 | `backend/tests/test_ai_content.py` / `test_ima_prompt.py` / `test_ai_cases.py` / `test_eval_fixtures.py` | 字段、槽位、案例筛选、抽检样本         |
 
 

@@ -18,7 +18,7 @@ struct InvocationView: View {
             AppTheme.parchmentGradient.ignoresSafeArea()
 
             VStack(spacing: 0) {
-                Text("所问何事".zh)
+                Text("所问何事".ui("What you ask"))
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(AppTheme.accent)
                     .padding(.top, 40)
@@ -33,7 +33,7 @@ struct InvocationView: View {
                     isFocused = false
                     onConfirm(trimmed)
                 } label: {
-                    Text("敬告".zh)
+                    Text("敬告".ui("Offer"))
                         .font(.headline)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 12)
@@ -54,7 +54,7 @@ struct InvocationView: View {
                     .font(.body.weight(.semibold))
                     .foregroundStyle(.secondary)
             }
-            .accessibilityLabel("取消起卦".zh)
+            .accessibilityLabel("取消起卦".ui("Cancel casting"))
             .padding(.horizontal, 20)
             .padding(.top, 8)
         }
@@ -68,6 +68,11 @@ struct InvocationView: View {
 
     private var invocation: some View {
         VStack(spacing: 14) {
+            Text("爻变开化之神在上".zh)
+                .font(.subheadline)
+                .foregroundStyle(.tertiary)
+                .multilineTextAlignment(.center)
+
             Text("弟子今有".zh)
                 .font(.subheadline)
                 .foregroundStyle(.tertiary)
@@ -80,7 +85,7 @@ struct InvocationView: View {
                 .focused($isFocused)
                 .overlay(alignment: .center) {
                     if text.isEmpty {
-                        Text("简单扼要讲清楚一件事".zh)
+                        Text("简单扼要讲清楚一件事".ui("Name one matter, briefly"))
                             .font(.title3)
                             .foregroundStyle(.tertiary)
                             .allowsHitTesting(false)
@@ -95,6 +100,8 @@ struct InvocationView: View {
                 .font(.subheadline)
                 .foregroundStyle(.tertiary)
                 .multilineTextAlignment(.center)
+
+            RitualEnglishCaption(text: "Offer this question")
         }
     }
 }

@@ -13,6 +13,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.sp
+import com.yizhidao.app.lang.LocalAppLanguage
+import com.yizhidao.app.ui.theme.AppTheme
+import com.yizhidao.app.ui.theme.Text
 import kotlin.math.sqrt
 
 /** 告神之后才选的取数法门。时间卦只占此刻。 */
@@ -71,4 +75,15 @@ fun ShakeDetector(enabled: Boolean, onShake: () -> Unit) {
         manager.registerListener(listener, sensor, SensorManager.SENSOR_DELAY_GAME)
         onDispose { manager.unregisterListener(listener) }
     }
+}
+
+@Composable
+fun RitualEnglishCaption(text: String) {
+    if (!LocalAppLanguage.current.isEnglish) return
+    Text(
+        text,
+        fontSize = 12.sp,
+        color = AppTheme.secondaryText,
+        style = AppTheme.compactText,
+    )
 }

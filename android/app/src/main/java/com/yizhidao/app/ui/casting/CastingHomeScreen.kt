@@ -48,6 +48,7 @@ import com.yizhidao.app.AppContainer
 import com.yizhidao.app.lang.LocalAppLanguage
 import com.yizhidao.app.ui.theme.AppTheme
 import com.yizhidao.app.ui.theme.Text
+import com.yizhidao.app.ui.theme.ui
 import com.yizhidao.app.ui.theme.zh
 import kotlinx.coroutines.delay
 
@@ -90,49 +91,47 @@ fun CastingHomeScreen(
         appeared = true
     }
 
-    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        BoxWithConstraints(Modifier.fillMaxSize()) {
-            val charSp = minOf(22f, maxOf(18f, maxWidth.value / 16f))
-            val taiji = minOf(maxWidth * 0.72f, 280.dp)
-            val spin = rememberInfiniteTransition(label = "taiji")
-            val degrees by spin.animateFloat(
-                initialValue = 0f,
-                targetValue = if (reduceMotion) 0f else 360f,
-                animationSpec = infiniteRepeatable(
-                    tween(96_000, easing = LinearEasing),
-                    RepeatMode.Restart,
-                ),
-                label = "spin",
-            )
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+    BoxWithConstraints(Modifier.fillMaxSize()) {
+        val charSp = minOf(22f, maxOf(18f, maxWidth.value / 16f))
+        val taiji = minOf(maxWidth * 0.72f, 280.dp)
+        val spin = rememberInfiniteTransition(label = "taiji")
+        val degrees by spin.animateFloat(
+            initialValue = 0f,
+            targetValue = if (reduceMotion) 0f else 360f,
+            animationSpec = infiniteRepeatable(
+                tween(96_000, easing = LinearEasing),
+                RepeatMode.Restart,
+            ),
+            label = "spin",
+        )
+        Column(
+            Modifier
+                .fillMaxSize()
+                .padding(bottom = 8.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Box(
+                Modifier.weight(1f),
+                contentAlignment = Alignment.Center,
+            ) {
                 CastingTaijiMark(
                     Modifier
                         .size(taiji)
-                        .rotate(degrees)
-                        .align(Alignment.Center),
+                        .rotate(degrees),
                 )
-                Column(
-                    Modifier
-                        .fillMaxSize()
-                        .padding(bottom = 8.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                ) {
-                    Box(
-                        Modifier.weight(1f),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        ScrollColumns(
-                            charSp = charSp,
-                            appeared = appeared,
-                            reduceMotion = reduceMotion,
-                        )
-                    }
-                    StartCastSeal(appeared = appeared, reduceMotion = reduceMotion) {
-                        ritualOpen = true
-                    }
-                    Box(Modifier.weight(0.28f))
-                }
+                ScrollColumns(
+                    charSp = charSp,
+                    appeared = appeared,
+                    reduceMotion = reduceMotion,
+                )
             }
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                StartCastSeal(appeared = appeared, reduceMotion = reduceMotion) {
+                    ritualOpen = true
+                }
+                RitualEnglishCaption("Cast")
+            }
+            Box(Modifier.weight(0.28f))
         }
     }
 
@@ -262,7 +261,7 @@ private fun StartCastSeal(
         animationSpec = tween(120),
         label = "press",
     )
-    val label = zh("起卦")
+    val label = ui("起卦", "Cast")
     val density = LocalDensity.current
     val ring = with(density) { 1.8.dp.toPx() }
     val ringInner = with(density) { 1.6.dp.toPx() }

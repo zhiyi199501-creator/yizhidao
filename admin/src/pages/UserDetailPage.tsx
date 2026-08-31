@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { ApiError, UserDetail, api } from "../api";
 import { LOGIN_LABELS, formatDateTime, formatNumber } from "../format";
-import { Bars, Stat } from "../ui";
+import { Stat, TrendChart } from "../ui";
 
 export function UserDetailPage() {
   const { userId = "" } = useParams();
@@ -44,11 +44,18 @@ export function UserDetailPage() {
           <dd>{user.phone || "—"}</dd>
           <dt>登录方式</dt>
           <dd>{user.loginMethods.map((method) => LOGIN_LABELS[method] || method).join(" / ")}</dd>
+          <dt>用户购买</dt>
+          <dd>{user.iapUnlocked ? "解锁问答" : ""}</dd>
         </dl>
       </div>
       <div className="card">
-        <p className="label">近 14 日调用（不含所问与正文）</p>
-        <Bars points={data.daily} />
+        <TrendChart
+          title="近 14 日调用"
+          total={formatNumber(data.daily.reduce((sum, point) => sum + point.calls, 0))}
+          points={data.daily}
+          valueOf={(point) => point.calls}
+          color="var(--chart-calls)"
+        />
       </div>
     </div>
   );

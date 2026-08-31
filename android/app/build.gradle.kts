@@ -11,7 +11,7 @@ val generatedAssets = layout.buildDirectory.dir("generated/iosAssets")
 val copyIosAssets by tasks.registering(Copy::class) {
     from(iosResources) {
         // 不含 Zhengshi.json：安卓暂无《易经证释》入口，避免白白增大 APK。
-        include("Hexagrams.json", "cases.json", "YijingIntro.json", "ImaExplanations.json")
+        include("Hexagrams.json", "cases.json", "YijingIntro.json", "YijingIntro.en.json", "ImaExplanations.json")
     }
     into(generatedAssets)
     // 清掉历史残留（曾整目录拷过 Zhengshi）。

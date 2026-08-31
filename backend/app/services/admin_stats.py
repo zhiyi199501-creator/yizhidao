@@ -174,19 +174,62 @@ def _count_users_since(db: Session, since: datetime) -> int:
     )
 
 
+def _empty_bucket() -> Dict[str, int]:
+    return {"calls": 0, "promptTokens": 0, "completionTokens": 0}
+
+
+def _add_event(bucket: Dict[str, int], event: AIUsageEvent) -> None:
+    bucket["calls"] += 1
+    bucket["promptTokens"] += int(event.prompt_tokens or 0)
+    bucket["completionTokens"] += int(event.completion_tokens or 0)
+
+
+def _series_point(date: str, bucket: Dict[str, int]) -> Dict[str, Any]:
+    prompt = bucket["promptTokens"]
+    completion = bucket["completionTokens"]
+    return {
+        "date": date,
+        "calls": bucket["calls"],
+        "promptTokens": prompt,
+        "completionTokens": completion,
+        "tokens": prompt + completion,
+    }
+
+
 def _daily_call_series(db: Session, start: datetime, days: int) -> List[Dict[str, Any]]:
     since_utc = as_utc(start)
     events = db.scalars(select(AIUsageEvent).where(AIUsageEvent.created_at >= since_utc)).all()
-    buckets: Dict[str, int] = defaultdict(int)
+    buckets: Dict[str, Dict[str, int]] = defaultdict(_empty_bucket)
     for event in events:
         local = _to_cst(event.created_at)
         if local:
-            buckets[local.date().isoformat()] += 1
+            _add_event(buckets[local.date().isoformat()], event)
     series = []
     for offset in range(days):
         day = (start + timedelta(days=offset)).date().isoformat()
-        series.append({"date": day, "calls": buckets.get(day, 0)})
+        series.append(_series_point(day, buckets.get(day, _empty_bucket())))
     return series
+
+
+def _hourly_call_series(db: Session, start: datetime) -> List[Dict[str, Any]]:
+    since_utc = as_utc(start)
+    until_utc = as_utc(start + timedelta(days=1))
+    events = db.scalars(
+        select(AIUsageEvent).where(
+            AIUsageEvent.created_at >= since_utc,
+            AIUsageEvent.created_at < until_utc,
+        )
+    ).all()
+    buckets: Dict[int, Dict[str, int]] = defaultdict(_empty_bucket)
+    for event in events:
+        local = _to_cst(event.created_at)
+        if local:
+            _add_event(buckets[local.hour], event)
+    day = start.date().isoformat()
+    return [
+        _series_point(f"{day}T{hour:02d}:00", buckets.get(hour, _empty_bucket()))
+        for hour in range(24)
+    ]
 
 
 def content_health() -> Dict[str, Any]:
@@ -250,6 +293,7 @@ def serialize_user(user: User, today_calls: int = 0, total_calls: int = 0) -> Di
         "lastLoginAt": iso(user.last_login_at),
         "aiToday": today_calls,
         "aiTotal": total_calls,
+        "iapUnlocked": bool(user.iap_unlocked),
     }
 
 
@@ -374,9 +418,9 @@ def ai_usage(db: Session, range_key: str) -> Dict[str, Any]:
         "errors": errors,
         "methods": methods,
         "topUsers": top_users,
-        "series": _daily_call_series(db, start, days if range_key != "today" else 1)
-        if range_key != "today"
-        else _daily_call_series(db, today, 1),
+        "series": _hourly_call_series(db, today)
+        if range_key == "today"
+        else _daily_call_series(db, start, days),
     }
 
 

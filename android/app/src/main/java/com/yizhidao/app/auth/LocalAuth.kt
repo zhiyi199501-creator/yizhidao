@@ -1,6 +1,7 @@
 package com.yizhidao.app.auth
 
 import android.content.Context
+import java.io.File
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -15,14 +16,25 @@ data class LocalUserSession(
     val email: String? = null,
     val avatarSymbol: String = "person.crop.circle.fill",
     val accessToken: String? = null,
+    val avatarImagePath: String? = null,
+    val avatarUpdatedAt: String? = null,
 ) {
+    fun applying(user: AuthApi.AccountUser): LocalUserSession = copy(
+        isLoggedIn = true,
+        displayName = user.nickname,
+        phone = user.phone ?: phone,
+        email = user.email ?: email,
+        avatarUpdatedAt = user.avatarUpdatedAt,
+    )
+
     companion object {
         val Guest = LocalUserSession()
     }
 }
 
 class LocalAuthStore(context: Context) {
-    private val prefs = context.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+    private val appContext = context.applicationContext
+    private val prefs = appContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
     private val json = Json { ignoreUnknownKeys = true }
     private val _session = MutableStateFlow(load())
     val session: StateFlow<LocalUserSession> = _session.asStateFlow()
@@ -39,6 +51,7 @@ class LocalAuthStore(context: Context) {
     }
 
     fun logout() {
+        File(appContext.filesDir, "profile-avatar.jpg").delete()
         save(LocalUserSession.Guest)
     }
 

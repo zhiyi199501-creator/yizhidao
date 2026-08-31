@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { ApiError, Overview, api } from "../api";
 import { LOGIN_LABELS, formatCost, formatNumber, formatPercent } from "../format";
-import { Bars, Stat } from "../ui";
+import { Stat, TrendChart } from "../ui";
 
 export function OverviewPage() {
   const [data, setData] = useState<Overview | null>(null);
@@ -47,8 +47,13 @@ export function OverviewPage() {
       </div>
       <div className="grid" style={{ gridTemplateColumns: "1.4fr 1fr" }}>
         <div className="card">
-          <p className="label">近 7 日调用</p>
-          <Bars points={data.aiLast7d} />
+          <TrendChart
+            title="近 7 日调用"
+            total={formatNumber(data.aiLast7d.reduce((sum, point) => sum + point.calls, 0))}
+            points={data.aiLast7d}
+            valueOf={(point) => point.calls}
+            color="var(--chart-calls)"
+          />
         </div>
         <div className="card">
           <p className="label">登录构成（主方式）</p>

@@ -3,6 +3,18 @@ export function formatNumber(value: number | null | undefined): string {
   return value.toLocaleString("zh-CN");
 }
 
+export function formatCompact(value: number): string {
+  if (value >= 1_000_000) {
+    const millions = value / 1_000_000;
+    return `${millions >= 10 ? millions.toFixed(0) : millions.toFixed(1).replace(/\.0$/, "")}M`;
+  }
+  if (value >= 1000) {
+    const thousands = value / 1000;
+    return `${thousands >= 10 ? thousands.toFixed(0) : thousands.toFixed(1).replace(/\.0$/, "")}k`;
+  }
+  return String(Math.round(value));
+}
+
 export function formatPercent(value: number | null | undefined): string {
   if (value == null) return "—";
   return `${(value * 100).toFixed(1)}%`;
