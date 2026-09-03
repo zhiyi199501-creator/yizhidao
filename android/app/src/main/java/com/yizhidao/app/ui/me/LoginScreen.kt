@@ -85,7 +85,8 @@ fun LoginScreen(
     onBack: () -> Unit,
     onSuccess: () -> Unit,
 ) {
-    var page by remember { mutableStateOf(LoginPage.Main) }
+    // 登录入口默认先走邮箱登录；Google 只在“其他登录方式”里切换。
+    var page by remember { mutableStateOf(LoginPage.Email) }
     var agreed by remember { mutableStateOf(false) }
 
     when (page) {
@@ -103,6 +104,7 @@ fun LoginScreen(
             authStore = authStore,
             onBack = { page = LoginPage.Main },
             onSuccess = onSuccess,
+            onGoogleLogin = { page = LoginPage.Main },
         )
     }
 }
@@ -251,6 +253,7 @@ private fun EmailLoginPage(
     authStore: LocalAuthStore,
     onBack: () -> Unit,
     onSuccess: () -> Unit,
+    onGoogleLogin: () -> Unit,
 ) {
     var email by remember { mutableStateOf("") }
     var code by remember { mutableStateOf("") }
@@ -450,6 +453,26 @@ private fun EmailLoginPage(
                 isBusy = isLoggingIn,
                 message = errorMessage,
                 isError = errorMessage != codeSentMessage,
+            )
+
+            Spacer(Modifier.height(16.dp))
+
+            LoginSectionDivider(ui("其他登录方式", "Other ways to sign in"))
+
+            Spacer(Modifier.height(14.dp))
+
+            LoginGhostButton(
+                onClick = onGoogleLogin,
+                label = ui("Google 登录", "Google"),
+                leading = {
+                    Icon(
+                        Icons.Default.Language,
+                        contentDescription = null,
+                        tint = AppTheme.accent,
+                        modifier = Modifier.size(17.dp),
+                    )
+                    Spacer(Modifier.width(8.dp))
+                },
             )
 
             Spacer(Modifier.height(16.dp))
