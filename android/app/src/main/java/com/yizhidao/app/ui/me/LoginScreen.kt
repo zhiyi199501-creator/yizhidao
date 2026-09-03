@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -48,6 +49,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -629,7 +631,7 @@ private fun DividerLine(modifier: Modifier = Modifier) {
     )
 }
 
-/** 高度固定，避免出错或转圈时按钮上下跳动。 */
+/** 至少一行高；错误可多行显示，避免长文案被裁切。 */
 @Composable
 private fun LoginStatusLine(
     isBusy: Boolean,
@@ -639,7 +641,7 @@ private fun LoginStatusLine(
     Box(
         Modifier
             .fillMaxWidth()
-            .height(18.dp),
+            .heightIn(min = 18.dp),
         contentAlignment = Alignment.Center,
     ) {
         when {
@@ -651,11 +653,11 @@ private fun LoginStatusLine(
                 )
                 Spacer(Modifier.width(8.dp))
                 Text(
-                    "登录中…",
+                    "正在连接 Google…",
                     fontSize = 12.sp,
                     color = AppTheme.secondaryText,
                     style = AppTheme.compactText,
-                    en = "Signing in…",
+                    en = "Connecting to Google…",
                 )
             }
             message != null -> Text(
@@ -664,6 +666,12 @@ private fun LoginStatusLine(
                 color = if (isError) AppTheme.yangRed else AppTheme.secondaryText,
                 textAlign = TextAlign.Center,
                 style = AppTheme.compactText,
+                maxLines = 4,
+                overflow = TextOverflow.Ellipsis,
+                lineHeight = 16.sp,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 4.dp),
             )
         }
     }

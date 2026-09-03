@@ -6,6 +6,9 @@ android/build/
 android/app/build/
 android/engines/build/
 android/local.properties
+android/keystore.properties
+android/*.jks
+android/*.keystore
 android/.idea/
 android/*.iml
 android/.kotlin/
@@ -29,3 +32,4 @@ admin/dist/
 /错字登记表.xlsx
 /cases.json
 /易经_*.md
+.secrets-backup/

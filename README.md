@@ -73,4 +73,4 @@ xcodebuild test -project ios/Yizhidao.xcodeproj -scheme Yizhidao -destination 'p
 - Android **Debug**：`android/app/build.gradle.kts` 局域网 IP；**Release**：Build Variant = release，Cronet → 同上生产域名。浏览器能开 `/health` 不算过。
 - 本地邮箱：`EMAIL_PROVIDER=mock`；`DEV_EMAIL_FIXED_CODE` 有值则任意合法邮箱用该码，为空则看终端 `[email:mock]`。生产走 SMTP（Resend），审核勿配邮箱白名单。TLS / HTTP/3 / 安卓 Cronet 见 `docs/deploy.md`
 - AI：`backend/.env` 中 `AI_MODE=mock`（规则）或 `openai`（OpenAI **兼容协议**，本机常用 DeepSeek）。机制见 `docs/ai-reading.md`，App 接口见 `docs/backend-min-spec.md`
-- 运营后台（本地）：`ADMIN_PASSWORD` + `cd admin && npm run dev` → `http://127.0.0.1:5173/admin/`，或 `npm run build` 后开 `http://127.0.0.1:8080/admin/`。生产 `/admin/` 2026-08-31 仍 404（PR #15 已合 `origin/main`），见 `docs/deploy.md`
+- 运营后台（本地）：`ADMIN_PASSWORD` + `cd admin && npm run dev` → `http://127.0.0.1:5173/admin/`，或 `npm run build` 后开 `http://127.0.0.1:8080/admin/`。生产 `/admin/` 已挂（2026-09-03 起未鉴权为 401），见 `docs/deploy.md`

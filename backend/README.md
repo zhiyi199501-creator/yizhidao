@@ -26,7 +26,7 @@ FastAPI 最小后端：Apple / Google / 邮箱 OTP 登录 + AI 问答，接口�
 - 根路径：`http://127.0.0.1:8080/` → 重定向到 `/docs`
 - 健康检查：`GET http://127.0.0.1:8080/health`
 - 接口文档：`http://127.0.0.1:8080/docs`
-- 运营后台（本地）：`.env` 设 `ADMIN_PASSWORD` 后，另开终端 `cd admin && npm run dev` → `http://127.0.0.1:5173/admin/`。已 `npm run build` 时也可开 `http://127.0.0.1:8080/admin/`（静态走 `admin/dist`）。本仓库可管案例（工作副本 + 发布）、黄庭 `answer`、经文（只读）、夹具抽检、App 意见反馈。界面白底，勿套 App 宣纸。**生产 `/admin/` 尚未挂上**（2026-08-31 仍 404；PR #15 已合 `origin/main`），见 `docs/deploy.md`。
+- 运营后台（本地）：`.env` 设 `ADMIN_PASSWORD` 后，另开终端 `cd admin && npm run dev` → `http://127.0.0.1:5173/admin/`。已 `npm run build` 时也可开 `http://127.0.0.1:8080/admin/`（静态走 `admin/dist`）。本仓库可管案例（工作副本 + 发布）、黄庭 `answer`、经文（只读）、夹具抽检、App 意见反馈。界面白底，勿套 App 宣纸。生产 `/admin/` 已挂（2026-09-03 起未鉴权为 Basic **401**；须强 `ADMIN_PASSWORD` / `ADMIN_BASIC_HASH`），见 `docs/deploy.md`。
 
 ## 开发期邮箱验证码（mock）
 
@@ -254,5 +254,5 @@ docker compose up -d --build
 ## 下一步
 
 - App Store：Connect **排除中国大陆**；法律 URL → `https://api.yiwanjia.work/{privacy,terms,support}`；TestFlight → 截屏与元数据 → 提审；品牌名「易玩家」
-- 生产 `.env`：SMTP 已接 Resend（`EMAIL_PROVIDER=smtp`）；`GOOGLE_CLIENT_IDS` 与 App `GOOGLE_WEB_CLIENT_ID` 仍待填。新加坡现役是默认 `docker compose`（api + Caddy）；勿改成 `docker-compose.prod.yml`
+- 生产 `.env`：SMTP 已接 Resend（`EMAIL_PROVIDER=smtp`）；`GOOGLE_CLIENT_IDS` 已填（Web + Android×2）。新加坡现役是默认 `docker compose`（api + Caddy）；勿改成 `docker-compose.prod.yml`
 - （可选）国内遗留机仅运维对照；不上中国区则无需 ICP；App 基址保持 `api.yiwanjia.work`

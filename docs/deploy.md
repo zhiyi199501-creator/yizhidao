@@ -9,7 +9,7 @@
 | **国内后端（遗留，App 不用）** | `https://yzd.codedance.work` | `119.91.239.58`（SSH `yizhidao`） | 运维保留；现役 App 不连 |
 | **旧海外机（遗留）** | `yd.codedance.work` 等 | `43.128.104.104` | 与 videograb 共用系统 Caddy；2026-08-26 改为 **H2-only**（实测关代理不通、开代理通） |
 
-**现役核验（2026-08-31）**：`GET https://api.yiwanjia.work/health` 200；`/privacy` `/terms` `/support` 200。AI 扩卡（PR #12）与内容后台（PR #15）已合 `origin/main`，镜像未重建：解读仍是三字段；`/admin/` 与 `/v1/admin/cases` 仍 404；`POST /v1/iap/verify` 仍 404（IAP 还在本机分支）。法律英文本（`?lang=en`）仍出中文，须发含 `*.en.html` 的镜像后才现役。新加坡机跑 `docker compose`（`backend-caddy-1` + `backend-api-1`），**不是** `docker-compose.prod.yml`。
+**现役核验（2026-09-03）**：`GET https://api.yiwanjia.work/health` 200；`/privacy` `/terms` `/support` 200；`privacy?lang=en` 英文标题已出。内容后台与 IAP 路由已随镜像挂上：`/admin/` **401**（Basic）、`POST /v1/iap/verify` **401**（需登录），不再是 404。生产 `.env` 已配 `GOOGLE_CLIENT_IDS`（3 个）。新加坡机跑 `docker compose`（`backend-caddy-1` + `backend-api-1`），**不是** `docker-compose.prod.yml`。
 
 ### DNS（`yiwanjia.work`）
 
@@ -99,7 +99,7 @@ curl https://yd.codedance.work/health   # 2026-08-26 起 H2-only；遗留对照�
 
 **更新案例**（App 下次打开「我的 → 案例」即 `GET /v1/cases` 全量替换）：
 
-- **现役生产（2026-08-31 仍 404；代码已合 `origin/main`，镜像未重建）**：在对应机 `backend/`：
+- **热更案例文件（仍可用）**：在对应机 `backend/`：
 
 ```bash
 docker compose cp ../ios/Yizhidao/Resources/cases.json api:/app/data/cases.json
@@ -111,7 +111,7 @@ docker compose cp ../ios/Yizhidao/Resources/cases.json api:/app/data/cases.json
 
 本仓库 `admin/`：用量看板 + 案例 CMS + 黄庭改 `answer` + 经文只读 + 夹具抽检 + App 意见反馈。白底，勿套 App 宣纸。不上架、不进 App。两道门：Caddy `basic_auth` + FastAPI `ADMIN_PASSWORD`（Cookie）。用户所问与解读正文不展示、不入库。抽检只用 `backend/tests/eval_fixtures.py`。
 
-**2026-08-31 生产 `https://api.yiwanjia.work/admin/` 仍 404**（PR #15 已合 `origin/main`，镜像未重建）。`docker compose up -d --build` 之后才有这些页。黄庭保存后服务端 AI 立刻用新稿，App 点经文弹层要下次发版；不要跑 `scripts/export_ima_explanations.py`（会覆盖手改）。
+**2026-09-03**：生产 `https://api.yiwanjia.work/admin/` 已挂上（未带 Cookie/Basic 时 **401**）。黄庭保存后服务端 AI 立刻用新稿，App 点经文弹层要下次发版；不要跑 `scripts/export_ima_explanations.py`（会覆盖手改）。
 
 1. 生产 `.env` 设强随机 `ADMIN_PASSWORD`（与 App 用户无关）
 2. 生成 Caddy 口令哈希（**必须是有效 bcrypt**；空哈希可能让 Caddy 起不来、连 App API 一起挂）。`.env` 里把哈希里的 `$` 写成 `$$`：
@@ -163,9 +163,11 @@ sudo docker compose up -d --build --force-recreate
 - [x] 未把 `.env` 提交进 Git
 - [x] 海外现役 `SMS_PROVIDER=mock`（App 无短信入口；勿开 `ALLOW_INSECURE_MOCK_SMS`）
 - [x] `https://api.yiwanjia.work/{privacy,terms,support}` 可访问（Connect 法律 URL）
-- [ ] 运营后台：生产 `ADMIN_PASSWORD` 与 Caddy `ADMIN_BASIC_HASH` 换成强密码（勿留 `dev-admin` / `change-me-basic`）
+- [x] 运营后台路由已挂（`/admin/` 现 401 Basic）；生产 `ADMIN_PASSWORD` 与 Caddy `ADMIN_BASIC_HASH` 仍建议换成强密码（勿留默认）
 - [x] App **不上中国区** → 现役路径 **无需 ICP**；基址保持 `api.yiwanjia.work`
 - [x] Apple / 邮箱登录（客户端 + 后端）；生产邮箱 SMTP（Resend，2026-08-24 已 live：`email_provider=smtp`）
-- [ ] Android Google：生产 `GOOGLE_CLIENT_IDS` 与 `GOOGLE_WEB_CLIENT_ID`
-- [ ] 正式固化新加坡机镜像（避免只热更代码）
-- [ ] IAP 验单：代码仍在本地工作区；上线前生产 `.env` 设 `IAP_VERIFY_MODE=apple`，重建镜像；`POST /v1/iap/verify` 现役 2026-08-30 仍 404。勿把内购挂进正在审的 1.0
+- [x] Android Google：生产 `GOOGLE_CLIENT_IDS`（Web + Play SHA-1 Android + 旁路 SHA-1 Android）与 App `GOOGLE_WEB_CLIENT_ID`
+- [x] 新加坡机镜像已重建（2026-09-03）；之后改代码仍须 `docker compose up -d --build`（改 env 加 `--force-recreate`）
+- [x] IAP 路由已挂（`POST /v1/iap/verify` 401）；生产无 `ALLOW_INSECURE_MOCK_IAP` 时强制 apple。勿把内购挂进正在审的 iOS 1.0
+- [ ] Play 封闭测试（个人账号约 12×14 天）后再申请正式发布
+- [ ] 本机 Android 签名 / Google 登录 / 注销账号改动提交并合 `main`
