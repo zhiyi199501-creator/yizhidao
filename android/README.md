@@ -44,8 +44,12 @@ cd android
 
 ## 当前范围
 
-已实现：数字起卦（三数 / 时间只占此刻）、金钱起卦（起卦页系辞竖排 + 朱印，太极垫在句心；全屏仪式静心→告神→选法门→取数→揭卦，点「看辞」进结果）、本卦之卦与主看、本地历史与回收站、**问答** Tab（全部问答，一占一条自动保存，左滑删除）、案例在「我的」（`GET /v1/cases` 热更新，失败用包内/缓存）、语言跟系统（中文简繁，非中文界面壳英文）、我的页可读基础入门 / 六十四卦 / 四传 / 案例（详情卡片标题彖辞/大象）/ 意见反馈 / 检查更新、**Google（主）/ 邮箱（子页）登录**（Debug/Release 均无短信入口）、资料编辑、问答＋追问（一篇回示：事情背景／当下／方向／建议，须防并入建议；追问后仍给建议与可再问；结果页所问只读可改、不展示取数；「问」：刚起完约 2 秒自动开一次，已有问答直接打开不重生成，没有则自动生成；页标题「问答」；详情右上角「同类」；列表本卦⟶之卦／时间／所问）、设置（回收站同结构，左滑恢复或彻底删除）、**IMA 黄庭书院讲解**（结果／案例／六十四卦详情点经文；弹层约 93% 高，下拉超 1/4 收起，点遮罩不关）。六十四卦／四传页底「经文版本：《易经证释》所引」。数字取数进页不弹键盘。无按键音效。结果／问答详情／历史记录／我的子页隐藏底部 Tab；Manifest `adjustNothing` + 追问栏 `imePadding`（配合 `enableEdgeToEdge()` 贴键盘）。Debug 连局域网 `http://` 须 Debug 专用 `network_security_config`（`cleartextTrafficPermitted`）。连生产见上文。
+已实现：数字起卦（三数 / 时间只占此刻）、金钱起卦（起卦页系辞竖排 + 朱印，太极垫在句心；全屏仪式静心→告神→选法门→取数→揭卦，点「看辞」进结果）、本卦之卦与主看、本地历史与回收站、**问答** Tab（全部问答，一占一条自动保存，左滑删除）、案例在「我的」（`GET /v1/cases` 热更新，失败用包内/缓存）、语言跟系统（中文简繁，非中文界面壳英文）、我的页可读基础入门 / 六十四卦 / 四传 / 案例（详情卡片标题彖辞/大象）/ 意见反馈 / 检查更新、**Google（主）/ 邮箱（子页）登录**（Debug/Release 均无短信入口）、资料编辑、问答＋追问（一篇回示：事情背景／当下／方向／建议，须防并入建议；追问后仍给建议与可再问；结果页所问只读可改、不展示取数；「问」：刚起完约 2 秒自动开一次，已有问答直接打开不重生成，没有则自动生成；页标题「问答」；详情右上角「同类」；列表本卦⟶之卦／时间／所问）、设置（回收站同结构，左滑恢复或彻底删除；已登录可**注销账号**）、**IMA 黄庭书院讲解**（结果／案例／六十四卦详情点经文；弹层约 93% 高，下拉超 1/4 收起，点遮罩不关）。六十四卦／四传页底「经文版本：《易经证释》所引」。数字取数进页不弹键盘。无按键音效。结果／问答详情／历史记录／我的子页隐藏底部 Tab；Manifest `adjustNothing` + 追问栏 `imePadding`（配合 `enableEdgeToEdge()` 贴键盘）。Debug 连局域网 `http://` 须 Debug 专用 `network_security_config`（`cleartextTrafficPermitted`）。连生产见上文。
 
-Google 登录：在 `app/build.gradle.kts` 的 `GOOGLE_WEB_CLIENT_ID` 填入 Google Cloud **Web Client ID**（与后端 `GOOGLE_CLIENT_IDS` 一致）。详见 `backend/README.md`。
+Google 登录：在 `app/build.gradle.kts` 的 `GOOGLE_WEB_CLIENT_ID` 填入 Google Cloud **Web Client ID**（与后端 `GOOGLE_CLIENT_IDS` 一致）。另需 Android OAuth 客户端：包名 `com.yizhidao.app` + **Play 应用签名** SHA-1（内测/商店包）以及（若旁路安装）**上传密钥** SHA-1。刚装包后偶发要等 1–2 分钟；国内红米须已登录 Google 账号并开 VPN。详见 `backend/README.md`、`docs/deploy.md`。
 
-iOS 买断问答（`UnlockStore` / `POST /v1/iap/verify`）安卓尚未接；额度仍按未购每天 3 次，直到另做 Play 结算。
+Release 签名：本机 `android/keystore.properties`（gitignore）指向 `upload-keystore.jks`；示例见 `keystore.properties.example`。打内测包：`./gradlew :app:bundleRelease`（JDK 17/21；勿用 Android Studio 自带 JBR 25）。现役内部测试约 **0.1.8 / versionCode 9**。
+
+设置（已登录）含 **注销账号**（`DELETE /v1/me`），与 iOS 对齐。
+
+iOS 买断问答（`UnlockStore` / `POST /v1/iap/verify`）安卓尚未接 Play Billing；额度仍按未购每天 3 次，直到另做结算。

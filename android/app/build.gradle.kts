@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -20,6 +22,12 @@ val copyIosAssets by tasks.registering(Copy::class) {
     }
 }
 
+val keystorePropertiesFile = rootProject.file("keystore.properties")
+val keystoreProperties = Properties()
+if (keystorePropertiesFile.exists()) {
+    keystorePropertiesFile.inputStream().use { keystoreProperties.load(it) }
+}
+
 android {
     namespace = "com.yizhidao.app"
     compileSdk = 37
@@ -28,27 +36,52 @@ android {
         applicationId = "com.yizhidao.app"
         minSdk = 26
         targetSdk = 37
-        versionCode = 2
-        versionName = "0.1.1"
+        versionCode = 9
+        versionName = "0.1.8"
         vectorDrawables.useSupportLibrary = true
+    }
+
+    signingConfigs {
+        create("release") {
+            if (keystorePropertiesFile.exists()) {
+                keyAlias = keystoreProperties.getProperty("keyAlias")
+                keyPassword = keystoreProperties.getProperty("keyPassword")
+                storeFile = rootProject.file(keystoreProperties.getProperty("storeFile"))
+                storePassword = keystoreProperties.getProperty("storePassword")
+            }
+        }
     }
 
     buildTypes {
         debug {
             // 模拟器连本机后端用 10.0.2.2；真机 Debug 改成 Mac 局域网 IP（ipconfig getifaddr en0）。
             buildConfigField("String", "API_BASE_URL", "\"http://172.20.10.10:8080\"")
-            buildConfigField("String", "GOOGLE_WEB_CLIENT_ID", "\"\"")
+            // Web OAuth client ID（Credential Manager）；与后端 GOOGLE_CLIENT_IDS 中的 Web ID 一致。
+            buildConfigField(
+                "String",
+                "GOOGLE_WEB_CLIENT_ID",
+                "\"259566448600-b7hai5qdlc0nl2c3r699q2f38k026i9j.apps.googleusercontent.com\"",
+            )
         }
         release {
             isMinifyEnabled = true
             isShrinkResources = true
             buildConfigField("String", "API_BASE_URL", "\"https://api.yiwanjia.work\"")
-            buildConfigField("String", "GOOGLE_WEB_CLIENT_ID", "\"\"")
+            buildConfigField(
+                "String",
+                "GOOGLE_WEB_CLIENT_ID",
+                "\"259566448600-b7hai5qdlc0nl2c3r699q2f38k026i9j.apps.googleusercontent.com\"",
+            )
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
             )
-            signingConfig = signingConfigs.getByName("debug")
+            // 有 keystore.properties 用正式钥；否则仍用 debug，避免本机没钥时编不过。
+            signingConfig = if (keystorePropertiesFile.exists()) {
+                signingConfigs.getByName("release")
+            } else {
+                signingConfigs.getByName("debug")
+            }
             // 侧载真机包：只带 arm64，去掉模拟器 x86 / 旧 32 位 ARM。
             ndk {
                 abiFilters += listOf("arm64-v8a")

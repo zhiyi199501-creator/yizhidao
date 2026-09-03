@@ -99,6 +99,7 @@ import com.yizhidao.app.ui.reading.ScaledHexagramFigure
 import com.yizhidao.app.ui.reading.ScriptureSourceLine
 import com.yizhidao.app.ui.theme.AppTheme
 import com.yizhidao.app.ui.theme.PaperBackHeader
+import com.yizhidao.app.ui.theme.PaperTabTitle
 import com.yizhidao.app.ui.theme.PaperChevron
 import com.yizhidao.app.ui.theme.SwipeRevealActions
 import com.yizhidao.app.ui.theme.SwipeAction
@@ -316,19 +317,7 @@ private fun MeHome(
     }
 
     Column(Modifier.fillMaxSize()) {
-        Box(
-            Modifier.fillMaxWidth().padding(vertical = 12.dp),
-            contentAlignment = Alignment.Center,
-        ) {
-            Text(
-                "我的",
-                fontSize = 17.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = AppTheme.ink,
-                style = AppTheme.compactText,
-                en = "Me",
-            )
-        }
+        PaperTabTitle("我的", "Me")
         Column(
             Modifier
                 .fillMaxSize()
@@ -678,7 +667,13 @@ private fun SettingsPage(
     onLogout: () -> Unit,
 ) {
     val trash by container.readingRepository.trash.collectAsState()
+    val scope = rememberCoroutineScope()
+    val language = LocalAppLanguage.current
     var showLogoutConfirm by remember { mutableStateOf(false) }
+    var showDeleteConfirm by remember { mutableStateOf(false) }
+    var isDeletingAccount by remember { mutableStateOf(false) }
+    var deleteErrorMessage by remember { mutableStateOf<String?>(null) }
+
     Column(Modifier.fillMaxSize()) {
         PaperBackHeader(title = "设置", titleEn = "Settings", onBack = onBack)
         Column(
@@ -714,6 +709,20 @@ private fun SettingsPage(
                         showChevron = false,
                         onClick = { showLogoutConfirm = true },
                     )
+                    HorizontalDivider(
+                        modifier = Modifier.padding(horizontal = 16.dp),
+                        color = AppTheme.fieldStroke,
+                        thickness = 0.5.dp,
+                    )
+                    MeRow(
+                        icon = null,
+                        title = "注销账号",
+                        titleEn = "Delete Account",
+                        titleColor = Color(0xFFFF3B30),
+                        showChevron = false,
+                        enabled = !isDeletingAccount,
+                        onClick = { showDeleteConfirm = true },
+                    )
                 }
             }
         }
@@ -734,6 +743,86 @@ private fun SettingsPage(
             dismissButton = {
                 TextButton(onClick = { showLogoutConfirm = false }) {
                     Text("取消", color = AppTheme.accent, en = "Cancel")
+                }
+            },
+            containerColor = AppTheme.parchmentTop,
+        )
+    }
+
+    if (showDeleteConfirm) {
+        AlertDialog(
+            onDismissRequest = { if (!isDeletingAccount) showDeleteConfirm = false },
+            title = { Text("确认注销账号？", en = "Delete this account?") },
+            text = {
+                Text(
+                    "注销后，服务器上的账号信息将被永久删除且不可恢复。设备本地的起卦记录与保存的问答不会自动清除。",
+                    color = AppTheme.ink,
+                    style = AppTheme.compactText,
+                    en = "This permanently deletes your account on the server. Casts and readings saved on this device stay until you remove them.",
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    enabled = !isDeletingAccount,
+                    onClick = {
+                        val token = session.accessToken
+                        if (token.isNullOrBlank()) {
+                            deleteErrorMessage = language.ui(
+                                "登录态已失效，请重新登录",
+                                "Session expired. Please sign in again.",
+                            )
+                            showDeleteConfirm = false
+                            return@TextButton
+                        }
+                        scope.launch {
+                            isDeletingAccount = true
+                            try {
+                                AuthApi.deleteAccount(token)
+                                onLogout()
+                                showDeleteConfirm = false
+                                onBack()
+                            } catch (e: Exception) {
+                                deleteErrorMessage = AuthApi.describe(e)
+                                showDeleteConfirm = false
+                            } finally {
+                                isDeletingAccount = false
+                            }
+                        }
+                    },
+                ) {
+                    if (isDeletingAccount) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(18.dp),
+                            color = Color(0xFFFF3B30),
+                            strokeWidth = 2.dp,
+                        )
+                    } else {
+                        Text("注销账号", color = Color(0xFFFF3B30), en = "Delete Account")
+                    }
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    enabled = !isDeletingAccount,
+                    onClick = { showDeleteConfirm = false },
+                ) {
+                    Text("取消", color = AppTheme.accent, en = "Cancel")
+                }
+            },
+            containerColor = AppTheme.parchmentTop,
+        )
+    }
+
+    deleteErrorMessage?.let { message ->
+        AlertDialog(
+            onDismissRequest = { deleteErrorMessage = null },
+            title = { Text("注销失败", en = "Couldn’t delete account") },
+            text = {
+                Text(message, color = AppTheme.ink, style = AppTheme.compactText)
+            },
+            confirmButton = {
+                TextButton(onClick = { deleteErrorMessage = null }) {
+                    Text("知道了", color = AppTheme.accent, en = "OK")
                 }
             },
             containerColor = AppTheme.parchmentTop,
@@ -970,14 +1059,16 @@ private fun MeRow(
     icon: ImageVector?,
     title: String,
     titleEn: String? = null,
+    titleColor: Color = AppTheme.ink,
     trailing: @Composable (() -> Unit)? = null,
     showChevron: Boolean = true,
+    enabled: Boolean = true,
     onClick: () -> Unit,
 ) {
     Row(
         Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick)
+            .clickable(enabled = enabled, onClick = onClick)
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -988,7 +1079,7 @@ private fun MeRow(
         Text(
             title,
             fontSize = 17.sp,
-            color = AppTheme.ink,
+            color = if (enabled) titleColor else AppTheme.disabledText,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f),

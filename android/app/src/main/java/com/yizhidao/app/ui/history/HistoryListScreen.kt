@@ -65,6 +65,7 @@ import com.yizhidao.app.ui.reading.ResultScreen
 import com.yizhidao.app.ui.theme.AppTheme
 import com.yizhidao.app.ui.theme.PaperBackHeader
 import com.yizhidao.app.ui.theme.PaperChevron
+import com.yizhidao.app.ui.theme.PaperTabTitle
 import com.yizhidao.app.ui.theme.PaperSegmentedRow
 import com.yizhidao.app.ui.theme.SwipeRevealDelete
 import kotlinx.coroutines.launch
@@ -229,19 +230,12 @@ fun HistoryListScreen(
     }
 
     Column(Modifier.fillMaxSize()) {
-        Column(
-            Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-        ) {
-            Text(
-                "历史",
-                fontSize = 28.sp,
-                fontWeight = FontWeight.Bold,
-                color = AppTheme.ink,
-                style = AppTheme.compactText,
-                en = "History",
-            )
-            if (records.isNotEmpty()) {
+        PaperTabTitle("历史", "History")
+        if (records.isNotEmpty()) {
+            Column(
+                Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
                 PaperSegmentedRow(
                     options = listOf(ui("时间", "Time"), ui("按卦", "By hexagram")),
                     selectedIndex = if (byHexagram) 1 else 0,

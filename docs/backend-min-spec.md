@@ -169,7 +169,7 @@
 ```
 - resp: `{ "ok": true, "unlocked": true, "productId": "com.yizhidao.app.ai.unlock", "aiDailyLimit": 30 }`
 - 只记交易号与权益，不存所问或解读正文。同一 `transactionId` 只能绑一个用户；同用户再验视为恢复。其他用户再用同一交易号 → HTTP **409**、`code: 4001`、文案「该购买已绑定其他账号」。凭证无效 → HTTP 400、`code: 4001`。
-- `IAP_VERIFY_MODE=mock|apple`。生产无 `ALLOW_INSECURE_MOCK_IAP` 时强制 `apple`。本机 Xcode StoreKit Configuration 须 `mock`。生产镜像未发前此路由 **404**。
+- `IAP_VERIFY_MODE=mock|apple`。生产无 `ALLOW_INSECURE_MOCK_IAP` 时强制 `apple`。本机 Xcode StoreKit Configuration 须 `mock`。
 
 ### 9) 案例列表（公开，供 App 热更新）
 - `GET /v1/cases`

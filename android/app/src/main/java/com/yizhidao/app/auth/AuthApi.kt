@@ -246,6 +246,15 @@ object AuthApi {
         if (!decoded.ok) throw LoginError.Network("提交失败")
     }
 
+    suspend fun deleteAccount(accessToken: String) {
+        val decoded = delete(
+            path = "/v1/me",
+            accessToken = accessToken,
+            fallback = "注销账号失败",
+        ) { json.decodeFromString<OkResponse>(it) }
+        if (!decoded.ok) throw LoginError.Network("注销账号失败")
+    }
+
     suspend fun analyzeReading(result: CastResult, accessToken: String): AIAnalyzeResponse {
         val decoded = post(
             path = "/v1/ai/analyze",
@@ -386,6 +395,27 @@ object AuthApi {
         val (code, text) = AppHttp.request(
             url = "$baseUrl$path",
             method = "GET",
+            headers = headers,
+            timeoutMs = timeoutMs,
+        )
+        return interpret(code, text, fallback, decode)
+    }
+
+    private suspend inline fun <T> delete(
+        path: String,
+        accessToken: String,
+        fallback: String,
+        timeoutMs: Int = 20_000,
+        crossinline decode: (String) -> T,
+    ): T {
+        val headers = mapOf(
+            "Accept" to "application/json",
+            "Authorization" to "Bearer $accessToken",
+        )
+        val (code, text) = AppHttp.request(
+            url = "$baseUrl$path",
+            method = "DELETE",
+            body = null,
             headers = headers,
             timeoutMs = timeoutMs,
         )

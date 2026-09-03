@@ -42,6 +42,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.yizhidao.CastResult
 import com.yizhidao.app.AppContainer
+import com.yizhidao.app.ui.casting.CastingActOverlay
 import com.yizhidao.app.ui.casting.CastingHomeScreen
 import com.yizhidao.app.ui.history.HistoryListScreen
 import com.yizhidao.app.ui.history.SimilarHexagramJump
@@ -65,10 +66,12 @@ fun YizhidaoRoot(container: AppContainer) {
     var similarJumpTick by remember { mutableIntStateOf(0) }
     var similarJump by remember { mutableStateOf<SimilarHexagramJump?>(null) }
     var hideTabBar by remember { mutableStateOf(false) }
+    var ritualOpen by remember { mutableStateOf(false) }
     val locales = LocalConfiguration.current.locales
     val language = remember(locales.toLanguageTags()) { AppLanguage.from(locales) }
 
     CompositionLocalProvider(LocalAppLanguage provides language) {
+    Box(Modifier.fillMaxSize()) {
     Scaffold(
         containerColor = Color.Transparent,
         bottomBar = {
@@ -102,8 +105,10 @@ fun YizhidaoRoot(container: AppContainer) {
                         )
                     } else {
                         CastingHomeScreen(
-                            container = container,
-                            onResult = { pendingResult = it },
+                            onBeginRitual = {
+                                ritualOpen = true
+                                hideTabBar = true
+                            },
                             onTabBarVisible = { hideTabBar = !it },
                         )
                     }
@@ -132,6 +137,21 @@ fun YizhidaoRoot(container: AppContainer) {
                 )
             }
         }
+    }
+    if (ritualOpen) {
+        CastingActOverlay(
+            chinese = container.chineseDateSource,
+            store = container.hexagramStore,
+            onFinish = { result ->
+                ritualOpen = false
+                pendingResult = result
+            },
+            onCancel = {
+                ritualOpen = false
+                hideTabBar = false
+            },
+        )
+    }
     }
     }
 }

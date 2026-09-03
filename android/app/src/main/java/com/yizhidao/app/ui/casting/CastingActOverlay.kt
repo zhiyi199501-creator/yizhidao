@@ -1,22 +1,20 @@
 package com.yizhidao.app.ui.casting
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalView
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
-import androidx.compose.ui.window.DialogWindowProvider
-import android.view.ViewGroup
 import com.yizhidao.CastResult
 import com.yizhidao.ChineseDateSource
 import com.yizhidao.CoinCastingEngine
@@ -41,27 +39,18 @@ fun CastingActOverlay(
     var intent by remember { mutableStateOf<CastingIntent?>(null) }
     var revealResult by remember { mutableStateOf<CastResult?>(null) }
 
-    Dialog(
-        onDismissRequest = onCancel,
-        properties = DialogProperties(
-            dismissOnBackPress = true,
-            dismissOnClickOutside = false,
-            usePlatformDefaultWidth = false,
-            decorFitsSystemWindows = false,
-        ),
+    BackHandler(onBack = onCancel)
+    Box(
+        Modifier
+            .fillMaxSize()
+            .background(AppTheme.parchmentBrush)
+            .navigationBarsPadding(),
     ) {
-        val dialogView = LocalView.current
-        (dialogView.parent as? DialogWindowProvider)?.window?.setLayout(
-            ViewGroup.LayoutParams.MATCH_PARENT,
-            ViewGroup.LayoutParams.MATCH_PARENT,
-        )
         AnimatedContent(
             targetState = Triple(stage, intent, revealResult),
             transitionSpec = { fadeIn() togetherWith fadeOut() },
             label = "castingAct",
-            modifier = Modifier
-                .fillMaxSize()
-                .background(AppTheme.parchmentBrush),
+            modifier = Modifier.fillMaxSize(),
         ) { (current, chosen, result) ->
             val asked = question
             when {

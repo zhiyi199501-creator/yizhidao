@@ -2,7 +2,7 @@
 
 本文件说明结果页「问答」怎么拼材料、出 JSON、App 怎么展示。接口路径与 JSON 字段以 `[backend-min-spec.md](backend-min-spec.md)` 为准；提示词原文以 `backend/app/services/ai.py` 为准。改解卦通则先改 App 的 `ReadingGuide` 并补测，再对这里的焦点表。
 
-**状态（2026-08-31）**：扩卡、黄庭进 prompt、按爻裁案例、主看卦辞时附彖辞已合 `origin/main`（[PR #12](https://github.com/zhiyi199501-creator/yizhidao/pull/12)）。生产 `api.yiwanjia.work` 仍是发版前的三字段解读（`summary` / `focus` / `advice` + 追问单段 `reply`）；须重建镜像（含 `ImaExplanations.json`）并发 App 后才现役。买断额度（未购 3 / 买断 30）已提交 `feature/iap-unlock-readings`，未合 `origin/main`；生产 `POST /v1/iap/verify` 仍 404。
+**状态（2026-09-03）**：扩卡、黄庭进 prompt、按爻裁案例、主看卦辞时附彖辞已合 `origin/main`（[PR #12](https://github.com/zhiyi199501-creator/yizhidao/pull/12)），生产镜像已重建。买断额度与 `POST /v1/iap/verify` 已合 main（[PR #16](https://github.com/zhiyi199501-creator/yizhidao/pull/16)）；生产路由现役为需登录的 **401**（不再是 404）。未购每天 3 次、买断每天 30 次。
 
 这不是对话 agent，也不是多跳 RAG：本地起卦算完卦象，后端一次 Chat Completions，强制 JSON。密钥只在服务端。
 
