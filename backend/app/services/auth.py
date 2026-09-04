@@ -297,13 +297,17 @@ def _get_or_create_user_by_phone(db: Session, phone: str) -> User:
 
 def _get_or_create_user_by_email(db: Session, email: str) -> User:
     user = db.scalar(select(User).where(User.email == email))
+    desired = nickname_from_email(email)
     if not user:
         user = User(
             id=f"u_{uuid.uuid4().hex[:12]}",
             email=email,
-            nickname=nickname_from_email(email),
+            nickname=desired,
         )
         db.add(user)
+    elif user.nickname in ("邮箱用户", f"用户{mask_email(email)}"):
+        # 旧版默认昵称（脱敏邮箱）在再次登录时换成邮箱 @ 前一段。
+        user.nickname = desired
     return user
 
 
