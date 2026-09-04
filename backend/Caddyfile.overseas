@@ -49,3 +49,18 @@ v1.yiwanjia.work {
 	}
 	import api_proxy
 }
+
+# codedance 对照名（DNS 已指本机；H2-only）。用于 iPhone 11 直连对照，App Release 仍用 api.yiwanjia.work。
+yizhidao.codedance.work {
+	tls {
+		key_type rsa2048
+	}
+	import api_proxy
+}
+
+yd.codedance.work {
+	tls {
+		key_type rsa2048
+	}
+	import api_proxy
+}

@@ -58,7 +58,7 @@ cd android && ./gradlew :engines:test
 - **三数取数幕 `NumberDrawActView`**：一次落一个数；可「随机」，无「一键随机」；落定锁 0.5 秒；「重来」作废。进页不自动弹键盘。**输入框只有一个，放在三个槽位下面**，勿塞进 `ForEach`（否则键盘会掉再弹）
 - 结果页与问答详情右上角 **同类**（同卦明细内已打开的结果不显示）。所问默认只读，点右侧编辑才改，提交不能空；**不展示取数**。悬浮 **问**：该占已有问答则直接打开（不必登录）；没有则自动生成（需登录）。刚起完的卦进入结果页约 2 秒后自动打开问答，**只自动一次**（未登录则先登录；正在改所问则不抢）。返回后再点「问」须复用已存解读，禁止重打 `analyze`。页标题 **问答**；一占一条、自动保存。点「可以接着问」直接发出。问答详情是一篇回示不是四张同模卡：页头本卦⟶之卦＋所问（数字起卦单爻动时箭头上标初…上，可点回结果页看辞）；主看经文淡引；事情背景在当下前，当下略大，其次方向／建议。须防不要叠成「须防：须防」。追问不要「回复」标题。等待用「正在玩辞…」，不用转圈当主角。列表对齐历史（本卦⟶之卦＋所问）；空态「起卦后点问」。机制见 `docs/ai-reading.md`；接口见 `docs/backend-min-spec.md`
 - **AI 展示**：`AIAnswerFormatter`（iOS / Android）只在展示层按句分段，不改存盘原文
-- Debug API：iOS 模拟器 `127.0.0.1:8080`，真机改 `AuthAPI` 局域网 IP；安卓 Debug 改 `android/app/build.gradle.kts`（明文 HTTP 靠 `android/app/src/debug/res/xml/network_security_config.xml`，主配置会覆盖 `usesCleartextTraffic`）。**Release** 仅海外：`https://api.yiwanjia.work`。安卓须 Cronet + Build Variant = release。国内 iPhone 11 蜂窝直连不稳，开代理可通，勿靠轮换子域救场
+- Debug API：iOS 模拟器 `127.0.0.1:8080`，真机改 `AuthAPI` 局域网 IP；安卓 Debug 改 `android/app/build.gradle.kts`（明文 HTTP 靠 `android/app/src/debug/res/xml/network_security_config.xml`，主配置会覆盖 `usesCleartextTraffic`）。**Release** 仅海外：`https://api.yiwanjia.work`。安卓须 Cronet + Build Variant = release。国内 iPhone 11：开代理测生产；勿改 App 基址 / 上 iOS Cronet「救」直连（见 TLS 规则）
 - 登录页：iOS 主按钮 Apple、Android 主按钮 Google；邮箱在「其他登录方式」子页；点登录先检查协议。改 `.env` 后须重启后端；rsync 源若是 `backend/` 须 `--exclude '.env'`（排除 `backend/.env` 挡不住）
 - 生产 TLS/HTTP/3 避坑：`.cursor/rules/prod-tls-http3.mdc`、`docs/deploy.md`
 - **`main` 保护**：禁止直推，经 PR 合并（https://github.com/zhiyi199501-creator/yizhidao）
@@ -66,7 +66,7 @@ cd android && ./gradlew :engines:test
 
 ## 当前状态 / 下一步
 
-**生产新加坡机（2026-09-03 live）**：`https://api.yiwanjia.work/health` 200；`/admin/` **401**（Caddy Basic，已挂上，不再是 404）；`POST /v1/iap/verify` **401**（需登录，不再是 404）；`GET /v1/cases` 200；`privacy?lang=en` 已出英文标题。现役 `docker compose`（api + Caddy）+ `Caddyfile.overseas`。生产 `.env` 已有 `GOOGLE_CLIENT_IDS`（Web + Play 应用签名 Android + 旁路上传密钥 Android，共 3 个）；改 env 须 `--force-recreate`，rsync **勿覆盖** `.env`。`ADMIN_PASSWORD` / `ADMIN_BASIC_*` 仍可能未单独加固（清单见 `docs/deploy.md`）。
+**生产新加坡机（2026-09-04 live）**：`api` / `yizhidao.codedance.work` / `yd.codedance.work` 的 `/health` 均为 200（H2-only，同机 `Caddyfile.overseas`）；App Release 仍只钉 `api.yiwanjia.work`。`/admin/` **401**；`POST /v1/iap/verify` **401**；`GET /v1/cases` 200。iPhone 11 关代理仅对照名 `yizhidao` 直连通（非「拉黑」）；开代理三域通。生产 `.env` 已有 `GOOGLE_CLIENT_IDS`（3 个）；改 env 须 `--force-recreate`，rsync **勿覆盖** `.env`。`ADMIN_PASSWORD` / `ADMIN_BASIC_*` 仍建议加固（`docs/deploy.md`）。
 
 **Android / Play（进行中，本机未提交）**：正式 upload keystore（`android/upload-keystore.jks` + `keystore.properties`，gitignore；示例 `keystore.properties.example`）。Release `GOOGLE_WEB_CLIENT_ID` 已填 Web Client ID；Credential Manager 对 reauth 会短重试。内部测试现役包约 **0.1.8 / versionCode 9**（AAB：`android/app/build/outputs/bundle/release/app-release.aab`）。设置页已接 **注销账号**（`DELETE /v1/me`）。Play 应用签名 SHA-1 与上传密钥 SHA-1 须分建 Android OAuth 客户端；刚装包后 Google 登录偶发要等 1–2 分钟。未合 main 前勿指望远端 CI 有这些改动。下一步：提交/PR、封闭测试（个人开发者约 **12×14 天**）、正式轨。
 
@@ -78,6 +78,6 @@ cd android && ./gradlew :engines:test
 
 **试用登录（Debug）**：`EMAIL_PROVIDER=mock`。有 `DEV_EMAIL_FIXED_CODE` 时任意合法邮箱用该码。Release：iOS Apple／邮箱，Android Google／邮箱。审核包不要配 `EMAIL_TEST_ADDRESSES`。
 
-**国内 / 旧海外机（遗留）**：`yzd.codedance.work`、`yd.codedance.work` 仅运维对照；现役 App 不连。
+**国内 / 旧海外机（遗留）**：`yzd.codedance.work` 仍国内机；`yd` / `yizhidao.codedance.work` 已挂新加坡作对照，App 不连。`43.128.104.104` 仅 videograb 等遗留。
 
-未做／待办：Android 改动提交并合 main；Play 封闭测试；生产运营后台口令加固；Android Play Billing；iOS TestFlight／提审。
+未做／待办：Android 改动提交并合 main；Play 封闭测试；生产运营后台口令加固；Android Play Billing；iOS TestFlight／提审；`Caddyfile.overseas` 对照域名改动合入 main。
