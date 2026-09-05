@@ -2,7 +2,7 @@
 
 本文件说明结果页「问答」怎么拼材料、出 JSON、App 怎么展示。接口路径与 JSON 字段以 `[backend-min-spec.md](backend-min-spec.md)` 为准；提示词原文以 `backend/app/services/ai.py` 为准。改解卦通则先改 App 的 `ReadingGuide` 并补测，再对这里的焦点表。
 
-**状态（2026-09-03）**：扩卡、黄庭进 prompt、按爻裁案例、主看卦辞时附彖辞已合 `origin/main`（[PR #12](https://github.com/zhiyi199501-creator/yizhidao/pull/12)），生产镜像已重建。买断额度与 `POST /v1/iap/verify` 已合 main（[PR #16](https://github.com/zhiyi199501-creator/yizhidao/pull/16)）；生产路由现役为需登录的 **401**（不再是 404）。未购每天 3 次、买断每天 30 次。
+**状态（2026-09-05）**：扩卡、黄庭进 prompt、按爻裁案例、主看卦辞时附彖辞已合 `origin/main`（[PR #12](https://github.com/zhiyi199501-creator/yizhidao/pull/12)），生产镜像现役。买断额度与 `POST /v1/iap/verify` 已合 main（[PR #16](https://github.com/zhiyi199501-creator/yizhidao/pull/16)）；生产路由现役为需登录的 **401**（不再是 404）。未购每天 3 次、买断每天 30 次；安卓在 Play Billing 前可由服务端赠送解锁（`ANDROID_COMPLIMENTARY_UNLOCK`）；`ai_unlimited` 后台可开不限日次。
 
 这不是对话 agent，也不是多跳 RAG：本地起卦算完卦象，后端一次 Chat Completions，强制 JSON。密钥只在服务端。
 

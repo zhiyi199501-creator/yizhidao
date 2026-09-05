@@ -253,6 +253,6 @@ docker compose up -d --build
 
 ## 下一步
 
-- App Store：Connect **排除中国大陆**；法律 URL → `https://api.yiwanjia.work/{privacy,terms,support}`；TestFlight → 截屏与元数据 → 提审；品牌名「易玩家」
+- App Store：Connect **排除中国大陆**；法律 URL → `https://api.yiwanjia.work/{privacy,terms,support}`；**已提审**（待审核通过上架）；品牌名「易玩家」；本版 1.0 勿挂内购
 - 生产 `.env`：SMTP 已接 Resend（`EMAIL_PROVIDER=smtp`）；`GOOGLE_CLIENT_IDS` 已填（Web + Android×2）。新加坡现役是默认 `docker compose`（api + Caddy）；勿改成 `docker-compose.prod.yml`
 - （可选）国内遗留机仅运维对照；不上中国区则无需 ICP；App 基址保持 `api.yiwanjia.work`
