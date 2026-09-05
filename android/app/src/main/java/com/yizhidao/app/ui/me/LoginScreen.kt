@@ -12,7 +12,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -57,7 +57,6 @@ import com.yizhidao.app.BuildConfig
 import com.yizhidao.app.auth.AuthApi
 import com.yizhidao.app.auth.GoogleSignInHelper
 import com.yizhidao.app.auth.LocalAuthStore
-import com.yizhidao.app.auth.LocalUserSession
 import com.yizhidao.app.lang.LocalAppLanguage
 import com.yizhidao.app.ui.theme.AppTheme
 import com.yizhidao.app.ui.theme.PaperBackHeader
@@ -68,6 +67,8 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 private val LoginShape = RoundedCornerShape(15.dp)
+/** 中间登录块略高于几何中心，避免视觉偏沉。 */
+private val LoginCenterLift = 52.dp
 
 private enum class LoginPage {
     Main,
@@ -85,7 +86,8 @@ fun LoginScreen(
     onBack: () -> Unit,
     onSuccess: () -> Unit,
 ) {
-    var page by remember { mutableStateOf(LoginPage.Main) }
+    // 登录入口默认先走邮箱登录；Google 只在“其他登录方式”里切换。
+    var page by remember { mutableStateOf(LoginPage.Email) }
     var agreed by remember { mutableStateOf(false) }
 
     when (page) {
@@ -93,16 +95,16 @@ fun LoginScreen(
             authStore = authStore,
             agreed = agreed,
             onAgreedChange = { agreed = it },
-            onBack = onBack,
+            onBack = { page = LoginPage.Email },
             onSuccess = onSuccess,
-            onEmailLogin = { page = LoginPage.Email },
         )
         LoginPage.Email -> EmailLoginPage(
             agreed = agreed,
             onAgreedChange = { agreed = it },
             authStore = authStore,
-            onBack = { page = LoginPage.Main },
+            onBack = onBack,
             onSuccess = onSuccess,
+            onGoogleLogin = { page = LoginPage.Main },
         )
     }
 }
@@ -114,7 +116,6 @@ private fun MainLoginPage(
     onAgreedChange: (Boolean) -> Unit,
     onBack: () -> Unit,
     onSuccess: () -> Unit,
-    onEmailLogin: () -> Unit,
 ) {
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var isLoggingIn by remember { mutableStateOf(false) }
@@ -150,83 +151,62 @@ private fun MainLoginPage(
         PaperBackHeader(
             title = "",
             onBack = onBack,
-            leading = {
-                TextButton(onClick = onBack) {
-                    Text("取消", color = AppTheme.accent, fontSize = 17.sp, style = AppTheme.compactText, en = "Cancel")
-                }
-            },
         )
-        Column(
+        Box(
             Modifier
                 .fillMaxSize()
                 .padding(horizontal = 28.dp)
                 .padding(bottom = 24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Spacer(Modifier.weight(1f))
+            Column(
+                Modifier
+                    .align(Alignment.Center)
+                    .offset(y = -LoginCenterLift),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                LoginBrandMark()
 
-            LoginBrandMark()
+                Spacer(Modifier.height(36.dp))
 
-            Spacer(Modifier.height(36.dp))
+                LoginFilledButton(
+                    onClick = { requireConsent() },
+                    label = ui("Google 登录", "Google"),
+                    enabled = !isLoggingIn && GoogleSignInHelper.isConfigured,
+                    leading = {
+                        Icon(
+                            Icons.Default.Language,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(18.dp),
+                        )
+                        Spacer(Modifier.width(8.dp))
+                    },
+                )
 
-            LoginFilledButton(
-                onClick = { requireConsent() },
-                label = ui("Google 登录", "Google"),
-                enabled = !isLoggingIn && GoogleSignInHelper.isConfigured,
-                leading = {
-                    Icon(
-                        Icons.Default.Language,
-                        contentDescription = null,
-                        tint = Color.White,
-                        modifier = Modifier.size(18.dp),
-                    )
-                    Spacer(Modifier.width(8.dp))
-                },
-            )
+                Spacer(Modifier.height(16.dp))
 
-            Spacer(Modifier.height(16.dp))
+                LoginStatusLine(
+                    isBusy = isLoggingIn,
+                    message = errorMessage
+                        ?: ui(
+                            "Google 登录需在 build.gradle.kts 配置 GOOGLE_WEB_CLIENT_ID",
+                            "Set GOOGLE_WEB_CLIENT_ID in build.gradle.kts to use Google sign-in",
+                        ).takeIf { !GoogleSignInHelper.isConfigured },
+                    isError = errorMessage != null,
+                )
 
-            LoginStatusLine(
-                isBusy = isLoggingIn,
-                message = errorMessage
-                    ?: ui(
-                        "Google 登录需在 build.gradle.kts 配置 GOOGLE_WEB_CLIENT_ID",
-                        "Set GOOGLE_WEB_CLIENT_ID in build.gradle.kts to use Google sign-in",
-                    ).takeIf { !GoogleSignInHelper.isConfigured },
-                isError = errorMessage != null,
-            )
+                Spacer(Modifier.height(16.dp))
 
-            Spacer(Modifier.height(16.dp))
-
-            ConsentRow(agreed = agreed, onAgreedChange = onAgreedChange)
-
-            Spacer(Modifier.weight(1f))
-
-            LoginSectionDivider(ui("其他登录方式", "Other ways to sign in"))
-
-            Spacer(Modifier.height(14.dp))
-
-            LoginGhostButton(
-                onClick = onEmailLogin,
-                label = ui("邮箱登录", "Email"),
-                leading = {
-                    Icon(
-                        Icons.Default.Email,
-                        contentDescription = null,
-                        tint = AppTheme.accent,
-                        modifier = Modifier.size(17.dp),
-                    )
-                    Spacer(Modifier.width(8.dp))
-                },
-            )
+                ConsentRow(agreed = agreed, onAgreedChange = onAgreedChange)
+            }
 
             if (BuildConfig.DEBUG) {
-                Spacer(Modifier.height(12.dp))
                 Text(
                     ui("当前接口：${AuthApi.baseUrl}", "API: ${AuthApi.baseUrl}"),
                     fontSize = 11.sp,
                     color = AppTheme.secondaryText.copy(alpha = 0.7f),
                     style = AppTheme.compactText,
+                    modifier = Modifier.align(Alignment.BottomCenter),
                 )
             }
         }
@@ -251,6 +231,7 @@ private fun EmailLoginPage(
     authStore: LocalAuthStore,
     onBack: () -> Unit,
     onSuccess: () -> Unit,
+    onGoogleLogin: () -> Unit,
 ) {
     var email by remember { mutableStateOf("") }
     var code by remember { mutableStateOf("") }
@@ -333,128 +314,159 @@ private fun EmailLoginPage(
 
     val canSendCode = !isSendingCode && cooldownSec <= 0 && isValidEmail(email.trim())
 
-    Column(
-        Modifier
-            .fillMaxSize()
-            .imePadding(),
-    ) {
+    Column(Modifier.fillMaxSize()) {
         PaperBackHeader(
             title = "",
             onBack = onBack,
+            leading = {
+                TextButton(onClick = onBack) {
+                    Text("取消", color = AppTheme.accent, fontSize = 17.sp, style = AppTheme.compactText, en = "Cancel")
+                }
+            },
         )
-        Column(
+        Box(
             Modifier
                 .fillMaxSize()
                 .padding(horizontal = 28.dp)
                 .padding(bottom = 24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Spacer(Modifier.height(12.dp))
-
-            Text(
-                "邮箱登录",
-                fontSize = 22.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = AppTheme.accent,
-                style = AppTheme.compactText,
-                en = "Email",
-            )
-            Spacer(Modifier.height(8.dp))
-            Text(
-                "收到验证码后填入即可登录",
-                fontSize = 13.sp,
-                color = AppTheme.secondaryText,
-                style = AppTheme.compactText,
-                en = "Enter the code we send you",
-            )
-
-            Spacer(Modifier.height(32.dp))
-
-            PaperTextField(
-                value = email,
-                onValueChange = { email = it.trim().lowercase() },
-                modifier = Modifier
+            Column(
+                Modifier
+                    .align(Alignment.Center)
                     .fillMaxWidth()
-                    .height(50.dp),
-                placeholder = "邮箱",
-                placeholderEn = "Email",
-                shape = LoginShape,
-                horizontalPadding = 14.dp,
-                keyboardOptions = KeyboardOptions(
-                    keyboardType = KeyboardType.Email,
-                    imeAction = ImeAction.Next,
-                ),
-                keyboardActions = KeyboardActions(
-                    onNext = { focusManager.moveFocus(FocusDirection.Down) },
-                ),
-                leading = {
-                    FieldLeadingIcon(Icons.Default.Email)
-                },
-            )
+                    .offset(y = -LoginCenterLift),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Text(
+                    "邮箱登录",
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = AppTheme.accent,
+                    style = AppTheme.compactText,
+                    en = "Email",
+                )
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    "收到验证码后填入即可登录",
+                    fontSize = 13.sp,
+                    color = AppTheme.secondaryText,
+                    style = AppTheme.compactText,
+                    en = "Enter the code we send you",
+                )
 
-            Spacer(Modifier.height(12.dp))
+                Spacer(Modifier.height(32.dp))
 
-            PaperTextField(
-                value = code,
-                onValueChange = { code = it.filter(Char::isDigit).take(6) },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(50.dp),
-                placeholder = "验证码",
-                placeholderEn = "Code",
-                shape = LoginShape,
-                horizontalPadding = 14.dp,
-                keyboardOptions = KeyboardOptions(
-                    keyboardType = KeyboardType.Number,
-                    imeAction = ImeAction.Done,
-                ),
-                keyboardActions = KeyboardActions(
-                    onDone = { keyboard?.hide() },
-                ),
-                leading = {
-                    FieldLeadingIcon(Icons.Default.Lock)
-                },
-                trailing = {
-                    Box(
-                        Modifier
-                            .width(1.dp)
-                            .height(22.dp)
-                            .background(AppTheme.fieldStroke),
-                    )
-                    Text(
-                        if (cooldownSec > 0) "${cooldownSec}s" else ui("发送验证码", "Send code"),
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = if (canSendCode) AppTheme.accent else AppTheme.secondaryText,
-                        style = AppTheme.compactText,
-                        modifier = Modifier
-                            .clickable(enabled = canSendCode) {
-                                requireConsent(PendingEmailAction.SendEmailCode)
-                            }
-                            .padding(start = 12.dp),
-                    )
-                },
-            )
+                PaperTextField(
+                    value = email,
+                    onValueChange = { email = it.trim().lowercase() },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(50.dp),
+                    placeholder = "邮箱",
+                    placeholderEn = "Email",
+                    shape = LoginShape,
+                    horizontalPadding = 14.dp,
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Email,
+                        imeAction = ImeAction.Next,
+                    ),
+                    keyboardActions = KeyboardActions(
+                        onNext = { focusManager.moveFocus(FocusDirection.Down) },
+                    ),
+                    leading = {
+                        FieldLeadingIcon(Icons.Default.Email)
+                    },
+                )
 
-            Spacer(Modifier.height(20.dp))
+                Spacer(Modifier.height(12.dp))
 
-            LoginFilledButton(
-                onClick = { requireConsent(PendingEmailAction.EmailLogin) },
-                label = ui("登 录", "Sign In"),
-                enabled = !isLoggingIn && isValidEmail(email.trim()) && code.isNotBlank(),
-            )
+                PaperTextField(
+                    value = code,
+                    onValueChange = { code = it.filter(Char::isDigit).take(6) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(50.dp),
+                    placeholder = "验证码",
+                    placeholderEn = "Code",
+                    shape = LoginShape,
+                    horizontalPadding = 14.dp,
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Number,
+                        imeAction = ImeAction.Done,
+                    ),
+                    keyboardActions = KeyboardActions(
+                        onDone = { keyboard?.hide() },
+                    ),
+                    leading = {
+                        FieldLeadingIcon(Icons.Default.Lock)
+                    },
+                    trailing = {
+                        Box(
+                            Modifier
+                                .width(1.dp)
+                                .height(22.dp)
+                                .background(AppTheme.fieldStroke),
+                        )
+                        Text(
+                            if (cooldownSec > 0) "${cooldownSec}s" else ui("发送验证码", "Send code"),
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = if (canSendCode) AppTheme.accent else AppTheme.secondaryText,
+                            style = AppTheme.compactText,
+                            modifier = Modifier
+                                .clickable(enabled = canSendCode) {
+                                    requireConsent(PendingEmailAction.SendEmailCode)
+                                }
+                                .padding(start = 12.dp),
+                        )
+                    },
+                )
 
-            Spacer(Modifier.height(16.dp))
+                Spacer(Modifier.height(20.dp))
 
-            LoginStatusLine(
-                isBusy = isLoggingIn,
-                message = errorMessage,
-                isError = errorMessage != codeSentMessage,
-            )
+                LoginFilledButton(
+                    onClick = { requireConsent(PendingEmailAction.EmailLogin) },
+                    label = ui("登 录", "Sign In"),
+                    enabled = !isLoggingIn && isValidEmail(email.trim()) && code.isNotBlank(),
+                )
 
-            Spacer(Modifier.height(16.dp))
+                Spacer(Modifier.height(16.dp))
 
-            ConsentRow(agreed = agreed, onAgreedChange = onAgreedChange)
+                LoginStatusLine(
+                    isBusy = isLoggingIn,
+                    message = errorMessage,
+                    isError = errorMessage != codeSentMessage,
+                )
+
+                Spacer(Modifier.height(16.dp))
+
+                ConsentRow(agreed = agreed, onAgreedChange = onAgreedChange)
+            }
+
+            Column(
+                Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                LoginSectionDivider(ui("其他登录方式", "Other ways to sign in"))
+
+                Spacer(Modifier.height(14.dp))
+
+                LoginGhostButton(
+                    onClick = onGoogleLogin,
+                    label = ui("Google 登录", "Google"),
+                    leading = {
+                        Icon(
+                            Icons.Default.Language,
+                            contentDescription = null,
+                            tint = AppTheme.accent,
+                            modifier = Modifier.size(17.dp),
+                        )
+                        Spacer(Modifier.width(8.dp))
+                    },
+                )
+            }
         }
     }
 

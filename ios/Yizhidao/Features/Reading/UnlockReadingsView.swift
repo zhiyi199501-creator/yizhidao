@@ -72,35 +72,54 @@ struct UnlockReadingsView: View {
         .padding(.bottom, 4)
     }
 
+    @ViewBuilder
     private var quotaCard: some View {
-        let limit = max(unlock.dailyLimit, 1)
-        let remaining = min(max(unlock.dailyRemaining, 0), limit)
-        let usedFraction = min(max(Double(unlock.dailyUsed) / Double(limit), 0), 1)
-        return VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Text("每日问答".ui("Daily readings"))
-                    .font(.subheadline.weight(.medium))
-                Spacer()
-                Text("剩余 \(remaining) / \(limit)".ui("\(remaining) / \(limit) left"))
-                    .font(.subheadline.weight(.bold))
-                    .foregroundStyle(UnlockPromo.ink)
-            }
-            GeometryReader { geo in
-                ZStack(alignment: .leading) {
-                    Capsule()
-                        .fill(UnlockPromo.ink.opacity(0.12))
-                    Capsule()
-                        .fill(UnlockPromo.ink)
-                        .frame(width: geo.size.width * usedFraction)
+        if unlock.isUnlimited {
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    Text("每日问答".ui("Daily readings"))
+                        .font(.subheadline.weight(.medium))
+                    Spacer()
+                    Text("不限次".ui("Unlimited"))
+                        .font(.subheadline.weight(.bold))
+                        .foregroundStyle(UnlockPromo.ink)
                 }
+                Text("此账号不限每日次数（仍受间隔限制）。".ui("This account has no daily cap (interval still applies)."))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
-            .frame(height: 3)
-            Text(quotaCaption(remaining: remaining, limit: limit))
-                .font(.caption)
-                .foregroundStyle(.secondary)
+            .padding(16)
+            .background(Color.white.opacity(0.82), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        } else {
+            let limit = max(unlock.dailyLimit, 1)
+            let remaining = min(max(unlock.dailyRemaining, 0), limit)
+            let usedFraction = min(max(Double(unlock.dailyUsed) / Double(limit), 0), 1)
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    Text("每日问答".ui("Daily readings"))
+                        .font(.subheadline.weight(.medium))
+                    Spacer()
+                    Text("剩余 \(remaining) / \(limit)".ui("\(remaining) / \(limit) left"))
+                        .font(.subheadline.weight(.bold))
+                        .foregroundStyle(UnlockPromo.ink)
+                }
+                GeometryReader { geo in
+                    ZStack(alignment: .leading) {
+                        Capsule()
+                            .fill(UnlockPromo.ink.opacity(0.12))
+                        Capsule()
+                            .fill(UnlockPromo.ink)
+                            .frame(width: geo.size.width * usedFraction)
+                    }
+                }
+                .frame(height: 3)
+                Text(quotaCaption(remaining: remaining, limit: limit))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            .padding(16)
+            .background(Color.white.opacity(0.82), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
         }
-        .padding(16)
-        .background(Color.white.opacity(0.82), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
     }
 
     private func quotaCaption(remaining: Int, limit: Int) -> String {
@@ -117,12 +136,21 @@ struct UnlockReadingsView: View {
 
     private var featuresCard: some View {
         VStack(spacing: 0) {
-            featureRow(
-                icon: "bubble.left.and.bubble.right.fill",
-                tint: Color(red: 0.85, green: 0.28, blue: 0.24),
-                title: "每天三十次问答".ui("Thirty readings a day"),
-                detail: "未购每天三次，买断后放宽到三十次。".ui("Three a day free. Thirty a day after unlock.")
-            )
+            if unlock.isUnlimited {
+                featureRow(
+                    icon: "infinity",
+                    tint: Color(red: 0.85, green: 0.28, blue: 0.24),
+                    title: "不限每日次数".ui("No daily cap"),
+                    detail: "此账号已开通不限次问答（仍有间隔，避免连点）。".ui("This account has unlimited daily readings (a short interval still applies).")
+                )
+            } else {
+                featureRow(
+                    icon: "bubble.left.and.bubble.right.fill",
+                    tint: Color(red: 0.85, green: 0.28, blue: 0.24),
+                    title: "每天三十次问答".ui("Thirty readings a day"),
+                    detail: "未购每天三次，买断后放宽到三十次（含追问）。".ui("Three a day free. Thirty a day after unlock, including follow-ups.")
+                )
+            }
             Divider().padding(.leading, 56)
             featureRow(
                 icon: "book.fill",
@@ -176,7 +204,11 @@ struct UnlockReadingsView: View {
     private var footer: some View {
         VStack(spacing: 14) {
             if unlock.isUnlocked {
-                Text("此账号已解锁问答".ui("This account has unlocked readings"))
+                Text(
+                    unlock.isUnlimited
+                        ? "此账号已解锁问答（不限次）".ui("Readings unlocked (unlimited)")
+                        : "此账号已解锁问答".ui("This account has unlocked readings")
+                )
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             } else {

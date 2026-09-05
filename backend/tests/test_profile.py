@@ -111,6 +111,42 @@ class ProfileApiTests(unittest.TestCase):
         )
         self.assertIn(resp.status_code, (400, 422))
 
+    def test_email_first_login_uses_local_part_as_nickname(self):
+        email = "luozhihao@foxmail.com"
+        send = self.client.post("/v1/auth/email/send", json={"email": email})
+        self.assertEqual(send.status_code, 200)
+
+        login = self.client.post(
+            "/v1/auth/email/login",
+            json={"email": email, "code": settings.dev_email_fixed_code},
+        )
+        self.assertEqual(login.status_code, 200)
+        self.assertEqual(login.json()["user"]["nickname"], "luozhihao")
+        self.assertEqual(login.json()["user"]["email"], email)
+
+    def test_email_login_upgrades_old_masked_nickname(self):
+        from app.services.auth import mask_email
+
+        email = "olduser@example.com"
+        with app_db.SessionLocal() as db:
+            db.add(
+                User(
+                    id=str(uuid.uuid4()),
+                    email=email,
+                    nickname=f"用户{mask_email(email)}",
+                )
+            )
+            db.commit()
+
+        send = self.client.post("/v1/auth/email/send", json={"email": email})
+        self.assertEqual(send.status_code, 200)
+        login = self.client.post(
+            "/v1/auth/email/login",
+            json={"email": email, "code": settings.dev_email_fixed_code},
+        )
+        self.assertEqual(login.status_code, 200)
+        self.assertEqual(login.json()["user"]["nickname"], "olduser")
+
     def test_bind_email(self):
         send = self.client.post(
             "/v1/me/email/send",

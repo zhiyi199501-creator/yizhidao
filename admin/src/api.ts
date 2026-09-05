@@ -84,6 +84,9 @@ export type AdminUser = {
   aiToday: number;
   aiTotal: number;
   iapUnlocked: boolean;
+  aiUnlimited?: boolean;
+  iapSource?: "none" | "purchase" | "admin" | "android";
+  iapCanRevoke?: boolean;
 };
 
 export type UsersPage = {
@@ -282,6 +285,16 @@ export const api = {
   users: (q: string, page = 1) =>
     request<UsersPage>(`/v1/admin/users?q=${encodeURIComponent(q)}&page=${page}&pageSize=20`),
   user: (id: string) => request<UserDetail>(`/v1/admin/users/${encodeURIComponent(id)}`),
+  setUserIapUnlock: (id: string, unlocked: boolean) =>
+    request<{ ok: boolean; user: AdminUser }>(`/v1/admin/users/${encodeURIComponent(id)}/iap-unlock`, {
+      method: "POST",
+      body: JSON.stringify({ unlocked }),
+    }),
+  setUserAiUnlimited: (id: string, unlimited: boolean) =>
+    request<{ ok: boolean; user: AdminUser }>(`/v1/admin/users/${encodeURIComponent(id)}/ai-unlimited`, {
+      method: "POST",
+      body: JSON.stringify({ unlimited }),
+    }),
   ai: (range: RangeKey) => request<AiUsage>(`/v1/admin/ai?range=${range}`),
   aiEvents: (range: RangeKey, page = 1) =>
     request<AiEventsPage>(`/v1/admin/ai/events?range=${range}&page=${page}&pageSize=50`),

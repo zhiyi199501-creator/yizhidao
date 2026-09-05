@@ -21,12 +21,13 @@ def is_email_test_address(email: str) -> bool:
 
 
 def deliver_email_code(email: str, code: str) -> None:
+    # 白名单：固定码、不发真信（含 smtp 生产，供商店审核）
+    if is_email_test_address(email):
+        print(f"[email:test] to={_mask_email(email)} code={code}")
+        return
     provider = (settings.email_provider or "mock").lower()
     if provider == "smtp":
         _deliver_smtp(email, code)
-        return
-    if is_email_test_address(email):
-        print(f"[email:test] to={_mask_email(email)} code={code}")
         return
     print(f"[email:mock] to={_mask_email(email)} code={code}")
 

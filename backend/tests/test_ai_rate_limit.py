@@ -107,6 +107,15 @@ class AIRateLimitTests(unittest.TestCase):
                 pass
         self.assertEqual(ctx.exception.message, MSG_DAILY_DONE)
 
+    def test_daily_limit_zero_is_unlimited(self):
+        settings.ai_rate_interval_sec = 0
+        for _ in range(5):
+            with acquire_ai_call("u1", daily_limit=0):
+                pass
+        used, remaining = limiter.snapshot("u1", 0)
+        self.assertEqual(used, 5)
+        self.assertGreater(remaining, 1000)
+
 
 if __name__ == "__main__":
     unittest.main()

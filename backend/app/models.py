@@ -20,6 +20,7 @@ class User(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     last_login_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     iap_unlocked: Mapped[bool] = mapped_column(Boolean, default=False, server_default="0")
+    ai_unlimited: Mapped[bool] = mapped_column(Boolean, default=False, server_default="0")
     iap_platform: Mapped[Optional[str]] = mapped_column(String(16), nullable=True)
     iap_product_id: Mapped[Optional[str]] = mapped_column(String(128), nullable=True)
     iap_transaction_id: Mapped[Optional[str]] = mapped_column(String(64), unique=True, nullable=True)

@@ -15,12 +15,21 @@ from app.services.admin_auth import (
 )
 from app.services import admin_stats
 from app.services import feedback as feedback_store
+from app.services.iap import admin_set_ai_unlimited, admin_set_unlock
 
 router = APIRouter()
 
 
 class AdminLoginBody(BaseModel):
     password: str = Field(min_length=1, max_length=200)
+
+
+class AdminIapUnlockBody(BaseModel):
+    unlocked: bool
+
+
+class AdminAiUnlimitedBody(BaseModel):
+    unlimited: bool
 
 
 def require_admin(admin_session: Optional[str] = Cookie(default=None, alias=ADMIN_COOKIE)) -> str:
@@ -74,6 +83,28 @@ def admin_user_detail(
     db: Session = Depends(get_db),
 ) -> dict:
     return admin_stats.user_detail(db, user_id)
+
+
+@router.post("/v1/admin/users/{user_id}/iap-unlock")
+def admin_user_iap_unlock(
+    user_id: str,
+    body: AdminIapUnlockBody,
+    _: str = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> dict:
+    user = admin_set_unlock(db, user_id, body.unlocked)
+    return {"ok": True, "user": admin_stats.serialize_user(user)}
+
+
+@router.post("/v1/admin/users/{user_id}/ai-unlimited")
+def admin_user_ai_unlimited(
+    user_id: str,
+    body: AdminAiUnlimitedBody,
+    _: str = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> dict:
+    user = admin_set_ai_unlimited(db, user_id, body.unlimited)
+    return {"ok": True, "user": admin_stats.serialize_user(user)}
 
 
 @router.get("/v1/admin/ai")

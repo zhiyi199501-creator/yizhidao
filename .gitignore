@@ -21,6 +21,7 @@ backend/.venv/
 backend/.env
 backend/*.db
 backend/avatars/
+backend/download/*.apk
 admin/node_modules/
 admin/dist/
 /cases_raw/

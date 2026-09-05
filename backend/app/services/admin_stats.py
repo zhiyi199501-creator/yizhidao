@@ -283,6 +283,9 @@ def _user_count_map(db: Session, since: Optional[datetime] = None) -> Dict[str, 
 
 
 def serialize_user(user: User, today_calls: int = 0, total_calls: int = 0) -> Dict[str, Any]:
+    from app.services.iap import iap_source, is_paid_iap
+
+    source = iap_source(user)
     return {
         "id": user.id,
         "nickname": user.nickname,
@@ -294,6 +297,9 @@ def serialize_user(user: User, today_calls: int = 0, total_calls: int = 0) -> Di
         "aiToday": today_calls,
         "aiTotal": total_calls,
         "iapUnlocked": bool(user.iap_unlocked),
+        "aiUnlimited": bool(getattr(user, "ai_unlimited", False)),
+        "iapSource": source,
+        "iapCanRevoke": bool(user.iap_unlocked) and not is_paid_iap(user),
     }
 
 

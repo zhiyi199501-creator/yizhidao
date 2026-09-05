@@ -26,6 +26,7 @@ class UserOut(BaseModel):
     hasAvatar: bool = False
     avatarUpdatedAt: Optional[str] = None
     iapUnlocked: bool = False
+    aiUnlimited: bool = False
     aiDailyLimit: int = 3
     aiDailyUsed: int = 0
     aiDailyRemaining: int = 3
@@ -65,6 +66,8 @@ class EmailSendResponse(BaseModel):
 class EmailLoginRequest(BaseModel):
     email: str = Field(min_length=3, max_length=255)
     code: str = Field(min_length=4, max_length=8)
+    # 安卓客户端传 android，用于赠送解锁额度
+    platform: Optional[str] = Field(default=None, max_length=16)
 
 
 class AppleLoginRequest(BaseModel):

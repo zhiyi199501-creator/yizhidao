@@ -222,6 +222,7 @@ tr.selected td { background: var(--accent-soft); }
 .stack { display: flex; flex-direction: column; gap: 14px; }
 .kv { display: grid; grid-template-columns: 160px 1fr; gap: 8px 16px; font-size: 13px; }
 .kv dt { color: var(--ink-soft); }
+.row-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
 .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; word-break: break-all; }
 
 .toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }

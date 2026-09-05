@@ -44,6 +44,8 @@ class Settings(BaseSettings):
     ai_rate_interval_sec: float = 8.0
     ai_rate_daily_limit: int = 3
     ai_rate_daily_limit_unlock: int = 30
+    # Play Billing 未接前：安卓端用户默认赠送解锁额度；接上结算后关掉
+    android_complimentary_unlock: bool = True
     iap_product_id: str = "com.yizhidao.app.ai.unlock"
     iap_bundle_id: str = "com.yizhidao.app"
     # mock：测试/本机解码凭证；apple：验 StoreKit 2 JWS。生产无 ALLOW_INSECURE_MOCK_IAP 时强制 apple

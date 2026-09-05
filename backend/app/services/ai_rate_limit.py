@@ -64,7 +64,8 @@ class AIRateLimiter:
                 used = 0
             else:
                 used = int(state["count"])
-        remaining = max(0, daily - used) if daily > 0 else 0
+        # daily <= 0：不限次；剩余用大数，避免客户端当成「已用尽」
+        remaining = max(0, daily - used) if daily > 0 else 10**9
         return used, remaining
 
     def release(self, user_id: str) -> None:

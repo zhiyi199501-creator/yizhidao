@@ -249,7 +249,7 @@ docker compose up -d --build
 
 与已有**系统 Caddy** 共用 80/443 时（旧海外 / 国内遗留机）才用 `docker compose -f docker-compose.prod.yml`。详见 `docs/deploy.md`。
 
-**现役（App Release）**：`https://api.yiwanjia.work`（新加坡 `124.156.192.137`，SSH `yiwanjia`；仅海外上架）。国内 `yzd.codedance.work` 为遗留机，App 不连。运维见 `docs/deploy.md`。
+**现役（App Release）**：`https://api.yiwanjia.work`（新加坡 `124.156.192.137`，SSH `yiwanjia`；仅海外上架）。同机对照名 `yizhidao.codedance.work` / `yd.codedance.work`（App 不改指）。国内 `yzd.codedance.work` 为遗留机。运维见 `docs/deploy.md`。
 
 ## 下一步
 
