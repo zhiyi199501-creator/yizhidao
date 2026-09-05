@@ -23,7 +23,7 @@ export function UsersPageView() {
     <div className="stack">
       <div className="page-title">
         <h2>用户</h2>
-        <div className="meta">只读 · 邮箱与手机已脱敏 · 不展示所问</div>
+        <div className="meta">邮箱与手机已脱敏 · 不展示所问 · 可手动解锁问答</div>
       </div>
       <div className="search">
         <input
@@ -66,7 +66,19 @@ export function UsersPageView() {
                 <td>{formatDateTime(user.lastLoginAt)}</td>
                 <td>{formatNumber(user.aiToday)}</td>
                 <td>{formatNumber(user.aiTotal)}</td>
-                <td>{user.iapUnlocked ? "解锁问答" : ""}</td>
+                <td>
+                  {user.aiUnlimited
+                    ? "不限次"
+                    : !user.iapUnlocked
+                      ? ""
+                      : user.iapSource === "purchase"
+                        ? "付费解锁"
+                        : user.iapSource === "android"
+                          ? "安卓赠送"
+                          : user.iapSource === "admin"
+                            ? "手动解锁"
+                            : "解锁问答"}
+                </td>
               </tr>
             ))}
           </tbody>

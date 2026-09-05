@@ -130,8 +130,14 @@ struct MyMenuView: View {
                         UnlockReadingsView()
                     } label: {
                         Label(
-                            unlock.isUnlocked ? "已解锁问答".ui("Readings unlocked") : "解锁问答".ui("Unlock Readings"),
-                            systemImage: unlock.isUnlocked ? "checkmark.seal" : "lock.open"
+                            unlock.isUnlimited
+                                ? "已解锁问答（不限次）".ui("Unlocked · Unlimited")
+                                : unlock.isUnlocked
+                                    ? "已解锁问答".ui("Readings unlocked")
+                                    : "解锁问答".ui("Unlock Readings"),
+                            systemImage: unlock.isUnlimited
+                                ? "infinity"
+                                : unlock.isUnlocked ? "checkmark.seal" : "lock.open"
                         )
                     }
                 }
@@ -264,6 +270,7 @@ struct MyMenuView: View {
             LocalAuthStore.save(session)
             UnlockStore.shared.applyQuota(
                 unlocked: me.user.iapUnlocked,
+                unlimited: me.user.aiUnlimited,
                 limit: me.user.aiDailyLimit,
                 used: me.user.aiDailyUsed,
                 remaining: me.user.aiDailyRemaining
@@ -889,6 +896,7 @@ private struct LoginConsentRow: View {
 private func makeSession(from resp: AuthAPI.LoginResponse, email: String? = nil) async -> LocalUserSession {
     UnlockStore.shared.applyQuota(
         unlocked: resp.user.iapUnlocked,
+        unlimited: resp.user.aiUnlimited,
         limit: resp.user.aiDailyLimit,
         used: resp.user.aiDailyUsed,
         remaining: resp.user.aiDailyRemaining
@@ -952,6 +960,7 @@ enum AuthAPI {
         let hasAvatar: Bool?
         let avatarUpdatedAt: String?
         let iapUnlocked: Bool?
+        let aiUnlimited: Bool?
         let aiDailyLimit: Int?
         let aiDailyUsed: Int?
         let aiDailyRemaining: Int?

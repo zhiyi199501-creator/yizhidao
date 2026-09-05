@@ -36,8 +36,8 @@ android {
         applicationId = "com.yizhidao.app"
         minSdk = 26
         targetSdk = 37
-        versionCode = 11
-        versionName = "0.1.10"
+        versionCode = 12
+        versionName = "0.1.11"
         vectorDrawables.useSupportLibrary = true
     }
 

@@ -44,6 +44,7 @@ object AuthApi {
         val hasAvatar: Boolean? = null,
         val avatarUpdatedAt: String? = null,
         val iapUnlocked: Boolean? = null,
+        val aiUnlimited: Boolean? = null,
         val aiDailyLimit: Int? = null,
         val aiDailyUsed: Int? = null,
         val aiDailyRemaining: Int? = null,
@@ -102,6 +103,7 @@ object AuthApi {
             body = buildJsonObject {
                 put("email", email)
                 put("code", code)
+                put("platform", "android")
             }.toString(),
             fallback = "登录失败",
         ) { json.decodeFromString<LoginResponse>(it) }
@@ -186,6 +188,7 @@ object AuthApi {
             headers = mapOf(
                 "Accept" to "application/json",
                 "Content-Type" to "image/jpeg",
+                "X-Client-Platform" to "android",
                 "Authorization" to "Bearer $accessToken",
             ),
         )
@@ -369,6 +372,7 @@ object AuthApi {
         val headers = buildMap {
             put("Content-Type", "application/json; charset=utf-8")
             put("Accept", "application/json")
+            put("X-Client-Platform", "android")
             if (accessToken != null) put("Authorization", "Bearer $accessToken")
         }
         val (code, text) = AppHttp.request(
@@ -390,6 +394,7 @@ object AuthApi {
     ): T {
         val headers = buildMap {
             put("Accept", "application/json")
+            put("X-Client-Platform", "android")
             if (accessToken != null) put("Authorization", "Bearer $accessToken")
         }
         val (code, text) = AppHttp.request(
@@ -410,6 +415,7 @@ object AuthApi {
     ): T {
         val headers = mapOf(
             "Accept" to "application/json",
+            "X-Client-Platform" to "android",
             "Authorization" to "Bearer $accessToken",
         )
         val (code, text) = AppHttp.request(

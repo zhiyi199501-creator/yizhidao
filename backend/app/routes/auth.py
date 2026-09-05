@@ -88,7 +88,7 @@ def email_send(body: EmailSendRequest, db: Session = Depends(get_db)) -> EmailSe
 
 @router.post("/v1/auth/email/login", response_model=AuthLoginResponse)
 def email_login(body: EmailLoginRequest, db: Session = Depends(get_db)) -> AuthLoginResponse:
-    user, token = login_with_email(db, body.email, body.code)
+    user, token = login_with_email(db, body.email, body.code, platform=body.platform)
     return _login_response(user, token)
 
 
@@ -105,7 +105,16 @@ def google_login(body: GoogleLoginRequest, db: Session = Depends(get_db)) -> Aut
 
 
 @router.get("/v1/me", response_model=MeResponse)
-def me(user: User = Depends(get_current_user)) -> MeResponse:
+def me(
+    request: Request,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> MeResponse:
+    from app.services.iap import grant_android_complimentary_unlock, normalize_client_platform
+
+    platform = normalize_client_platform(request.headers.get("X-Client-Platform"))
+    if platform == "android":
+        user = grant_android_complimentary_unlock(db, user)
     return MeResponse(user=UserOut(**user_to_out(user)))
 
 

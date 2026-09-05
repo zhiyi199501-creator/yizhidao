@@ -71,6 +71,8 @@ def migrate_db() -> None:
             conn.execute(text("ALTER TABLE users ADD COLUMN last_login_at DATETIME"))
         if "iap_unlocked" not in existing:
             conn.execute(text("ALTER TABLE users ADD COLUMN iap_unlocked BOOLEAN DEFAULT 0"))
+        if "ai_unlimited" not in existing:
+            conn.execute(text("ALTER TABLE users ADD COLUMN ai_unlimited BOOLEAN DEFAULT 0"))
         if "iap_platform" not in existing:
             conn.execute(text("ALTER TABLE users ADD COLUMN iap_platform VARCHAR(16)"))
         if "iap_product_id" not in existing:

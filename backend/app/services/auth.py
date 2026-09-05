@@ -92,8 +92,15 @@ def user_to_out(user: User) -> dict:
     from app.services.ai_rate_limit import limiter
     from app.services.iap import daily_limit_for_user
 
+    unlimited = bool(getattr(user, "ai_unlimited", False))
     limit = daily_limit_for_user(user)
     used, remaining = limiter.snapshot(user.id, limit)
+    # 限流用 limit=0；对外展示仍给买断档，避免旧客户端 max(0,1) 显示成「每天 1 次」
+    display_limit = (
+        int(settings.ai_rate_daily_limit_unlock)
+        if unlimited or limit <= 0
+        else limit
+    )
     return {
         "id": user.id,
         "nickname": user.nickname,
@@ -103,9 +110,10 @@ def user_to_out(user: User) -> dict:
         "hasAvatar": user.avatar_updated_at is not None,
         "avatarUpdatedAt": _iso_dt(user.avatar_updated_at),
         "iapUnlocked": bool(user.iap_unlocked),
-        "aiDailyLimit": limit,
+        "aiUnlimited": unlimited,
+        "aiDailyLimit": display_limit,
         "aiDailyUsed": used,
-        "aiDailyRemaining": remaining,
+        "aiDailyRemaining": remaining if not unlimited else 10**9,
     }
 
 
@@ -400,10 +408,20 @@ def login_with_sms(db: Session, phone: str, code: str) -> Tuple[User, str]:
     return _finish_login(db, user)
 
 
-def login_with_email(db: Session, email: str, code: str) -> Tuple[User, str]:
+def login_with_email(
+    db: Session,
+    email: str,
+    code: str,
+    *,
+    platform: Optional[str] = None,
+) -> Tuple[User, str]:
+    from app.services.iap import grant_android_complimentary_unlock, normalize_client_platform
+
     email = validate_email(email)
     _consume_email_code(db, email, code)
     user = _get_or_create_user_by_email(db, email)
+    if normalize_client_platform(platform) == "android":
+        user = grant_android_complimentary_unlock(db, user)
     return _finish_login(db, user)
 
 
@@ -427,6 +445,8 @@ def login_with_apple(
 
 
 def login_with_google(db: Session, id_token: str) -> Tuple[User, str]:
+    from app.services.iap import grant_android_complimentary_unlock
+
     token = id_token.strip()
     if not token:
         raise AppError("登录凭证不能为空", code=4001, status_code=400)
@@ -448,6 +468,7 @@ def login_with_google(db: Session, id_token: str) -> Tuple[User, str]:
         nickname = None
 
     user = _get_or_create_user_by_google(db, google_sub, email, nickname)
+    user = grant_android_complimentary_unlock(db, user)
     return _finish_login(db, user)
 
 

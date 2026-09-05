@@ -220,6 +220,167 @@ class AdminAndUsageTests(unittest.TestCase):
         buyers = [row for row in resp.json()["users"] if row["id"] == user.id]
         self.assertEqual(len(buyers), 1)
         self.assertTrue(buyers[0]["iapUnlocked"])
+        self.assertEqual(buyers[0]["iapSource"], "admin")
+        self.assertTrue(buyers[0]["iapCanRevoke"])
+
+    def test_admin_grant_and_revoke_unlock(self):
+        user = self._create_user("grant@example.com")
+        self._login_admin()
+        grant = self.client.post(f"/v1/admin/users/{user.id}/iap-unlock", json={"unlocked": True})
+        self.assertEqual(grant.status_code, 200, grant.text)
+        body = grant.json()["user"]
+        self.assertTrue(body["iapUnlocked"])
+        self.assertEqual(body["iapSource"], "admin")
+        self.assertTrue(body["iapCanRevoke"])
+        db = app_db.SessionLocal()
+        try:
+            stored = db.scalar(select(User).where(User.id == user.id))
+            self.assertTrue(stored.iap_unlocked)
+            self.assertEqual(stored.iap_platform, "admin")
+            self.assertIsNone(stored.iap_transaction_id)
+        finally:
+            db.close()
+        revoke = self.client.post(f"/v1/admin/users/{user.id}/iap-unlock", json={"unlocked": False})
+        self.assertEqual(revoke.status_code, 200, revoke.text)
+        self.assertFalse(revoke.json()["user"]["iapUnlocked"])
+        self.assertEqual(revoke.json()["user"]["iapSource"], "none")
+
+    def test_admin_cannot_revoke_paid_unlock(self):
+        user = self._create_user("paid@example.com")
+        db = app_db.SessionLocal()
+        try:
+            stored = db.scalar(select(User).where(User.id == user.id))
+            stored.iap_unlocked = True
+            stored.iap_platform = "ios"
+            stored.iap_product_id = "com.yizhidao.app.ai.unlock"
+            stored.iap_transaction_id = "txn_paid_1"
+            stored.iap_original_transaction_id = "txn_paid_1"
+            db.commit()
+        finally:
+            db.close()
+        self._login_admin()
+        detail = self.client.get(f"/v1/admin/users/{user.id}")
+        self.assertEqual(detail.status_code, 200)
+        self.assertEqual(detail.json()["user"]["iapSource"], "purchase")
+        self.assertFalse(detail.json()["user"]["iapCanRevoke"])
+        revoke = self.client.post(f"/v1/admin/users/{user.id}/iap-unlock", json={"unlocked": False})
+        self.assertEqual(revoke.status_code, 400)
+        self.assertEqual(revoke.json()["code"], 4001)
+        db = app_db.SessionLocal()
+        try:
+            stored = db.scalar(select(User).where(User.id == user.id))
+            self.assertTrue(stored.iap_unlocked)
+            self.assertEqual(stored.iap_transaction_id, "txn_paid_1")
+        finally:
+            db.close()
+
+    def test_admin_grant_and_revoke_ai_unlimited(self):
+        user = self._create_user("unlimited@example.com")
+        self._login_admin()
+        grant = self.client.post(
+            f"/v1/admin/users/{user.id}/ai-unlimited", json={"unlimited": True}
+        )
+        self.assertEqual(grant.status_code, 200, grant.text)
+        body = grant.json()["user"]
+        self.assertTrue(body["aiUnlimited"])
+        self.assertTrue(body["iapUnlocked"])
+        self.assertEqual(body["iapSource"], "admin")
+        db = app_db.SessionLocal()
+        try:
+            stored = db.scalar(select(User).where(User.id == user.id))
+            self.assertTrue(stored.ai_unlimited)
+            self.assertTrue(stored.iap_unlocked)
+        finally:
+            db.close()
+        me = self.client.get("/v1/me", headers=self._auth_header(user))
+        self.assertEqual(me.status_code, 200, me.text)
+        me_user = me.json()["user"]
+        self.assertTrue(me_user["aiUnlimited"])
+        self.assertEqual(me_user["aiDailyLimit"], 30)
+        self.assertGreater(me_user["aiDailyRemaining"], 30)
+
+        from app.config import settings
+        from app.services.ai_rate_limit import limiter
+        from app.services.iap import daily_limit_for_user
+
+        prev_interval = settings.ai_rate_interval_sec
+        prev_daily = settings.ai_rate_daily_limit
+        prev_unlock = settings.ai_rate_daily_limit_unlock
+        settings.ai_rate_interval_sec = 0
+        settings.ai_rate_daily_limit = 1
+        settings.ai_rate_daily_limit_unlock = 2
+        limiter.reset()
+        try:
+            db = app_db.SessionLocal()
+            try:
+                stored = db.scalar(select(User).where(User.id == user.id))
+                self.assertEqual(daily_limit_for_user(stored), 0)
+            finally:
+                db.close()
+            payload = {
+                "question": "抽检",
+                "method": "digitalManual",
+                "primaryNumber": 11,
+                "resultingNumber": 26,
+                "movingPositions": [1],
+            }
+            for _ in range(5):
+                resp = self.client.post("/v1/ai/analyze", headers=self._auth_header(user), json=payload)
+                self.assertEqual(resp.status_code, 200, resp.text)
+        finally:
+            settings.ai_rate_interval_sec = prev_interval
+            settings.ai_rate_daily_limit = prev_daily
+            settings.ai_rate_daily_limit_unlock = prev_unlock
+            limiter.reset()
+
+        revoke = self.client.post(
+            f"/v1/admin/users/{user.id}/ai-unlimited", json={"unlimited": False}
+        )
+        self.assertEqual(revoke.status_code, 200, revoke.text)
+        self.assertFalse(revoke.json()["user"]["aiUnlimited"])
+        self.assertTrue(revoke.json()["user"]["iapUnlocked"])
+
+    def test_me_android_header_grants_complimentary_unlock(self):
+        user = self._create_user("android-me@example.com")
+        header = self._auth_header(user)
+        header["X-Client-Platform"] = "android"
+        resp = self.client.get("/v1/me", headers=header)
+        self.assertEqual(resp.status_code, 200, resp.text)
+        body = resp.json()["user"]
+        self.assertTrue(body["iapUnlocked"])
+        self.assertEqual(body["aiDailyLimit"], 30)
+        db = app_db.SessionLocal()
+        try:
+            stored = db.scalar(select(User).where(User.id == user.id))
+            self.assertTrue(stored.iap_unlocked)
+            self.assertEqual(stored.iap_platform, "android")
+            self.assertIsNone(stored.iap_transaction_id)
+        finally:
+            db.close()
+
+    def test_email_login_android_platform_grants_unlock(self):
+        from app.models import EmailCode
+        from app.services.auth import login_with_email
+
+        db = app_db.SessionLocal()
+        try:
+            now = datetime.now(timezone.utc)
+            db.add(
+                EmailCode(
+                    email="android-login@example.com",
+                    code="123456",
+                    expires_at=now + timedelta(minutes=5),
+                    used=False,
+                )
+            )
+            db.commit()
+            user, _token = login_with_email(
+                db, "android-login@example.com", "123456", platform="android"
+            )
+            self.assertTrue(user.iap_unlocked)
+            self.assertEqual(user.iap_platform, "android")
+        finally:
+            db.close()
 
     def test_last_login_at_on_email_login(self):
         from app.models import EmailCode

@@ -10,6 +10,18 @@
 (api_proxy) {
 	header -Alt-Svc
 	encode gzip
+	# 侧载 APK 等静态包；勿当 App Release API 基址
+	handle /download {
+		redir * /download/ 308
+	}
+	handle_path /download/* {
+		root * /srv/download
+		file_server
+		header {
+			X-Content-Type-Options nosniff
+			Cache-Control "public, max-age=300"
+		}
+	}
 	@admin {
 		path /admin /admin/* /v1/admin /v1/admin/*
 	}

@@ -20,9 +20,117 @@ MSG_BOUND = "该购买已绑定其他账号"
 
 
 def daily_limit_for_user(user: Optional[User]) -> int:
+    """当日上限。返回 0 表示不限次（仍受间隔 / 并发约束）。"""
+    if user is not None and bool(getattr(user, "ai_unlimited", False)):
+        return 0
     if user is not None and user.iap_unlocked:
         return int(settings.ai_rate_daily_limit_unlock)
     return int(settings.ai_rate_daily_limit)
+
+
+def is_paid_iap(user: User) -> bool:
+    """真实商店买断：有 transaction id。后台手动解锁没有这笔记录。"""
+    return bool((user.iap_transaction_id or "").strip())
+
+
+def iap_source(user: User) -> str:
+    if not user.iap_unlocked:
+        return "none"
+    if is_paid_iap(user):
+        return "purchase"
+    platform = (user.iap_platform or "").strip().lower()
+    if platform == "android":
+        return "android"
+    return "admin"
+
+
+def grant_android_complimentary_unlock(db: Session, user: User) -> User:
+    """安卓尚未接 Play Billing：登录 / 拉 me 时赠送解锁（非付费，后台可取消）。"""
+    if not settings.android_complimentary_unlock:
+        return user
+    if is_paid_iap(user):
+        return user
+    if user.iap_unlocked and (user.iap_platform or "").strip().lower() in ("android", "admin"):
+        return user
+    user.iap_unlocked = True
+    user.iap_platform = "android"
+    user.iap_product_id = settings.iap_product_id or PRODUCT_UNLOCK
+    user.iap_transaction_id = None
+    user.iap_original_transaction_id = None
+    if user.iap_purchased_at is None:
+        user.iap_purchased_at = datetime.now(timezone.utc)
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    return user
+
+
+def normalize_client_platform(raw: Optional[str]) -> str:
+    value = (raw or "").strip().lower()
+    if value in ("android", "ios", "apple"):
+        return "android" if value == "android" else "ios"
+    return ""
+
+
+def admin_set_unlock(db: Session, user_id: str, unlocked: bool) -> User:
+    user = db.scalar(select(User).where(User.id == user_id))
+    if user is None:
+        raise AppError("用户不存在", code=4001, status_code=404)
+    if unlocked:
+        if is_paid_iap(user):
+            # 已付费保持商店凭证，只确保已解锁标记为真
+            user.iap_unlocked = True
+            db.add(user)
+            db.commit()
+            db.refresh(user)
+            return user
+        user.iap_unlocked = True
+        user.iap_platform = "admin"
+        user.iap_product_id = settings.iap_product_id or PRODUCT_UNLOCK
+        user.iap_transaction_id = None
+        user.iap_original_transaction_id = None
+        user.iap_purchased_at = datetime.now(timezone.utc)
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+        return user
+
+    if is_paid_iap(user):
+        raise AppError("付费解锁不可取消", code=4001, status_code=400)
+    user.iap_unlocked = False
+    user.ai_unlimited = False
+    user.iap_platform = None
+    user.iap_product_id = None
+    user.iap_transaction_id = None
+    user.iap_original_transaction_id = None
+    user.iap_purchased_at = None
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    return user
+
+
+def admin_set_ai_unlimited(db: Session, user_id: str, unlimited: bool) -> User:
+    """后台给指定用户不限次（自用／抽检）。开启时顺带解锁问答。"""
+    user = db.scalar(select(User).where(User.id == user_id))
+    if user is None:
+        raise AppError("用户不存在", code=4001, status_code=404)
+    if unlimited:
+        user.ai_unlimited = True
+        if not user.iap_unlocked:
+            user.iap_unlocked = True
+            if not is_paid_iap(user):
+                user.iap_platform = "admin"
+                user.iap_product_id = settings.iap_product_id or PRODUCT_UNLOCK
+                user.iap_transaction_id = None
+                user.iap_original_transaction_id = None
+                user.iap_purchased_at = datetime.now(timezone.utc)
+    else:
+        user.ai_unlimited = False
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    return user
 
 
 def effective_verify_mode() -> str:
