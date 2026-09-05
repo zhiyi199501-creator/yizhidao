@@ -74,10 +74,10 @@ cd android && ./gradlew :engines:test
 
 **App 信息架构 / 英文化 / 仪式**：代码在 `origin/main`；商店包可能仍旧。商店 listing 英文、封闭／正式发布仍待。
 
-**App Store（进行中）**：Connect `com.yizhidao.app`（id `6804203617`）；品牌名 **易玩家**；排除中国大陆。法律 URL：`https://api.yiwanjia.work/{privacy,terms,support}`。待：TestFlight、提审。
+**App Store（已提审）**：Connect `com.yizhidao.app`（id `6804203617`）；品牌名 **易玩家**；排除中国大陆。法律 URL：`https://api.yiwanjia.work/{privacy,terms,support}`。已提交审核；勿把内购挂进本版 1.0。待：审核通过后上架、商店 listing 英文可再补。
 
 **试用登录（Debug）**：`EMAIL_PROVIDER=mock`；有 `DEV_EMAIL_FIXED_CODE` 时任意合法邮箱用该码。Release：iOS Apple／邮箱，Android 邮箱／Google。审核包不要配 `EMAIL_TEST_ADDRESSES`。
 
 **国内 / 旧海外机（遗留）**：`yzd.codedance.work` 仍国内机；对照名已挂新加坡，App 不连。`43.128.104.104` 仅 videograb 等遗留。
 
-未做／待办：Play 封闭测试→正式轨；Android Play Billing（关掉赠送解锁）；iOS TestFlight／提审；商店 listing 英文。
+未做／待办：Play 封闭测试→正式轨；Android Play Billing（关掉赠送解锁）；iOS 审核结果／上架；商店 listing 英文。

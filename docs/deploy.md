@@ -173,6 +173,7 @@ sudo docker compose up -d --build --force-recreate
 - [x] IAP 路由已挂（`POST /v1/iap/verify` 401）；生产无 `ALLOW_INSECURE_MOCK_IAP` 时强制 apple。勿把内购挂进正在审的 iOS 1.0
 - [x] `yizhidao.codedance.work` / `yd.codedance.work` 已挂新加坡 H2-only；`Caddyfile.overseas` 已合 `main`；App Release 仍钉 `api`
 - [x] Android 签名 / 邮箱优先登录 / 注销 / 赠送解锁已合 `main`（PR #18/#19）
+- [x] iOS 已提审（Connect `com.yizhidao.app`；本版 1.0 勿挂内购）
 - [ ] Play 封闭测试（个人账号约 12×14 天）后再申请正式发布
 - [ ] Android Play Billing（接上后关 `ANDROID_COMPLIMENTARY_UNLOCK`）
-- [ ] iOS TestFlight / 提审；商店 listing 英文
+- [ ] iOS 审核通过后上架；商店 listing 英文
