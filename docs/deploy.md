@@ -1,6 +1,6 @@
 # 易玩家后端部署指南
 
-## 域名与服务器（2026-09-04）
+## 域名与服务器（2026-09-05）
 
 | 角色 | 域名 | 服务器 | 说明 |
 |---|---|---|---|
@@ -10,7 +10,7 @@
 | **国内后端（遗留，App 不用）** | `https://yzd.codedance.work` | `119.91.239.58`（SSH `yizhidao`） | 运维保留；现役 App 不连 |
 | **旧海外机（遗留）** | （videograb 等） | `43.128.104.104` | 与 videograb 共用系统 Caddy；`yd` / `yizhidao` API 已迁出新加坡 |
 
-**现役核验（2026-09-04）**：新加坡 `GET /health` 对 `api` / `yizhidao` / `yd` 均为 **200**（H2，无 `Alt-Svc`）；`/admin/` **401**（Basic）；`POST /v1/iap/verify` **401**（需登录）。生产 `.env` 已配 `GOOGLE_CLIENT_IDS`（3 个）。跑 `docker compose`（api + Caddy）+ `Caddyfile.overseas`，**不是** `docker-compose.prod.yml`。
+**现役核验（2026-09-05）**：新加坡 `GET /health` 对 `api` / `yizhidao` / `yd` 均为 **200**（H2，无 `Alt-Svc`）；`/admin/` **401**（Basic）；`/download/` **200**（侧载 APK 页）；`POST /v1/iap/verify` **401**（需登录）。生产 `.env` 已配 `GOOGLE_CLIENT_IDS`（3 个）与强 `ADMIN_PASSWORD` / `ADMIN_BASIC_HASH`（已非仓库默认）。跑 `docker compose`（api + Caddy）+ `Caddyfile.overseas`，**不是** `docker-compose.prod.yml`。安卓未接 Play Billing 前默认 `ANDROID_COMPLIMENTARY_UNLOCK=true`（可关）。
 
 ### DNS
 
@@ -165,13 +165,14 @@ sudo docker compose up -d --build --force-recreate
 - [x] 未把 `.env` 提交进 Git
 - [x] 海外现役 `SMS_PROVIDER=mock`（App 无短信入口；勿开 `ALLOW_INSECURE_MOCK_SMS`）
 - [x] `https://api.yiwanjia.work/{privacy,terms,support}` 可访问（Connect 法律 URL）
-- [x] 运营后台路由已挂（`/admin/` 现 401 Basic）；生产 `ADMIN_PASSWORD` 与 Caddy `ADMIN_BASIC_HASH` 仍建议换成强密码（勿留默认）
+- [x] 运营后台路由已挂（`/admin/` 现 401 Basic）；生产 `ADMIN_PASSWORD` 与 `ADMIN_BASIC_HASH` 已换成强口令（2026-09-05 核对：非 `dev-admin` / `change-me-basic`）
 - [x] App **不上中国区** → 现役路径 **无需 ICP**；基址保持 `api.yiwanjia.work`
 - [x] Apple / 邮箱登录（客户端 + 后端）；生产邮箱 SMTP（Resend，2026-08-24 已 live：`email_provider=smtp`）
 - [x] Android Google：生产 `GOOGLE_CLIENT_IDS`（Web + Play SHA-1 Android + 旁路 SHA-1 Android）与 App `GOOGLE_WEB_CLIENT_ID`
-- [x] 新加坡机镜像已重建（2026-09-03）；之后改代码仍须 `docker compose up -d --build`（改 env 加 `--force-recreate`）
+- [x] 新加坡机镜像已重建（2026-09-05，含赠送解锁 / `/download/` / 后台额度）；之后改代码仍须 `docker compose up -d --build`（改 env 加 `--force-recreate`；缓存挡新代码时加 `--no-cache`）
 - [x] IAP 路由已挂（`POST /v1/iap/verify` 401）；生产无 `ALLOW_INSECURE_MOCK_IAP` 时强制 apple。勿把内购挂进正在审的 iOS 1.0
-- [x] `yizhidao.codedance.work` / `yd.codedance.work` 已挂新加坡 H2-only（2026-09-04 live）；App Release 仍钉 `api`
+- [x] `yizhidao.codedance.work` / `yd.codedance.work` 已挂新加坡 H2-only；`Caddyfile.overseas` 已合 `main`；App Release 仍钉 `api`
+- [x] Android 签名 / 邮箱优先登录 / 注销 / 赠送解锁已合 `main`（PR #18/#19）
 - [ ] Play 封闭测试（个人账号约 12×14 天）后再申请正式发布
-- [ ] 本机 Android 签名 / Google 登录 / 注销账号改动提交并合 `main`
-- [ ] `Caddyfile.overseas` 对照域名改动合入 `main`
+- [ ] Android Play Billing（接上后关 `ANDROID_COMPLIMENTARY_UNLOCK`）
+- [ ] iOS TestFlight / 提审；商店 listing 英文
