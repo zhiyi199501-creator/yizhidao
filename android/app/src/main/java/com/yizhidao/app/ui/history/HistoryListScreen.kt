@@ -65,7 +65,6 @@ import com.yizhidao.app.ui.reading.ResultScreen
 import com.yizhidao.app.ui.theme.AppTheme
 import com.yizhidao.app.ui.theme.PaperBackHeader
 import com.yizhidao.app.ui.theme.PaperChevron
-import com.yizhidao.app.ui.theme.PaperTabTitle
 import com.yizhidao.app.ui.theme.PaperSegmentedRow
 import com.yizhidao.app.ui.theme.SwipeRevealDelete
 import kotlinx.coroutines.launch
@@ -230,10 +229,9 @@ fun HistoryListScreen(
     }
 
     Column(Modifier.fillMaxSize()) {
-        PaperTabTitle("历史", "History")
         if (records.isNotEmpty()) {
             Column(
-                Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 12.dp),
+                Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 12.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 PaperSegmentedRow(
@@ -480,49 +478,98 @@ private fun GroupedRecordList(
         contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 24.dp),
     ) {
         itemsIndexed(records, key = { _, rec -> rec.id }) { index, rec ->
-            val shape = when {
-                records.size == 1 -> AppTheme.cardShape
-                index == 0 -> RoundedCornerShape(topStart = 14.dp, topEnd = 14.dp)
-                index == records.lastIndex -> RoundedCornerShape(bottomStart = 14.dp, bottomEnd = 14.dp)
-                else -> RectangleShape
-            }
-            Column(Modifier.clip(shape).background(AppTheme.cardFill)) {
-                SwipeRevealDelete(
-                    revealed = revealedId == rec.id,
-                    onRevealedChange = { open ->
-                        revealedId = if (open) rec.id else if (revealedId == rec.id) null else revealedId
-                    },
-                    onDelete = {
-                        revealedId = null
-                        onDelete(rec)
-                    },
-                ) {
-                    HistoryRecordRow(
-                        rec = rec,
-                        store = store,
-                        onClick = {
-                            if (revealedId == rec.id) {
-                                revealedId = null
-                            } else {
-                                onOpenRecord(rec.id)
-                            }
-                        },
-                    )
-                }
-                if (index < records.lastIndex) {
-                    HorizontalDivider(
-                        modifier = Modifier.padding(start = 16.dp),
-                        color = AppTheme.fieldStroke,
-                        thickness = 0.5.dp,
-                    )
-                }
-            }
+            HistoryGroupedRow(
+                rec = rec,
+                index = index,
+                count = records.size,
+                store = store,
+                revealedId = revealedId,
+                onRevealedIdChange = { revealedId = it },
+                onOpenRecord = onOpenRecord,
+                onDelete = onDelete,
+            )
         }
     }
 }
 
 @Composable
-private fun HistoryRecordRow(
+fun HistoryGroupedColumn(
+    records: List<ReadingRecord>,
+    store: HexagramStore,
+    onOpenRecord: (String) -> Unit,
+    onDelete: (ReadingRecord) -> Unit,
+) {
+    var revealedId by remember { mutableStateOf<String?>(null) }
+    Column {
+        records.forEachIndexed { index, rec ->
+            HistoryGroupedRow(
+                rec = rec,
+                index = index,
+                count = records.size,
+                store = store,
+                revealedId = revealedId,
+                onRevealedIdChange = { revealedId = it },
+                onOpenRecord = onOpenRecord,
+                onDelete = onDelete,
+            )
+        }
+    }
+}
+
+@Composable
+private fun HistoryGroupedRow(
+    rec: ReadingRecord,
+    index: Int,
+    count: Int,
+    store: HexagramStore,
+    revealedId: String?,
+    onRevealedIdChange: (String?) -> Unit,
+    onOpenRecord: (String) -> Unit,
+    onDelete: (ReadingRecord) -> Unit,
+) {
+    val shape = when {
+        count == 1 -> AppTheme.cardShape
+        index == 0 -> RoundedCornerShape(topStart = 14.dp, topEnd = 14.dp)
+        index == count - 1 -> RoundedCornerShape(bottomStart = 14.dp, bottomEnd = 14.dp)
+        else -> RectangleShape
+    }
+    Column(Modifier.clip(shape).background(AppTheme.cardFill)) {
+        SwipeRevealDelete(
+            revealed = revealedId == rec.id,
+            onRevealedChange = { open ->
+                onRevealedIdChange(
+                    if (open) rec.id else if (revealedId == rec.id) null else revealedId,
+                )
+            },
+            onDelete = {
+                onRevealedIdChange(null)
+                onDelete(rec)
+            },
+        ) {
+            HistoryRecordRow(
+                rec = rec,
+                store = store,
+                onClick = {
+                    if (revealedId == rec.id) {
+                        onRevealedIdChange(null)
+                    } else {
+                        onOpenRecord(rec.id)
+                    }
+                },
+            )
+        }
+        if (index < count - 1) {
+            HorizontalDivider(
+                modifier = Modifier.padding(start = 16.dp),
+                color = AppTheme.fieldStroke,
+                thickness = 0.5.dp,
+            )
+        }
+    }
+}
+
+@Composable
+fun HistoryRecordRow(
     rec: ReadingRecord,
     store: HexagramStore,
     onClick: () -> Unit,

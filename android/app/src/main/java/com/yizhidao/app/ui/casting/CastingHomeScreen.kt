@@ -24,12 +24,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.scale
@@ -50,7 +47,6 @@ import com.yizhidao.app.ui.theme.AppTheme
 import com.yizhidao.app.ui.theme.Text
 import com.yizhidao.app.ui.theme.ui
 import com.yizhidao.app.ui.theme.zh
-import kotlinx.coroutines.delay
 
 /** 左起是落款，右起是起句。竖排从右往左读。 */
 private val quoteColumns = listOf(
@@ -62,31 +58,15 @@ private val quoteColumns = listOf(
 private const val spokenQuote =
     "君子居则观其象而玩其辞，动则观其变而玩其占，是以自天祐之，吉无不利。"
 
-/** 只在冷启动播一次条幅浮现；切 Tab 再回来不再播。 */
-private object CastingHomeReveal {
-    var didPlay = false
-}
-
 @Composable
 fun CastingHomeScreen(
     onBeginRitual: () -> Unit,
     onTabBarVisible: (Boolean) -> Unit = {},
 ) {
     val reduceMotion = LocalContext.current.reduceMotionEnabled()
-    var appeared by remember { mutableStateOf(reduceMotion || CastingHomeReveal.didPlay) }
 
     LaunchedEffect(Unit) {
         onTabBarVisible(true)
-    }
-    LaunchedEffect(reduceMotion) {
-        if (reduceMotion || CastingHomeReveal.didPlay) {
-            appeared = true
-            return@LaunchedEffect
-        }
-        CastingHomeReveal.didPlay = true
-        appeared = false
-        delay(180)
-        appeared = true
     }
 
     BoxWithConstraints(Modifier.fillMaxSize()) {
@@ -115,15 +95,11 @@ fun CastingHomeScreen(
                         .size(taiji)
                         .rotate(degrees),
                 )
-                ScrollColumns(
-                    charSp = charSp,
-                    appeared = appeared,
-                    reduceMotion = reduceMotion,
-                )
+                ScrollColumns(charSp = charSp)
             }
             Spacer(Modifier.height(28.dp))
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                StartCastSeal(appeared = appeared, reduceMotion = reduceMotion, onBegin = onBeginRitual)
+                StartCastSeal(reduceMotion = reduceMotion, onBegin = onBeginRitual)
                 RitualEnglishCaption("Cast")
             }
             Spacer(Modifier.weight(0.85f))
@@ -132,11 +108,7 @@ fun CastingHomeScreen(
 }
 
 @Composable
-private fun ScrollColumns(
-    charSp: Float,
-    appeared: Boolean,
-    reduceMotion: Boolean,
-) {
+private fun ScrollColumns(charSp: Float) {
     val language = LocalAppLanguage.current
     val quote = zh(spokenQuote)
     Row(
@@ -146,19 +118,9 @@ private fun ScrollColumns(
     ) {
         quoteColumns.forEachIndexed { column, raw ->
             val text = remember(raw, language) { language.convert(raw) }
-            val delay = if (reduceMotion) 0 else 250 + (2 - column) * 800
-            val visible by animateFloatAsState(
-                targetValue = if (appeared) 1f else 0f,
-                animationSpec = tween(
-                    durationMillis = if (reduceMotion) 0 else 800,
-                    delayMillis = delay,
-                ),
-                label = "col$column",
-            )
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy((charSp * 0.28f).dp),
-                modifier = Modifier.alpha(visible),
             ) {
                 text.forEach { scalar ->
                     Text(
@@ -219,20 +181,11 @@ private fun CastingTaijiMark(modifier: Modifier = Modifier) {
 
 @Composable
 private fun StartCastSeal(
-    appeared: Boolean,
     reduceMotion: Boolean,
     onBegin: () -> Unit,
 ) {
     val interaction = remember { MutableInteractionSource() }
     val pressed by interaction.collectIsPressedAsState()
-    val enter by animateFloatAsState(
-        targetValue = if (appeared) 1f else 0f,
-        animationSpec = tween(
-            durationMillis = if (reduceMotion) 0 else 550,
-            delayMillis = if (reduceMotion) 0 else 2550,
-        ),
-        label = "seal-enter",
-    )
     val breath = rememberInfiniteTransition(label = "seal-breath")
     val haloScale by breath.animateFloat(
         initialValue = 0.92f,
@@ -258,7 +211,6 @@ private fun StartCastSeal(
             Modifier
                 .size(148.dp)
                 .scale(if (reduceMotion) 1f else haloScale)
-                .alpha(enter)
                 .drawBehind {
                     drawCircle(
                         brush = Brush.radialGradient(
@@ -274,7 +226,6 @@ private fun StartCastSeal(
         Box(
             Modifier
                 .size(72.dp)
-                .alpha(enter)
                 .scale(pressScale)
                 .clickable(
                     interactionSource = interaction,
