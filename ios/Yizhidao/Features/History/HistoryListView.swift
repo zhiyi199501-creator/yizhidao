@@ -113,8 +113,7 @@ struct HistoryListView: View {
                 }
             }
             .parchmentBackground(hidesTabBar: false)
-            .navigationTitle("历史".ui("History"))
-            .navigationBarTitleDisplayMode(.inline)
+            .toolbar(.hidden, for: .navigationBar)
             .navigationDestination(for: SimilarHexagramDestination.self) { destination in
                 HexagramGroupDetailView(destination: destination)
             }

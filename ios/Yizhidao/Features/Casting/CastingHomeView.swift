@@ -1,16 +1,9 @@
 import SwiftUI
 
-/// 只在冷启动播一次条幅浮现；切 Tab 再回来不再播。
-private enum CastingHomeReveal {
-    static var didPlay = false
-}
-
 struct CastingHomeView: View {
     @State private var latestResult: CastResult?
     @State private var showResult = false
     @State private var request: CastingRequest?
-    @State private var revealedCount = 0
-    @State private var showSeal = false
     @State private var spin = 0.0
     @Environment(AppNavigation.self) private var appNavigation
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -40,7 +33,7 @@ struct CastingHomeView: View {
                         scrollColumns(charSize: charSize)
                     }
                     Spacer(minLength: 28)
-                    StartCastButton(visible: showSeal) {
+                    StartCastButton {
                         showResult = false
                         request = CastingRequest()
                     }
@@ -52,7 +45,7 @@ struct CastingHomeView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
             .parchmentBackground(hidesTabBar: false)
-            .task { await reveal() }
+            .onAppear { startSpin() }
             .navigationDestination(isPresented: $showResult) {
                 if let latestResult {
                     ResultView(result: latestResult, isNew: true)
@@ -89,7 +82,6 @@ struct CastingHomeView: View {
         HStack(alignment: .top, spacing: charSize * 1.15) {
             ForEach(Array(Self.columns.enumerated()), id: \.offset) { column, raw in
                 let text = raw.zh
-                let order = 2 - column
                 VStack(spacing: charSize * 0.28) {
                     ForEach(Array(text.enumerated()), id: \.offset) { _, scalar in
                         Text(String(scalar))
@@ -97,39 +89,10 @@ struct CastingHomeView: View {
                             .foregroundStyle(AppTheme.accent.opacity(column == 0 ? 0.95 : 0.82))
                     }
                 }
-                .opacity(revealedCount > order ? 1 : 0)
             }
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(Self.spokenQuote.zh)
-    }
-
-    @MainActor
-    private func reveal() async {
-        if reduceMotion || CastingHomeReveal.didPlay {
-            showSettled()
-            return
-        }
-        CastingHomeReveal.didPlay = true
-        revealedCount = 0
-        showSeal = false
-        try? await Task.sleep(nanoseconds: 180_000_000)
-        for step in 1...3 {
-            withAnimation(.easeIn(duration: 0.7)) {
-                revealedCount = step
-            }
-            try? await Task.sleep(nanoseconds: 750_000_000)
-        }
-        withAnimation(.easeIn(duration: 0.55)) {
-            showSeal = true
-        }
-        startSpin()
-    }
-
-    private func showSettled() {
-        revealedCount = 3
-        showSeal = true
-        startSpin()
     }
 
     private func startSpin() {
@@ -184,7 +147,6 @@ private struct CastingTaijiMark: View {
 
 /// 朱印：双圈、起卦竖排，像钤在纸上，不是系统按钮。
 struct StartCastButton: View {
-    var visible: Bool = true
     let action: () -> Void
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -211,7 +173,6 @@ struct StartCastButton: View {
         }
         .buttonStyle(SealPressStyle())
         .background { inkHalo }
-        .opacity(visible || reduceMotion ? 1 : 0)
         .onAppear {
             guard !reduceMotion else { return }
             withAnimation(.easeInOut(duration: 3.2).repeatForever(autoreverses: true)) {

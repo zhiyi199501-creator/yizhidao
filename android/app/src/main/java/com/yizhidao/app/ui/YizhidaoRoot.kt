@@ -16,7 +16,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AccountCircle
 import androidx.compose.material.icons.outlined.AutoAwesome
-import androidx.compose.material.icons.outlined.ChatBubbleOutline
+import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
@@ -47,14 +47,14 @@ import com.yizhidao.app.ui.casting.CastingHomeScreen
 import com.yizhidao.app.ui.history.HistoryListScreen
 import com.yizhidao.app.ui.history.SimilarHexagramJump
 import com.yizhidao.app.ui.me.MeScreen
-import com.yizhidao.app.ui.qa.QAListScreen
+import com.yizhidao.app.ui.month.MonthStatsScreen
 import com.yizhidao.app.ui.reading.ResultScreen
 import com.yizhidao.app.ui.theme.AppTheme
 
 enum class AppTab(val zh: String, val en: String, val icon: ImageVector) {
     Cast("起卦", "Cast", Icons.Outlined.AutoAwesome),
     History("历史", "History", Icons.Outlined.Schedule),
-    QA("问答", "Readings", Icons.Outlined.ChatBubbleOutline),
+    Month("本月", "Month", Icons.Outlined.CalendarMonth),
     Me("我的", "Me", Icons.Outlined.AccountCircle),
 }
 
@@ -122,7 +122,7 @@ fun YizhidaoRoot(container: AppContainer) {
                     onCloseRecord = { historyOpenId = null },
                     onTabBarVisible = { hideTabBar = !it },
                 )
-                AppTab.QA -> QAListScreen(
+                AppTab.Month -> MonthStatsScreen(
                     container = container,
                     onTabBarVisible = { hideTabBar = !it },
                     onOpenSimilar = { result ->

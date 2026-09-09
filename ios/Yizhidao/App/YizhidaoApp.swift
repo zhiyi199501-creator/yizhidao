@@ -47,13 +47,11 @@ struct RootTabView: View {
                     Label("历史".ui("History"), systemImage: "clock")
                 }
                 .tag(AppTab.history)
-            NavigationStack {
-                AIAnalysisHistoryView()
-            }
+            MonthTabRoot()
             .tabItem {
-                Label("问答".ui("Readings"), systemImage: "bubble.left.and.bubble.right")
+                Label("本月".ui("Month"), systemImage: "calendar")
             }
-            .tag(AppTab.qa)
+            .tag(AppTab.month)
             MyMenuView()
                 .tabItem {
                     Label("我的".ui("Me"), systemImage: "person.crop.circle")
@@ -1444,108 +1442,6 @@ enum LoginError: LocalizedError {
             }
         }
         return error.localizedDescription
-    }
-}
-
-private struct AIAnalysisHistoryView: View {
-    @State private var items: [SavedAIAnalysis] = SavedAIAnalysisStore.load()
-    private let store = HexagramStore.shared
-
-    var body: some View {
-        Group {
-            if items.isEmpty {
-                VStack(spacing: 8) {
-                    Spacer()
-                    Text("还没有解读".ui("No readings yet"))
-                        .font(.headline)
-                    Text("起卦后点问，解读会自动出现在这里".ui("After you cast, tap Ask. Readings appear here."))
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal, 32)
-                    Spacer()
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else {
-                List {
-                    ForEach(items) { item in
-                        NavigationLink {
-                            AIAnalysisView(saved: item, opensResultOnHeaderTap: true)
-                        } label: {
-                            savedRow(item)
-                        }
-                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                            Button(role: .destructive) {
-                                SavedAIAnalysisStore.remove(id: item.id)
-                                items = SavedAIAnalysisStore.load()
-                            } label: {
-                                Image(systemName: "trash.fill")
-                            }
-                            .tint(.red)
-                            .accessibilityLabel("删除".ui("Delete"))
-                        }
-                    }
-                }
-                .scrollContentBackground(.hidden)
-            }
-        }
-        .navigationTitle("问答".ui("Readings"))
-        .navigationBarTitleDisplayMode(.inline)
-        .parchmentBackground(hidesTabBar: false)
-        .onAppear {
-            items = SavedAIAnalysisStore.load()
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .savedAIAnalysesDidChange)) { _ in
-            items = SavedAIAnalysisStore.load()
-        }
-    }
-
-    @ViewBuilder
-    private func savedRow(_ item: SavedAIAnalysis) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            HStack(spacing: 6) {
-                if let hex = store.hexagram(number: item.primaryNumber) {
-                    Text(hex.listLabel)
-                        .font(.headline)
-                        .lineLimit(1)
-                } else {
-                    Text("第\(item.primaryNumber)卦".ui("Hexagram \(item.primaryNumber)"))
-                        .font(.headline)
-                        .lineLimit(1)
-                }
-                if let resulting = item.resultingNumber {
-                    HexagramChangeArrow(
-                        movingLabel: ReadingRecordRow.digitalMovingLabel(
-                            method: item.method,
-                            movingPositions: item.movingPositions
-                        )
-                    )
-                    if let hex = store.hexagram(number: resulting) {
-                        Text(hex.listLabel)
-                            .font(.headline)
-                            .lineLimit(1)
-                    } else {
-                        Text("第\(resulting)卦".ui("Hexagram \(resulting)"))
-                            .font(.headline)
-                            .lineLimit(1)
-                    }
-                }
-                Spacer(minLength: 0)
-            }
-            Text(ReadingRecordRow.timeString(item.updatedAt).zh)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-            if let question = item.question, !question.isEmpty {
-                Text(question.zh)
-                    .font(.subheadline)
-                    .lineLimit(1)
-            } else {
-                Text(item.analysis.summary.zh)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-            }
-        }
     }
 }
 

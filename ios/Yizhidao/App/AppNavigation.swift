@@ -5,7 +5,7 @@ import SwiftUI
 enum AppTab: Hashable {
     case cast
     case history
-    case qa
+    case month
     case me
 }
 
