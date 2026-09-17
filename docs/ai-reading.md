@@ -4,7 +4,7 @@
 
 **生产（2026-09-05）**：扩卡、黄庭进 prompt、按爻裁案例、主看卦辞时附彖辞已合 `origin/main`（[PR #12](https://github.com/zhiyi199501-creator/yizhidao/pull/12)），生产镜像现役。买断额度与 `POST /v1/iap/verify` 已合 main（[PR #16](https://github.com/zhiyi199501-creator/yizhidao/pull/16)）；生产路由现役为需登录的 **401**（不再是 404）。未购每天 3 次、买断每天 30 次；安卓在 Play Billing 前可由服务端赠送解锁（`ANDROID_COMPLIMENTARY_UNLOCK`）；`ai_unlimited` 后台可开不限日次。
 
-**本机未提交（2026-09-17，未部署）**：去建议／须防／方向、断卦规矩注入、案例最多 6 则、`OPENAI_MAX_TOKENS` 默认 2500、问答页「重新解读」、iOS `aiSession` 180 秒。下文机制以工作区代码为准，不是生产镜像。
+**生产（2026-09-17）**：去建议／须防／方向、断卦规矩注入、案例最多 6 则、`OPENAI_MAX_TOKENS` 默认 2500；新加坡镜像已重建。问答页「重新解读」、iOS `aiSession` 180 秒已合 main，商店包须发新版才有。下文机制以现役 API 为准。
 
 这不是对话 agent，也不是多跳 RAG：本地起卦算完卦象，后端一次 Chat Completions，强制 JSON。密钥只在服务端。
 
