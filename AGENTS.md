@@ -83,6 +83,6 @@ cd android && ./gradlew :engines:test
 
 **国内 / 旧海外机（遗留）**：`yzd.codedance.work` 仍国内机；对照名已挂新加坡，App 不连。`43.128.104.104` 仅 videograb 等遗留。
 
-**本机未提交（2026-09-17，未部署）**：问答去建议／须防／方向、断卦规矩注入、案例 prompt 最多 6 则、`OPENAI_MAX_TOKENS` 默认 2500、问答页「重新解读」、iOS `aiSession` 180 秒、后台左侧二级菜单。生产镜像仍是此前版本，勿当成已上线。
+**问答改版（2026-09-17 live）**：去建议／须防／方向、断卦规矩注入、案例 prompt 最多 6 则、`OPENAI_MAX_TOKENS` 默认 2500、后台左侧二级菜单；新加坡镜像已重建。问答页「重新解读」与 iOS `aiSession` 180 秒已合 main，**商店包须发新版才有**。
 
 未做／待办：Play 封闭测试→正式轨；Android Play Billing（关掉赠送解锁）；iOS 审核结果／上架；商店 listing 英文。
