@@ -1,5 +1,7 @@
 import json
+import logging
 import re
+import time
 from typing import List, Optional, Tuple
 
 import httpx
@@ -15,6 +17,17 @@ from app.schemas import (
 from app.services.case_store import cases_for_ai_prompt
 from app.services.hexagram_store import get_hexagram
 from app.services.ima_store import formatted_answer, get_entry
+
+logger = logging.getLogger(__name__)
+
+_UPSTREAM_ATTEMPTS = 3
+_RETRY_STATUSES = frozenset({408, 429, 500, 502, 503, 504})
+
+
+class _UpstreamFail(Exception):
+    def __init__(self, message: str, retry: bool):
+        super().__init__(message)
+        self.retry = retry
 
 
 def _yao_name(position: int) -> str:
@@ -528,12 +541,68 @@ def _parse_json_object(content: str) -> dict:
     return data
 
 
-def _complete_json(system_prompt: str, user_prompt: str) -> Tuple[dict, AIUsage]:
-    if not settings.openai_api_key:
-        raise AppError("未配置 OPENAI_API_KEY", code=5000, status_code=500)
+def _http_timeout() -> httpx.Timeout:
+    read = max(30.0, float(settings.openai_timeout_sec or 90.0))
+    return httpx.Timeout(connect=15.0, read=read, write=30.0, pool=15.0)
 
+
+def _parse_stream_line(line: str) -> Optional[dict]:
+    text = (line or "").strip()
+    if not text or text.startswith(":"):
+        return None
+    if text.startswith("data:"):
+        text = text[5:].strip()
+    if not text or text == "[DONE]":
+        return None
+    try:
+        data = json.loads(text)
+    except json.JSONDecodeError:
+        return None
+    return data if isinstance(data, dict) else None
+
+
+def _delta_content(chunk: dict) -> str:
+    choices = chunk.get("choices") or []
+    if not choices or not isinstance(choices[0], dict):
+        return ""
+    first = choices[0]
+    delta = first.get("delta") or {}
+    content = delta.get("content")
+    if content is None:
+        content = (first.get("message") or {}).get("content")
+    return content if isinstance(content, str) else ""
+
+
+def _usage_from(data: dict) -> AIUsage:
+    raw = data.get("usage") or {}
+    return AIUsage(
+        promptTokens=int(raw.get("prompt_tokens", 0) or 0),
+        completionTokens=int(raw.get("completion_tokens", 0) or 0),
+    )
+
+
+def _read_stream(resp: httpx.Response) -> Tuple[str, AIUsage]:
+    parts: list[str] = []
+    usage = AIUsage(promptTokens=0, completionTokens=0)
+    for raw in resp.iter_lines():
+        line = raw.decode("utf-8", errors="replace") if isinstance(raw, (bytes, bytearray)) else str(raw)
+        chunk = _parse_stream_line(line)
+        if not chunk:
+            continue
+        piece = _delta_content(chunk)
+        if piece:
+            parts.append(piece)
+        if chunk.get("usage"):
+            usage = _usage_from(chunk)
+    content = "".join(parts).strip()
+    if not content:
+        raise _UpstreamFail("empty stream content", retry=True)
+    return content, usage
+
+
+def _complete_once(system_prompt: str, user_prompt: str, include_usage: bool = True) -> Tuple[dict, AIUsage]:
     url = f"{settings.openai_base_url.rstrip('/')}/chat/completions"
-    payload = {
+    payload: dict = {
         "model": settings.openai_model,
         "temperature": settings.openai_temperature,
         "messages": [
@@ -541,37 +610,68 @@ def _complete_json(system_prompt: str, user_prompt: str) -> Tuple[dict, AIUsage]
             {"role": "user", "content": user_prompt},
         ],
         "response_format": {"type": "json_object"},
+        "stream": True,
     }
+    if include_usage:
+        payload["stream_options"] = {"include_usage": True}
     if settings.openai_max_tokens > 0:
         payload["max_tokens"] = int(settings.openai_max_tokens)
     headers = {
         "Authorization": f"Bearer {settings.openai_api_key}",
         "Content-Type": "application/json",
     }
-
+    drop_usage = False
     try:
-        with httpx.Client(timeout=settings.openai_timeout_sec) as client:
-            resp = client.post(url, headers=headers, json=payload)
+        with httpx.Client(timeout=_http_timeout()) as client:
+            with client.stream("POST", url, headers=headers, json=payload) as resp:
+                if resp.status_code == 400 and include_usage:
+                    body = resp.read().decode("utf-8", errors="replace")[:400]
+                    logger.warning("[ai] stream_options rejected; retrying without usage: %s", body)
+                    drop_usage = True
+                elif resp.status_code >= 400:
+                    body = resp.read().decode("utf-8", errors="replace")[:400]
+                    logger.warning("[ai] upstream HTTP %s: %s", resp.status_code, body)
+                    raise _UpstreamFail(
+                        f"HTTP {resp.status_code}",
+                        retry=resp.status_code in _RETRY_STATUSES,
+                    )
+                else:
+                    content, usage = _read_stream(resp)
+    except _UpstreamFail:
+        raise
     except httpx.HTTPError as exc:
-        print(f"[ai] upstream transport error: {type(exc).__name__}: {exc}")
-        raise AppError("模型服务暂时不可用，请稍后重试", code=5000, status_code=502) from exc
-
-    if resp.status_code >= 400:
-        print(f"[ai] upstream HTTP {resp.status_code}: {resp.text[:500]}")
-        raise AppError("解读没有完成，请稍后重试", code=5000, status_code=502)
-
-    data = resp.json()
-    content = data["choices"][0]["message"]["content"]
-    usage_raw = data.get("usage") or {}
-    usage = AIUsage(
-        promptTokens=int(usage_raw.get("prompt_tokens", 0)),
-        completionTokens=int(usage_raw.get("completion_tokens", 0)),
-    )
+        logger.warning("[ai] upstream transport %s: %s", type(exc).__name__, exc)
+        raise _UpstreamFail(str(exc), retry=True) from exc
+    if drop_usage:
+        return _complete_once(system_prompt, user_prompt, include_usage=False)
     try:
         parsed = _parse_json_object(content)
     except (json.JSONDecodeError, KeyError, TypeError) as exc:
-        raise AppError("解读没有完成，请稍后重试", code=5000, status_code=502) from exc
+        logger.warning("[ai] upstream JSON parse failed: %s", exc)
+        raise _UpstreamFail("invalid json content", retry=True) from exc
     return parsed, usage
+
+
+def _complete_json(system_prompt: str, user_prompt: str) -> Tuple[dict, AIUsage]:
+    if not settings.openai_api_key:
+        raise AppError("未配置 OPENAI_API_KEY", code=5000, status_code=500)
+
+    last: Optional[BaseException] = None
+    for attempt in range(1, _UPSTREAM_ATTEMPTS + 1):
+        try:
+            return _complete_once(system_prompt, user_prompt)
+        except _UpstreamFail as exc:
+            last = exc
+            if not exc.retry or attempt >= _UPSTREAM_ATTEMPTS:
+                break
+            logger.warning(
+                "[ai] retry %s/%s after %s",
+                attempt,
+                _UPSTREAM_ATTEMPTS,
+                exc,
+            )
+            time.sleep(0.6 * attempt)
+    raise AppError("模型服务暂时不可用，请稍后重试", code=5000, status_code=502) from last
 
 
 def _string_list(value) -> list[str]:
