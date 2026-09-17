@@ -9,7 +9,8 @@
 
 (api_proxy) {
 	header -Alt-Svc
-	encode gzip
+	@gzipable not path /v1/ai /v1/ai/*
+	encode @gzipable gzip
 	# 侧载 APK 等静态包；勿当 App Release API 基址
 	handle /download {
 		redir * /download/ 308
@@ -30,6 +31,15 @@
 			{env.ADMIN_BASIC_USER} {env.ADMIN_BASIC_HASH}
 		}
 		reverse_proxy api:8080 {
+			transport http {
+				read_timeout 180s
+				response_header_timeout 180s
+			}
+		}
+	}
+	handle /v1/ai/* {
+		reverse_proxy api:8080 {
+			flush_interval -1
 			transport http {
 				read_timeout 180s
 				response_header_timeout 180s

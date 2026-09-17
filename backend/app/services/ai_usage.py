@@ -13,7 +13,7 @@ from app.config import settings
 from app.errors import AppError
 from app.models import AIUsageEvent, User
 from app.schemas import AIUsage
-from app.services.ai_rate_limit import acquire_ai_call
+from app.services.ai_rate_limit import acquire_ai_call, limiter
 from app.services.iap import daily_limit_for_user
 
 _FORBIDDEN_EVENT_FIELDS = frozenset(
@@ -75,6 +75,31 @@ def record_ai_usage_event(
         print(f"[ai_usage] record failed: {exc}")
 
 
+def begin_ai_call(db: Session, user_id: str, kind: str, method: str) -> None:
+    """占额度；过快/日限在开心跳流之前抛 429。"""
+    started = time.perf_counter()
+    user = db.scalar(select(User).where(User.id == user_id))
+    try:
+        limiter.acquire(user_id, daily_limit=daily_limit_for_user(user))
+    except AppError as exc:
+        record_ai_usage_event(
+            db,
+            user_id=user_id,
+            kind=kind,
+            method=method,
+            ok=False,
+            error_code=exc.code,
+            latency_ms=int((time.perf_counter() - started) * 1000),
+            prompt_tokens=0,
+            completion_tokens=0,
+        )
+        raise
+
+
+def finish_ai_call(user_id: str) -> None:
+    limiter.release(user_id)
+
+
 def run_logged_ai(
     db: Session,
     *,
@@ -82,15 +107,19 @@ def run_logged_ai(
     kind: str,
     method: str,
     fn: Callable[[], Tuple[Any, AIUsage]],
+    already_acquired: bool = False,
 ) -> Tuple[Any, AIUsage]:
     started = time.perf_counter()
     usage = AIUsage(promptTokens=0, completionTokens=0)
     ok = False
     error_code: Optional[int] = None
     try:
-        user = db.scalar(select(User).where(User.id == user_id))
-        with acquire_ai_call(user_id, daily_limit=daily_limit_for_user(user)):
+        if already_acquired:
             out, usage = fn()
+        else:
+            user = db.scalar(select(User).where(User.id == user_id))
+            with acquire_ai_call(user_id, daily_limit=daily_limit_for_user(user)):
+                out, usage = fn()
         ok = True
         return out, usage
     except AppError as exc:

@@ -4,35 +4,32 @@ from pathlib import Path
 import sys
 from unittest.mock import patch
 
+from pydantic import BaseModel
+
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from app.errors import AppError
 from app.services import ai as ai_mod
-from app.services.ai import _delta_content, _parse_stream_line, _read_stream
+from app.services.ai_keepalive import _chunks, stream_json
 
 
-class _FakeStream:
-    def __init__(self, status_code, lines, body=b""):
+class _FakeResp:
+    def __init__(self, status_code, payload, text=None):
         self.status_code = status_code
-        self._lines = lines
-        self._body = body
+        self._payload = payload
+        self.text = text if text is not None else (
+            json.dumps(payload) if isinstance(payload, dict) else ""
+        )
 
-    def __enter__(self):
-        return self
-
-    def __exit__(self, *args):
-        return False
-
-    def iter_lines(self):
-        yield from self._lines
-
-    def read(self):
-        return self._body
+    def json(self):
+        if isinstance(self._payload, dict):
+            return self._payload
+        raise json.JSONDecodeError("empty", "", 0)
 
 
 class _FakeClient:
-    def __init__(self, streams):
-        self._streams = list(streams)
+    def __init__(self, responses):
+        self._responses = list(responses)
         self.payloads = []
 
     def __enter__(self):
@@ -41,45 +38,18 @@ class _FakeClient:
     def __exit__(self, *args):
         return False
 
-    def stream(self, method, url, headers=None, json=None):
+    def post(self, url, headers=None, json=None):
         self.payloads.append(json)
-        if not self._streams:
-            raise AssertionError("no more fake streams")
-        return self._streams.pop(0)
+        if not self._responses:
+            raise AssertionError("no more fake responses")
+        return self._responses.pop(0)
 
 
-def _sse(content_piece, usage=None, done=True):
-    chunk = {"choices": [{"delta": {"content": content_piece}}]}
-    if usage:
-        chunk["usage"] = usage
-    lines = [f"data: {json.dumps(chunk, ensure_ascii=False)}"]
-    if done:
-        lines.append("data: [DONE]")
-    return lines
-
-
-class StreamParseTests(unittest.TestCase):
-    def test_skips_keep_alive_and_done(self):
-        self.assertIsNone(_parse_stream_line(""))
-        self.assertIsNone(_parse_stream_line(": keep-alive"))
-        self.assertIsNone(_parse_stream_line("data: [DONE]"))
-        chunk = _parse_stream_line('data: {"choices":[{"delta":{"content":"{"}}]}')
-        self.assertEqual(_delta_content(chunk), "{")
-
-    def test_read_stream_joins_deltas(self):
-        resp = _FakeStream(
-            200,
-            [
-                ": keep-alive",
-                *_sse('{"summary":"背景"', done=False),
-                *_sse(',"focus":"详细","askNext":["我呢？"]}', usage={"prompt_tokens": 10, "completion_tokens": 4}),
-            ],
-        )
-        content, usage = _read_stream(resp)
-        parsed = json.loads(content)
-        self.assertEqual(parsed["summary"], "背景")
-        self.assertEqual(usage.promptTokens, 10)
-        self.assertEqual(usage.completionTokens, 4)
+def _ok_payload(content: str, prompt=3, completion=5):
+    return {
+        "choices": [{"message": {"content": content}}],
+        "usage": {"prompt_tokens": prompt, "completion_tokens": completion},
+    }
 
 
 class CompleteJsonRetryTests(unittest.TestCase):
@@ -93,33 +63,51 @@ class CompleteJsonRetryTests(unittest.TestCase):
         ai_mod.settings.openai_api_key = self._old_key
         ai_mod.settings.openai_model = self._old_model
 
-    def test_retries_empty_stream_then_succeeds(self):
-        empty = _FakeStream(200, [": keep-alive", "data: [DONE]"])
-        ok = _FakeStream(
+    def test_retries_empty_content_then_succeeds(self):
+        empty = _FakeResp(200, {"choices": [{"message": {"content": ""}}]})
+        ok = _FakeResp(
             200,
-            _sse('{"summary":"背景","focus":"详细解读","askNext":["我接下来会怎样？"]}'),
+            _ok_payload('{"summary":"背景","focus":"详细解读","askNext":["我接下来会怎样？"]}'),
         )
         client = _FakeClient([empty, ok])
-
         with patch("app.services.ai.httpx.Client", return_value=client), patch(
             "app.services.ai.time.sleep"
         ):
             parsed, usage = ai_mod._complete_json("sys", "user")
         self.assertEqual(parsed["summary"], "背景")
-        self.assertEqual(parsed["focus"], "详细解读")
+        self.assertEqual(usage.completionTokens, 5)
         self.assertEqual(len(client.payloads), 2)
-        self.assertTrue(client.payloads[0].get("stream"))
+        self.assertNotIn("stream", client.payloads[0])
+        self.assertEqual(client.payloads[0].get("thinking"), {"type": "disabled"})
 
     def test_exhausted_retries_raise_502(self):
-        streams = [_FakeStream(200, ["data: [DONE]"]) for _ in range(3)]
-        client = _FakeClient(streams)
+        client = _FakeClient([_FakeResp(200, {"choices": [{"message": {"content": ""}}]})] * 3)
         with patch("app.services.ai.httpx.Client", return_value=client), patch(
             "app.services.ai.time.sleep"
         ):
             with self.assertRaises(AppError) as ctx:
                 ai_mod._complete_json("sys", "user")
         self.assertEqual(ctx.exception.status_code, 502)
-        self.assertEqual(len(client.payloads), 3)
+
+
+class KeepaliveTests(unittest.TestCase):
+    def test_leading_newline_then_json(self):
+        class Dummy(BaseModel):
+            ok: bool = True
+            n: int = 1
+
+        chunks = list(_chunks(lambda: Dummy(n=7)))
+        self.assertEqual(chunks[0], b"\n")
+        self.assertIn(b'"n":7', chunks[-1])
+        parsed = json.loads(b"".join(chunks))
+        self.assertEqual(parsed["n"], 7)
+
+    def test_stream_json_response_type(self):
+        class Dummy(BaseModel):
+            ok: bool = True
+
+        resp = stream_json(lambda: Dummy())
+        self.assertEqual(resp.media_type, "application/json")
 
 
 if __name__ == "__main__":

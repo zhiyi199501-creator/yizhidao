@@ -16,7 +16,7 @@
 
 ## 配置
 
-`AI_MODE=mock|openai`。`openai` 表示 **OpenAI 兼容** Chat Completions，不表示必须用 OpenAI。本机常用 DeepSeek：`OPENAI_BASE_URL` / `OPENAI_MODEL` / `OPENAI_API_KEY` 以 `backend/.env` 为准（勿提交）。默认超时 90 秒；`OPENAI_MAX_TOKENS` 默认 2500，给写长一点的回示留空间。上游走 **stream**，空包／传输失败最多再试 2 次。`mock` 不耗 token，只保证字段形状。
+`AI_MODE=mock|openai`。`openai` 表示 **OpenAI 兼容** Chat Completions，不表示必须用 OpenAI。本机常用 DeepSeek：`OPENAI_BASE_URL` / `OPENAI_MODEL` / `OPENAI_API_KEY` 以 `backend/.env` 为准（勿提交）。默认超时 90 秒；`OPENAI_MAX_TOKENS` 默认 2500。对模型整包请求，空包／传输失败最多再试 2 次；对 App 先垫换行心跳，避免 20 秒空闲超时把还在玩辞的请求掐掉。`mock` 不耗 token，只保证字段形状。
 
 经文 / 讲解 / 案例默认读 `ios/Yizhidao/Resources/` 下同名 JSON。Docker：`Hexagrams.json` 在 data 卷；`cases.json` 与 `ImaExplanations.json` 默认在镜像 `/app/app/data/`，若 data 卷有同名文件则优先。可用 `HEXAGRAMS_PATH` / `CASES_PATH` / `IMA_EXPLANATIONS_PATH` 覆盖。
 

@@ -1390,16 +1390,24 @@ enum AuthAPI {
         return .updated(version: decoded.version, cases: decoded.cases)
     }
 
+    private static func isAIPath(_ request: URLRequest) -> Bool {
+        let path = request.url?.path ?? ""
+        return path.contains("/v1/ai/analyze") || path.contains("/v1/ai/followup")
+    }
+
     private static func perform(_ request: URLRequest, fallback: String) async throws -> Data {
         let data: Data
         let response: URLResponse
-        let transport = request.timeoutInterval >= aiTimeout ? aiSession : session
+        let transport = isAIPath(request) ? aiSession : session
         do {
             (data, response) = try await transport.data(for: request)
         } catch let error as URLError where error.code == .timedOut || error.code == .networkConnectionLost {
             throw LoginError.network("请求超时，请稍后重试".ui("Timed out. Please try again."))
         }
         guard let http = response as? HTTPURLResponse else { throw LoginError.network("网络异常".ui("Network error")) }
+        if let envelope = try? JSONDecoder().decode(ErrorEnvelope.self, from: data), envelope.code != nil {
+            throw decodeError(data, fallback: fallback)
+        }
         guard (200..<300).contains(http.statusCode) else { throw decodeError(data, fallback: fallback) }
         return data
     }
