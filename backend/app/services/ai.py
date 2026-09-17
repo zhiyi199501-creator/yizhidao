@@ -546,33 +546,6 @@ def _http_timeout() -> httpx.Timeout:
     return httpx.Timeout(connect=15.0, read=read, write=30.0, pool=15.0)
 
 
-def _parse_stream_line(line: str) -> Optional[dict]:
-    text = (line or "").strip()
-    if not text or text.startswith(":"):
-        return None
-    if text.startswith("data:"):
-        text = text[5:].strip()
-    if not text or text == "[DONE]":
-        return None
-    try:
-        data = json.loads(text)
-    except json.JSONDecodeError:
-        return None
-    return data if isinstance(data, dict) else None
-
-
-def _delta_content(chunk: dict) -> str:
-    choices = chunk.get("choices") or []
-    if not choices or not isinstance(choices[0], dict):
-        return ""
-    first = choices[0]
-    delta = first.get("delta") or {}
-    content = delta.get("content")
-    if content is None:
-        content = (first.get("message") or {}).get("content")
-    return content if isinstance(content, str) else ""
-
-
 def _usage_from(data: dict) -> AIUsage:
     raw = data.get("usage") or {}
     return AIUsage(
@@ -581,26 +554,16 @@ def _usage_from(data: dict) -> AIUsage:
     )
 
 
-def _read_stream(resp: httpx.Response) -> Tuple[str, AIUsage]:
-    parts: list[str] = []
-    usage = AIUsage(promptTokens=0, completionTokens=0)
-    for raw in resp.iter_lines():
-        line = raw.decode("utf-8", errors="replace") if isinstance(raw, (bytes, bytearray)) else str(raw)
-        chunk = _parse_stream_line(line)
-        if not chunk:
-            continue
-        piece = _delta_content(chunk)
-        if piece:
-            parts.append(piece)
-        if chunk.get("usage"):
-            usage = _usage_from(chunk)
-    content = "".join(parts).strip()
-    if not content:
-        raise _UpstreamFail("empty stream content", retry=True)
-    return content, usage
+def _message_content(data: dict) -> str:
+    choices = data.get("choices") or []
+    if not choices or not isinstance(choices[0], dict):
+        return ""
+    message = choices[0].get("message") or {}
+    content = message.get("content")
+    return content.strip() if isinstance(content, str) else ""
 
 
-def _complete_once(system_prompt: str, user_prompt: str, include_usage: bool = True) -> Tuple[dict, AIUsage]:
+def _complete_once(system_prompt: str, user_prompt: str, disable_thinking: bool = True) -> Tuple[dict, AIUsage]:
     url = f"{settings.openai_base_url.rstrip('/')}/chat/completions"
     payload: dict = {
         "model": settings.openai_model,
@@ -610,40 +573,43 @@ def _complete_once(system_prompt: str, user_prompt: str, include_usage: bool = T
             {"role": "user", "content": user_prompt},
         ],
         "response_format": {"type": "json_object"},
-        "stream": True,
     }
-    if include_usage:
-        payload["stream_options"] = {"include_usage": True}
+    model = (settings.openai_model or "").lower()
+    if disable_thinking and any(tag in model for tag in ("flash", "reasoner", "r1", "v4")):
+        payload["thinking"] = {"type": "disabled"}
     if settings.openai_max_tokens > 0:
         payload["max_tokens"] = int(settings.openai_max_tokens)
     headers = {
         "Authorization": f"Bearer {settings.openai_api_key}",
         "Content-Type": "application/json",
     }
-    drop_usage = False
     try:
         with httpx.Client(timeout=_http_timeout()) as client:
-            with client.stream("POST", url, headers=headers, json=payload) as resp:
-                if resp.status_code == 400 and include_usage:
-                    body = resp.read().decode("utf-8", errors="replace")[:400]
-                    logger.warning("[ai] stream_options rejected; retrying without usage: %s", body)
-                    drop_usage = True
-                elif resp.status_code >= 400:
-                    body = resp.read().decode("utf-8", errors="replace")[:400]
-                    logger.warning("[ai] upstream HTTP %s: %s", resp.status_code, body)
-                    raise _UpstreamFail(
-                        f"HTTP {resp.status_code}",
-                        retry=resp.status_code in _RETRY_STATUSES,
-                    )
-                else:
-                    content, usage = _read_stream(resp)
-    except _UpstreamFail:
-        raise
+            resp = client.post(url, headers=headers, json=payload)
     except httpx.HTTPError as exc:
         logger.warning("[ai] upstream transport %s: %s", type(exc).__name__, exc)
         raise _UpstreamFail(str(exc), retry=True) from exc
-    if drop_usage:
-        return _complete_once(system_prompt, user_prompt, include_usage=False)
+    if resp.status_code == 400 and "thinking" in payload:
+        logger.warning("[ai] thinking rejected; retrying without it: %s", resp.text[:400])
+        return _complete_once(system_prompt, user_prompt, disable_thinking=False)
+    if resp.status_code >= 400:
+        logger.warning("[ai] upstream HTTP %s: %s", resp.status_code, resp.text[:400])
+        raise _UpstreamFail(
+            f"HTTP {resp.status_code}",
+            retry=resp.status_code in _RETRY_STATUSES,
+        )
+    try:
+        data = resp.json()
+    except json.JSONDecodeError as exc:
+        logger.warning("[ai] upstream empty/invalid envelope")
+        raise _UpstreamFail("empty body", retry=True) from exc
+    if not isinstance(data, dict):
+        raise _UpstreamFail("empty body", retry=True)
+    content = _message_content(data)
+    usage = _usage_from(data)
+    if not content:
+        logger.warning("[ai] upstream empty content")
+        raise _UpstreamFail("empty content", retry=True)
     try:
         parsed = _parse_json_object(content)
     except (json.JSONDecodeError, KeyError, TypeError) as exc:

@@ -85,7 +85,7 @@ object AuthApi {
     )
 
     @Serializable
-    private data class ErrorEnvelope(val message: String? = null)
+    private data class ErrorEnvelope(val message: String? = null, val code: Int? = null)
 
     suspend fun sendEmailCode(email: String): SMSCodeResponse {
         val decoded = post(
@@ -435,6 +435,9 @@ object AuthApi {
         decode: (String) -> T,
     ): T {
         if (code == 401) throw LoginError.Unauthorized
+        runCatching { json.decodeFromString<ErrorEnvelope>(text) }.getOrNull()?.code?.let {
+            throw decodeError(text, fallback)
+        }
         if (code !in 200..299) throw decodeError(text, fallback)
         return decode(text)
     }
