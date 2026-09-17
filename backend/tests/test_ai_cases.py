@@ -31,6 +31,8 @@ class CaseMatchTests(unittest.TestCase):
         ]
         picked = select_cases_by_yao(items, [1, 6], lead=6, limit=3)
         self.assertEqual([i["file"] for i in picked], ["b", "c", "d"])
+        picked_default = select_cases_by_yao(items, [1, 6], lead=6)
+        self.assertEqual([i["file"] for i in picked_default], ["b", "c", "d", "a", "e"])
 
 
 class CasesForPromptTests(unittest.TestCase):
@@ -47,10 +49,10 @@ class CasesForPromptTests(unittest.TestCase):
         self.assertIn("之卦卦辞", caption)
         self.assertEqual(cases, [])
 
-    def test_one_moving_caps_at_three_same_yao(self):
+    def test_one_moving_caps_at_six_same_yao(self):
         caption, cases = cases_for_ai_prompt(58, None, [6])
-        self.assertLessEqual(len(cases), 3)
-        self.assertTrue(cases)
+        self.assertLessEqual(len(cases), 6)
+        self.assertEqual(len(cases), 6)
         self.assertTrue(all("上爻" in str(c.get("position")) for c in cases))
         self.assertIn("本卦上爻", caption)
 

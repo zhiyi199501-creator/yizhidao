@@ -41,7 +41,7 @@ SAMPLES: List[Sample] = [
         "expect_resulting": 44,
         "expect_ima_ids": ["01-guaci", "01-daxiang", "01-yao-0"],
         "expect_ima_absent_prefixes": ["01-tuanci", "01-wenyan"],
-        "expect_case_count_max": 3,
+        "expect_case_count_max": 6,
         "expect_cases_from": 1,
     },
     {
@@ -54,7 +54,7 @@ SAMPLES: List[Sample] = [
         "expect_resulting": 49,
         "expect_ima_ids": ["01-guaci", "01-daxiang", "01-yao-1", "01-yao-5"],
         "expect_ima_absent_prefixes": ["01-tuanci"],
-        "expect_case_count_max": 3,
+        "expect_case_count_max": 6,
         "expect_cases_from": 1,
     },
     {
@@ -80,7 +80,7 @@ SAMPLES: List[Sample] = [
         "expect_resulting": 13,
         "expect_ima_ids": ["24-guaci", "24-daxiang", "13-yao-0", "13-yao-1"],
         "expect_ima_absent_prefixes": ["24-tuanci", "24-yao-"],
-        "expect_case_count_max": 3,
+        "expect_case_count_max": 6,
         "expect_cases_from": 13,
     },
     {
@@ -106,7 +106,7 @@ SAMPLES: List[Sample] = [
         "expect_resulting": 10,
         "expect_ima_ids": ["58-guaci", "58-daxiang", "58-yao-5"],
         "expect_ima_absent_prefixes": ["58-tuanci"],
-        "expect_case_count_max": 3,
+        "expect_case_count_max": 6,
         "expect_cases_from": 58,
     },
     {
@@ -119,7 +119,7 @@ SAMPLES: List[Sample] = [
         "expect_resulting": 55,
         "expect_ima_ids": ["49-guaci", "49-daxiang", "49-yao-4"],
         "expect_ima_absent_prefixes": ["49-tuanci"],
-        "expect_case_count_max": 3,
+        "expect_case_count_max": 6,
         "expect_cases_from": 49,
     },
 ]

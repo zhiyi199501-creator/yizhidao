@@ -942,6 +942,16 @@ enum AuthAPI {
         config.requestCachePolicy = .reloadIgnoringLocalCacheData
         return URLSession(configuration: config)
     }()
+    /// 问答等 DeepSeek 常要十几秒才回第一字节；session 的 20 秒空闲超时会把还在玩辞的请求掐掉，失败后再填回旧稿。
+    private static let aiSession: URLSession = {
+        let config = URLSessionConfiguration.ephemeral
+        config.timeoutIntervalForRequest = 180
+        config.timeoutIntervalForResource = 180
+        config.waitsForConnectivity = false
+        config.urlCache = nil
+        config.requestCachePolicy = .reloadIgnoringLocalCacheData
+        return URLSession(configuration: config)
+    }()
     private static let aiTimeout: TimeInterval = 180
 
     struct SMSCodeResponse: Decodable {
@@ -1383,8 +1393,9 @@ enum AuthAPI {
     private static func perform(_ request: URLRequest, fallback: String) async throws -> Data {
         let data: Data
         let response: URLResponse
+        let transport = request.timeoutInterval >= aiTimeout ? aiSession : session
         do {
-            (data, response) = try await session.data(for: request)
+            (data, response) = try await transport.data(for: request)
         } catch let error as URLError where error.code == .timedOut || error.code == .networkConnectionLost {
             throw LoginError.network("请求超时，请稍后重试".ui("Timed out. Please try again."))
         }

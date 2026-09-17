@@ -56,13 +56,15 @@ ws_info.title = "说明"
 info = [
     ("《易经》正文编辑表", FONT_TITLE),
     ("", FONT),
-    ("对应 App 内 ios/Yizhidao/Resources/Hexagrams.json（六十四卦 + 文言 + 四传）。", FONT),
+    ("对应 App 现役展示：ios/Yizhidao/Resources/Hexagrams.json（六十四卦 + 文言 + 四传）。", FONT),
     ("审查：在各表用筛选（卦名 / 爻位 / 传）。", FONT),
     ("修改：直接改单元格后保存。灰底列（卦号、爻位、段序）请勿改。", FONT),
-    ("「六十四卦」：一卦一行。卦辞、彖、大象、用九/用六。无用九用六的格子留空。", FONT),
-    ("「爻辞」：一爻一行，初→上。爻辞与小象成对。", FONT),
-    ("「文言」：乾、坤分段。可增删行（段序按数字排序写回）。", FONT),
-    ("「四传」：系辞 / 说卦 / 序卦 / 杂卦。可改正文；传、章名请与原表一致。", FONT),
+    ("六十四卦详情卡片标题：卦辞 / 彖辞 / 大象；文言仅乾坤有。页底标「经文版本：《易经证释》所引」。", FONT),
+    ("彖辞、大象、小象、用象在 App 展示时加「彖曰：」「象曰：」前缀，表内不要写前缀（写回也不要带）。", FONT),
+    ("「六十四卦」：一卦一行。目录标题、卦象题与详情页头一致。无用九用六的格子留空。", FONT),
+    ("「爻辞」：一爻一行，初→上。正文自带初九／初六等爻题，与详情页成对（爻辞 + 象曰小象）。", FONT),
+    ("「文言」：乾、坤分段，与详情页分段一致。可增删行（段序按数字排序写回）。", FONT),
+    ("「四传」：系辞 / 说卦 / 序卦 / 杂卦。正文与 App 一致；系辞不带 1.1 一类段号。传、章名请与原表一致。", FONT),
     ("改完保存本文件，在对话里说「写回经文」，会同步到 Hexagrams.json。", FONT),
 ]
 for i, (text, font) in enumerate(info, start=1):
@@ -71,11 +73,11 @@ for i, (text, font) in enumerate(info, start=1):
     cell.alignment = Alignment(wrap_text=True, vertical="top")
 ws_info.column_dimensions["A"].width = 96
 ws_info.row_dimensions[1].height = 22
-for r in range(3, 12):
+for r in range(3, 14):
     ws_info.row_dimensions[r].height = 22
 
 ws_g = wb.create_sheet("六十四卦")
-g_headers = ["卦号", "卦名", "上下经", "目录标题", "卦象题", "卦辞", "彖", "大象", "用辞", "用象"]
+g_headers = ["卦号", "卦名", "上下经", "目录标题", "卦象题", "卦辞", "彖辞", "大象", "用辞", "用象"]
 ws_g.append(g_headers)
 for h in hexes:
     yong = h.get("yong") or {}

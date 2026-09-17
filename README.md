@@ -27,7 +27,7 @@ xcodebuild test -project ios/Yizhidao.xcodeproj -scheme Yizhidao -destination 'p
 - **起卦**：页上只有一句话和一个「起卦」朱印；极淡太极垫在系辞三列中心，不对整页居中。点了走全屏仪式：静心 → 告神（所问必填，抬头「爻变开化之神在上」）→ 选法门（数字起卦 / 时间起卦 / 金钱起卦）→ 取数（三数一个一个落 / 金钱一爻一爻摇 / 时间取选法门那一刻）→ 揭卦（礼文「弟子退」，点「看辞」进结果）。规矩与五条礼仪在「基础入门」
 - **数字起卦 · 时间**：只占此刻，按十二时辰取数；没有选时刻，也没有「公历取数」
 - **金钱起卦**：摇手机或轻点铜钱，一次一爻，满六自动成卦；长按手选四象；无「一键摇满」。上爻在上、初爻在下
-- **结果**：本卦 / 之卦 tab；卦辞、彖曰、象曰、六爻；动爻红字；「主看」；所问默认只读、点编辑才改且不能空；可改验证；**不展示取数**；右上角「同类」；右下角悬浮 **问**（刚起完约 2 秒自动开一次；已有问答则打开不重生成；没有则自动生成且需登录；页标题「问答」，详情亦可点「同类」；一占一条自动保存；详情是一篇回示：页头本卦⟶之卦＋所问、主看引文、事情背景／当下／方向／建议，须防并入建议且不叠「须防：须防」；长文由 `AIAnswerFormatter` 展示层分段）；卦辞／彖／大象／爻+小象可点开 **IMA 黄庭书院讲解**（包内 `ImaExplanations.json`）；页底「经文版本：《易经证释》所引」
+- **结果**：本卦 / 之卦 tab；卦辞、彖曰、象曰、六爻；动爻红字；「主看」；所问默认只读、点编辑才改且不能空；可改验证；**不展示取数**；右上角「同类」；右下角悬浮 **问**（刚起完约 2 秒自动开一次；已有问答则打开不重生成；没有则自动生成且需登录；页标题「问答」，详情右上角「重新解读」；一占一条自动保存；详情是一篇回示：页头本卦⟶之卦＋所问、主看引文、事情背景／详细解读；长文由 `AIAnswerFormatter` 展示层分段）；卦辞／彖／大象／爻+小象可点开 **IMA 黄庭书院讲解**（包内 `ImaExplanations.json`）；页底「经文版本：《易经证释》所引」
 - **历史**：SwiftData 本地；**时间** / **按卦**（文王序）；状态筛选；左滑删除进回收站；数字起卦单爻动在箭头上方标红字（初/二/三/四/五/上）
 - **本月**：当月总次数／天数／日均；天数按当月已过天数（整月用满月天数）；日历标出哪一天占了多少；当日列出与历史相同的记录行，点进结果。问答从结果页「问」进入，历史可再开
 - **基础入门**（「我的」）：九章册页，含怎样起卦；章末上一章／下一章并排。英文界面读 `YijingIntro.en.json`（引文仍中文）
@@ -54,7 +54,7 @@ xcodebuild test -project ios/Yizhidao.xcodeproj -scheme Yizhidao -destination 'p
 | `ios/Yizhidao/Resources/YijingIntro.json` | 基础入门九章（含怎样起卦）。英文界面另读 `YijingIntro.en.json`。Android `copyIosAssets` 拷这两份 |
 | `ios/Yizhidao/Resources/cases.json` | 讲习案例包内底稿。日常在 `admin/`「案例」编辑并发布（立刻热更新 `GET /v1/cases`）；导出 JSON 再提交本文件。生产镜像未含后台前仍 `docker compose cp`，见 `docs/deploy.md` |
 | `ios/Yizhidao/Resources/ImaExplanations.json` | IMA 黄庭书院讲解（原稿已去出处后标）。后台「黄庭」改 `answer` 立刻影响服务端 AI，App 弹层要发版。`scripts/export_ima_explanations.py` 会覆盖手改 |
-| `admin/` | 内部运营后台（用量 + 内容，白底）。本地 `npm run dev` 或 build 后走 `8080/admin/`；生产须重建镜像。不上架 |
+| `admin/` | 内部运营后台（用量 + 内容，白底；左侧运营／内容／设置）。本地 `npm run dev` 或 build 后走 `8080/admin/`；改 CSS 须再 build。生产须重建镜像。不上架 |
 | `ios/YizhidaoTests/` | 起卦、时辰、`ReadingGuide`、`MonthCastStats`、基础入门、`ImaAnswerFormatter`、`AIAnswerFormatter` 单测 |
 | `docs/backend-min-spec.md` | 登录、AI、IAP 验单、案例热更新的接口合同 |
 | `docs/ai-reading.md` | AI 问答机制（prompt、黄庭槽、案例筛选、展示） |

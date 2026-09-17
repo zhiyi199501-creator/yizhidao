@@ -104,7 +104,7 @@ def cases_for_hexagram(number: int) -> List[Dict[str, Any]]:
     )
 
 
-_MAX_PROMPT_CASES = 3
+_MAX_PROMPT_CASES = 6
 _YAO_LABELS = {index: name for index, name in enumerate(_POSITION_ORDER, start=1)}
 
 

@@ -137,7 +137,6 @@ fun ResultScreen(
                 aiSaved = container.savedAIStore.find(aiRecordId, resultForAnalysis)
                 showAI = false
             },
-            onOpenSimilar = onOpenSimilar,
         )
         return
     }

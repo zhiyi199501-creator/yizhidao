@@ -124,9 +124,9 @@ class AIAnalysisBody(BaseModel):
 class AIAnalysisContent(BaseModel):
     summary: str
     focus: str
-    advice: list[str]
-    direction: str = ""
-    risks: list[str] = Field(default_factory=list)
+    advice: list[str] = Field(default_factory=list)  # 现役不再生成；旧客户端可忽略
+    direction: str = ""  # 现役不再生成；旧客户端可忽略
+    risks: list[str] = Field(default_factory=list)  # 现役不再生成；旧客户端可忽略
     askNext: list[str] = Field(default_factory=list)
 
 

@@ -40,6 +40,7 @@ class Settings(BaseSettings):
     openai_model: str = "gpt-4o-mini"
     openai_temperature: float = 0.7
     openai_timeout_sec: float = 90.0
+    openai_max_tokens: int = 2500
     # AI 限流：按登录用户；自然日 UTC+8；解读与追问共用次数
     ai_rate_interval_sec: float = 8.0
     ai_rate_daily_limit: int = 3
