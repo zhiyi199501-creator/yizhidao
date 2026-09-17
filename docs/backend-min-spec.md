@@ -1,6 +1,6 @@
 # 易玩家最小后端接口（登录 + AI + IAP + 案例热更新）
 
-本文件是接口合同（路径与字段），以仓库 `backend/app/schemas.py` 为准。App Release 基址：`https://api.yiwanjia.work`（仅海外上架）。`GET /v1/cases` 于 2026-08-17 上线。AI 扩卡（`direction` / `risks` / `askNext`、追问 `advice`）已合 `main`（PR #12）且 2026-09-05 起生产镜像现役。旧客户端只依赖三字段与追问单段 `reply`，多出的字段可忽略。
+本文件是接口合同（路径与字段），以仓库 `backend/app/schemas.py` 为准。App Release 基址：`https://api.yiwanjia.work`（仅海外上架）。`GET /v1/cases` 于 2026-08-17 上线。AI 扩卡（`askNext`）已合 `main`（PR #12）且生产镜像现役。旧客户端只依赖三字段与追问单段 `reply`，多出的字段可忽略。`direction` / `risks` / `advice` 仍留在 schema 里；**工作区代码**（2026-09-17，未部署）不再生成、App 也不再展示，旧存盘仍可能带这些字段。
 
 ## 目标
 - 客户端不直连大模型，密钥留在服务端
@@ -132,33 +132,33 @@
 {
   "ok": true,
   "analysis": {
-    "summary": "先稳后进，宜先收敛再扩张。",
-    "focus": "主看初爻，警惕起步阶段节奏过急。",
-    "direction": "宜对照大象，守中而动。",
-    "risks": ["起步过急易失节奏"],
-    "advice": ["先明确边界", "小步试错"],
+    "summary": "这件事眼下处在先稳后进的时势里：场面已经铺开，但还没到可以全力扩张的时候。",
+    "focus": "主看初爻。起步这一步容易抢节奏，先把边界说清再迈。大象要你把力气用在守中、把能做的做实上。",
+    "direction": "",
+    "risks": [],
+    "advice": [],
     "askNext": ["对方反对的话，我该守还是该转？"]
   },
   "usage": { "promptTokens": 600, "completionTokens": 320 }
 }
 ```
-- 旧客户端只读 `summary` / `focus` / `advice`；多出的字段可忽略。现役 App 把 `risks` 并入建议卡，只展示一条。
+- 旧客户端只读 `summary` / `focus` / `advice`；多出的字段可忽略。`direction` / `risks` / `advice` 仍可能出现在旧存盘里；工作区代码不再生成、App 也不再展示（未部署）。
 
 ### 8b) AI 追问
 - `POST /v1/ai/followup`
 - Header: `Authorization: Bearer <access_token>`
-- req: 与解读相同的卦象字段，外加 `previousAnalysis`、`conversation`（可含每轮 `advice`）、`message`
+- req: 与解读相同的卦象字段，外加 `previousAnalysis`、`conversation`（旧轮次可含 `advice`，工作区忽略）、`message`
 - resp:
 ```json
 {
   "ok": true,
   "reply": "……",
-  "advice": ["把新补充收进判断，仍以动爻为主"],
+  "advice": [],
   "askNext": ["我眼下最该先做什么？"],
   "usage": { "promptTokens": 800, "completionTokens": 200 }
 }
 ```
-- 旧客户端只读 `reply`
+- 旧客户端只读 `reply`。工作区代码不生成建议；`advice` 恒为空列表（未部署）。
 
 ### 8c) 内购验单（iOS StoreKit 2）
 - `POST /v1/iap/verify`

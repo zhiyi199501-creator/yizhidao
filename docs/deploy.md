@@ -111,7 +111,7 @@ docker compose cp ../ios/Yizhidao/Resources/cases.json api:/app/data/cases.json
 
 ## 运营后台
 
-本仓库 `admin/`：用量看板 + 案例 CMS + 黄庭改 `answer` + 经文只读 + 夹具抽检 + App 意见反馈。白底，勿套 App 宣纸。不上架、不进 App。两道门：Caddy `basic_auth` + FastAPI `ADMIN_PASSWORD`（Cookie）。用户所问与解读正文不展示、不入库。抽检只用 `backend/tests/eval_fixtures.py`。
+本仓库 `admin/`：用量看板 + 案例 CMS + 黄庭改 `answer` + 经文只读 + 夹具抽检 + App 意见反馈。白底，勿套 App 宣纸。左侧二级：运营／内容／设置。不上架、不进 App。两道门：Caddy `basic_auth` + FastAPI `ADMIN_PASSWORD`（Cookie）。用户所问与解读正文不展示、不入库。抽检只用 `backend/tests/eval_fixtures.py`。
 
 **2026-09-03**：生产 `https://api.yiwanjia.work/admin/` 已挂上（未带 Cookie/Basic 时 **401**）。黄庭保存后服务端 AI 立刻用新稿，App 点经文弹层要下次发版；不要跑 `scripts/export_ima_explanations.py`（会覆盖手改）。
 

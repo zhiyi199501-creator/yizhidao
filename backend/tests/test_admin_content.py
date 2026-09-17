@@ -220,7 +220,7 @@ class ImaEditTests(_AdminClientMixin, unittest.TestCase):
 
     def test_save_ima_answer_is_read_by_explanation_slots(self):
         self._login()
-        marker = f"NEW_IMA_{uuid.uuid4().hex[:8]}"
+        marker = f"NEW_IMA_{uuid.uuid4().hex[:8]}k"
         saved = self.client.put(
             "/v1/admin/ima/entries/01-guaci",
             json={"answer": marker},

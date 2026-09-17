@@ -106,10 +106,7 @@ def _print_inspect(row: Dict[str, Any]) -> None:
 
 def _print_analysis(content: AIAnalysisContent, usage: Any) -> None:
     print(f"事情背景：{content.summary}")
-    print(f"当下：{content.focus}")
-    print(f"方向：{content.direction}")
-    print("须防：" + "；".join(content.risks))
-    print("建议：" + "；".join(content.advice))
+    print(f"详细解读：{content.focus}")
     print("可再问：" + "；".join(content.askNext))
     print(f"usage：prompt={usage.promptTokens} completion={usage.completionTokens}")
 
@@ -195,7 +192,8 @@ def main() -> int:
             report["followup"] = {"error": exc.message}
         else:
             print(f"回复：{reply}")
-            print("建议：" + "；".join(advice))
+            if advice:
+                print("建议：" + "；".join(advice))
             print("可再问：" + "；".join(ask_next))
             print(f"usage：prompt={usage.promptTokens} completion={usage.completionTokens}")
             report["followup"] = {

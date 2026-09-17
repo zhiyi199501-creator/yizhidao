@@ -175,7 +175,7 @@ for row in gua_rows:
         h["title"] = row["目录标题"]
     h["figure"] = row.get("卦象题", "")
     h["guaci"] = row.get("卦辞", "")
-    h["tuanci"] = row.get("彖", "")
+    h["tuanci"] = row.get("彖辞") or row.get("彖", "")
     h["daxiang"] = row.get("大象", "")
     ci = row.get("用辞", "")
     xiang = row.get("用象", "")

@@ -22,8 +22,10 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -45,25 +47,22 @@ import androidx.compose.ui.unit.sp
 import com.yizhidao.CastResult
 import com.yizhidao.HexagramStore
 import com.yizhidao.ReadingGuide
-import com.yizhidao.digitalMovingYaoLabel
 import com.yizhidao.app.ai.AIAnswerFormatter
 import com.yizhidao.app.ai.SavedAIAnalysis
 import com.yizhidao.app.ai.SavedAIAnalysisStore
 import com.yizhidao.app.ai.SavedAIContent
 import com.yizhidao.app.ai.SavedAIFollowUp
-import com.yizhidao.app.ai.aiAdviceDisplayItems
 import com.yizhidao.app.auth.AuthApi
 import com.yizhidao.app.auth.LocalAuthStore
-import com.yizhidao.app.ui.theme.AppTheme
-import com.yizhidao.app.ui.theme.PaperBackHeader
-import com.yizhidao.app.ui.theme.PaperHeaderButton
-import com.yizhidao.app.ui.theme.PaperStackIcon
-import com.yizhidao.app.ui.theme.PaperTextField
 import com.yizhidao.app.lang.LocalAppLanguage
 import com.yizhidao.app.lang.listLabel
 import com.yizhidao.app.lang.numberLabel
+import com.yizhidao.app.ui.theme.AppTheme
+import com.yizhidao.app.ui.theme.PaperBackHeader
+import com.yizhidao.app.ui.theme.PaperTextField
 import com.yizhidao.app.ui.theme.Text
 import com.yizhidao.app.ui.theme.ui
+import com.yizhidao.digitalMovingYaoLabel
 import kotlinx.coroutines.launch
 
 @Composable
@@ -76,7 +75,6 @@ fun AIAnalysisScreen(
     analysisStore: SavedAIAnalysisStore,
     onBack: () -> Unit,
     onOpenResult: (() -> Unit)? = null,
-    onOpenSimilar: ((CastResult) -> Unit)? = null,
 ) {
     val scope = rememberCoroutineScope()
     var isLoading by remember { mutableStateOf(saved == null) }
@@ -99,7 +97,9 @@ fun AIAnalysisScreen(
     var draft by remember { mutableStateOf("") }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var savedID by remember { mutableStateOf(saved?.id) }
+    var showRereadConfirm by remember { mutableStateOf(false) }
     val language = LocalAppLanguage.current
+    val rereadBusy = isLoading || isFollowupLoading
 
     val canSendFollowup = draft.trim().isNotEmpty() &&
         analysis != null &&
@@ -155,11 +155,13 @@ fun AIAnalysisScreen(
         isLoading = false
     }
 
-    fun runAnalysis() {
-        val existing = analysisStore.find(readingRecordId, result)
-        if (existing != null) {
-            applySaved(existing)
-            return
+    fun runAnalysis(force: Boolean = false) {
+        if (!force) {
+            val existing = analysisStore.find(readingRecordId, result)
+            if (existing != null) {
+                applySaved(existing)
+                return
+            }
         }
         val token = authStore.session.value.accessToken
         if (token.isNullOrBlank()) {
@@ -167,7 +169,13 @@ fun AIAnalysisScreen(
             isLoading = false
             return
         }
+        val previousAnalysis = analysis
+        val previousFollowUps = followUps
         scope.launch {
+            if (force) {
+                analysis = null
+                followUps = emptyList()
+            }
             isLoading = true
             errorMessage = null
             try {
@@ -176,6 +184,10 @@ fun AIAnalysisScreen(
                 followUps = emptyList()
                 persistCurrent(response.analysis, emptyList())
             } catch (e: Exception) {
+                if (force) {
+                    analysis = previousAnalysis
+                    followUps = previousFollowUps
+                }
                 errorMessage = AuthApi.describe(e)
             } finally {
                 isLoading = false
@@ -236,17 +248,23 @@ fun AIAnalysisScreen(
             title = "问答",
             titleEn = "Readings",
             onBack = onBack,
-            trailing = if (onOpenSimilar != null) {
-                {
-                    PaperHeaderButton(
-                        onClick = { onOpenSimilar(result) },
-                        contentDescription = ui("同类", "Similar"),
-                    ) {
-                        PaperStackIcon()
-                    }
-                }
-            } else {
-                null
+            trailing = {
+                Text(
+                    "重新解读",
+                    fontSize = 15.sp,
+                    color = if (rereadBusy) AppTheme.disabledText else AppTheme.accent,
+                    modifier = Modifier
+                        .clickable(enabled = !rereadBusy) {
+                            if (analysis != null) {
+                                showRereadConfirm = true
+                            } else {
+                                runAnalysis(force = true)
+                            }
+                        }
+                        .padding(horizontal = 8.dp, vertical = 10.dp),
+                    style = AppTheme.compactText,
+                    en = "Reread",
+                )
             },
         )
 
@@ -300,15 +318,8 @@ fun AIAnalysisScreen(
 
             analysis?.let { item ->
                 leadJingwen?.let { Epigraph(it) }
-                ReadingSection("事情背景", "Background", item.summary, prominent = false)
-                ReadingSection("当下", "Now", item.focus, prominent = true)
-                if (item.direction.isNotBlank()) {
-                    ReadingSection("方向", "Direction", item.direction, prominent = false)
-                }
-                val adviceItems = aiAdviceDisplayItems(item.advice, item.risks)
-                if (adviceItems.isNotEmpty()) {
-                    BulletSection("建议", "Advice", adviceItems)
-                }
+                ReadingSection("事情背景", "Background", item.summary)
+                ReadingSection("详细解读", "Detailed reading", item.focus)
                 if (item.askNext.isNotEmpty() && followUps.isEmpty() && !isLoading && !isFollowupLoading) {
                     AskNextSection(
                         questions = item.askNext,
@@ -342,9 +353,6 @@ fun AIAnalysisScreen(
                             style = AppTheme.compactText,
                         )
                     }
-                    if (turn.advice.isNotEmpty()) {
-                        BulletSection("建议", "Advice", aiAdviceDisplayItems(turn.advice))
-                    }
                     if (isLatest && !isFollowupLoading) {
                         val nextQuestions = turn.askNext.ifEmpty { analysis?.askNext.orEmpty() }
                         if (nextQuestions.isNotEmpty()) {
@@ -377,45 +385,77 @@ fun AIAnalysisScreen(
         }
 
         if (analysis != null) {
-            Row(
+            Column(
                 Modifier
                     .fillMaxWidth()
                     .imePadding()
                     .navigationBarsPadding()
-                    .background(AppTheme.cardFill)
-                    .padding(horizontal = 16.dp, vertical = 10.dp),
-                verticalAlignment = Alignment.Bottom,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    .background(AppTheme.parchmentBottom),
             ) {
-                PaperTextField(
-                    value = draft,
-                    onValueChange = { draft = it },
-                    modifier = Modifier.weight(1f),
-                    placeholder = "追问或补充背景",
-                    placeholderEn = "Ask or add context",
-                    singleLine = false,
-                    minLines = 1,
-                    maxLines = 4,
-                )
                 Box(
                     Modifier
-                        .size(36.dp)
-                        .clip(CircleShape)
-                        .background(if (canSendFollowup) AppTheme.accent else AppTheme.disabledFill)
-                        .clickable(enabled = canSendFollowup) {
-                            sendFollowup(draft, fromComposer = true)
-                        },
-                    contentAlignment = Alignment.Center,
+                        .fillMaxWidth()
+                        .height(1.dp)
+                        .background(Color.White.copy(alpha = 0.55f)),
+                )
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    Icon(
-                        Icons.AutoMirrored.Filled.Send,
-                        contentDescription = ui("发送", "Send"),
-                        tint = if (canSendFollowup) Color.White else AppTheme.disabledText,
-                        modifier = Modifier.size(18.dp),
+                    PaperTextField(
+                        value = draft,
+                        onValueChange = { draft = it },
+                        modifier = Modifier.weight(1f),
+                        placeholder = "还有不懂的，问一句",
+                        placeholderEn = "Ask if anything is unclear",
+                        singleLine = false,
+                        minLines = 1,
+                        maxLines = 4,
+                        chrome = false,
+                        horizontalPadding = 0.dp,
                     )
+                    Box(
+                        Modifier
+                            .size(32.dp)
+                            .clip(CircleShape)
+                            .background(
+                                if (canSendFollowup) AppTheme.accent else Color(0xFF8A8278),
+                            )
+                            .clickable(enabled = canSendFollowup) {
+                                sendFollowup(draft, fromComposer = true)
+                            },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            Icons.Filled.KeyboardArrowUp,
+                            contentDescription = ui("发送", "Send"),
+                            tint = Color.White,
+                            modifier = Modifier.size(18.dp),
+                        )
+                    }
                 }
             }
         }
+    }
+
+    if (showRereadConfirm) {
+        AlertDialog(
+            onDismissRequest = { showRereadConfirm = false },
+            title = { Text("重新解读这一卦？", en = "Read this hexagram again?") },
+            text = { Text("现有问答会被替换。", en = "This will replace the current reading.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    showRereadConfirm = false
+                    runAnalysis(force = true)
+                }) { Text("重新解读", en = "Reread") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showRereadConfirm = false }) { Text("取消", en = "Cancel") }
+            },
+        )
     }
 }
 
@@ -505,31 +545,8 @@ private fun Epigraph(text: String) {
 }
 
 @Composable
-private fun ReadingSection(title: String, titleEn: String, text: String, prominent: Boolean) {
+private fun ReadingSection(title: String, titleEn: String, text: String) {
     val paragraphs = remember(text) { AIAnswerFormatter.paragraphs(text) }
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        Text(
-            title,
-            fontSize = if (prominent) 17.sp else 15.sp,
-            fontWeight = FontWeight.SemiBold,
-            color = AppTheme.accent,
-            style = AppTheme.compactText,
-            en = titleEn,
-        )
-        paragraphs.forEach { paragraph ->
-            Text(
-                paragraph,
-                fontSize = if (prominent) 18.sp else 16.sp,
-                lineHeight = if (prominent) 30.sp else 27.sp,
-                color = AppTheme.ink,
-                style = AppTheme.compactText,
-            )
-        }
-    }
-}
-
-@Composable
-private fun BulletSection(title: String, titleEn: String, items: List<String>) {
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Text(
             title,
@@ -539,24 +556,14 @@ private fun BulletSection(title: String, titleEn: String, items: List<String>) {
             style = AppTheme.compactText,
             en = titleEn,
         )
-        items.forEachIndexed { index, item ->
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(
-                    "${index + 1}.",
-                    fontSize = 15.sp,
-                    lineHeight = 25.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = AppTheme.accent,
-                    style = AppTheme.compactText,
-                )
-                Text(
-                    item,
-                    fontSize = 16.sp,
-                    lineHeight = 25.sp,
-                    color = AppTheme.ink,
-                    style = AppTheme.compactText,
-                )
-            }
+        paragraphs.forEach { paragraph ->
+            Text(
+                paragraph,
+                fontSize = 16.sp,
+                lineHeight = 27.sp,
+                color = AppTheme.ink,
+                style = AppTheme.compactText,
+            )
         }
     }
 }
@@ -571,13 +578,6 @@ private fun AskNextSection(questions: List<String>, onPick: (String) -> Unit) {
             color = AppTheme.accent,
             style = AppTheme.compactText,
             en = "Ask next",
-        )
-        Text(
-            "点一句直接发出。",
-            fontSize = 12.sp,
-            color = AppTheme.secondaryText,
-            style = AppTheme.compactText,
-            en = "Tap a line to send it.",
         )
         questions.forEach { question ->
             Box(

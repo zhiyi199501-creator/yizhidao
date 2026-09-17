@@ -19,11 +19,16 @@ if [[ ! -d "$VENV" ]]; then
   "$PYTHON" -m venv "$VENV"
 fi
 
-# shellcheck disable=SC1091
-source "$VENV/bin/activate"
+VENV_PY="$VENV/bin/python"
+if [[ ! -x "$VENV_PY" ]]; then
+  echo "→ 虚拟环境损坏，重建..."
+  rm -rf "$VENV"
+  "$PYTHON" -m venv "$VENV"
+  VENV_PY="$VENV/bin/python"
+fi
 
 echo "→ 检查依赖..."
-pip install -q -r requirements.txt
+"$VENV_PY" -m pip install -q -r requirements.txt
 
 if [[ ! -f .env ]]; then
   echo "→ 复制 .env.example → .env"
@@ -34,9 +39,9 @@ echo ""
 echo "易玩家后端启动中"
 echo "  本地地址   http://127.0.0.1:${PORT}"
 echo "  接口文档   http://127.0.0.1:${PORT}/docs"
-echo "  运营后台   配 ADMIN_PASSWORD 后：cd ../admin && npm run dev → http://127.0.0.1:5173/admin/（案例/黄庭/经文/抽检/反馈；生产尚未挂）"
+echo "  运营后台   配 ADMIN_PASSWORD 后：cd ../admin && npm run dev → http://127.0.0.1:5173/admin/"
 echo "  开发验证码 见 .env 中 DEV_SMS_FIXED_CODE（默认 123456）"
 echo "  停止服务   Ctrl+C"
 echo ""
 
-exec uvicorn app.main:app --reload --host "$HOST" --port "$PORT"
+exec "$VENV_PY" -m uvicorn app.main:app --reload --host "$HOST" --port "$PORT"

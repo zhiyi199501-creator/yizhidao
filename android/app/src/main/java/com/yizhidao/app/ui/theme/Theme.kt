@@ -371,6 +371,7 @@ fun PaperTextField(
     leading: @Composable (() -> Unit)? = null,
     trailing: @Composable (() -> Unit)? = null,
     textAlign: TextAlign = TextAlign.Start,
+    chrome: Boolean = true,
 ) {
     val textStyle = AppTheme.compactText.merge(
         TextStyle(
@@ -381,7 +382,7 @@ fun PaperTextField(
         ),
     )
     val lineHeight = with(LocalDensity.current) { 22.sp.toDp() }
-    val verticalPad = 8.dp
+    val verticalPad = if (chrome) 8.dp else 0.dp
     val hitRegistry = LocalTextFieldHitRegistry.current
     val hitKey = remember { Any() }
     DisposableEffect(hitRegistry) {
@@ -391,8 +392,15 @@ fun PaperTextField(
         value = value,
         onValueChange = onValueChange,
         modifier = modifier
-            .background(AppTheme.fieldFill, shape)
-            .border(1.dp, AppTheme.fieldStroke, shape)
+            .then(
+                if (chrome) {
+                    Modifier
+                        .background(AppTheme.fieldFill, shape)
+                        .border(1.dp, AppTheme.fieldStroke, shape)
+                } else {
+                    Modifier
+                },
+            )
             .then(
                 if (singleLine) {
                     Modifier.height(lineHeight + verticalPad * 2)

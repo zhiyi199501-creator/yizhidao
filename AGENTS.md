@@ -20,7 +20,7 @@ cd android && ./gradlew :engines:test
 ./gradlew :app:testDebugUnitTest
 ```
 
-后端单测：`cd backend && .venv/bin/python -m unittest`。本机抽检真实模型：`cd backend && .venv/bin/python scripts/eval_ai_reading.py`（需 `.env` 的 key；`--dry-run` 只看槽位）。运营后台：`ADMIN_PASSWORD` + 后端已起。Vite：`cd admin && npm run dev` → `http://127.0.0.1:5173/admin/`；或 `npm run build` 后开 `http://127.0.0.1:8080/admin/`（静态走 `admin/dist`，改 CSS 须再 build + 硬刷新）。
+后端单测：`cd backend && .venv/bin/python -m unittest`。本机抽检真实模型：`cd backend && .venv/bin/python scripts/eval_ai_reading.py`（需 `.env` 的 key；`--dry-run` 只看槽位）。运营后台：`ADMIN_PASSWORD` + 后端已起。Vite：`cd admin && npm run dev` → `http://127.0.0.1:5173/admin/`；或 `npm run build` 后开 `http://127.0.0.1:8080/admin/`（静态走 `admin/dist`，改 CSS 须再 build + 硬刷新）。左侧二级：运营／内容／设置。
 
 用 Android Studio 打开 `android/` 跑 App。后端本地：`./start-backend.sh`。iOS 17+ / Xcode 15+。Bundle / applicationId：`com.yizhidao.app`。全 App **固定浅色**宣纸主题。运营后台 **白底**，勿套宣纸。
 
@@ -28,7 +28,7 @@ cd android && ./gradlew :engines:test
 
 - **App（iOS）**：SwiftUI + SwiftData；无第三方依赖。经文 `Hexagrams.json`（卦爻辞取证释；文言／四传并入同文件）；案例 `cases.json`。语言只跟系统：中文简繁（台港澳为繁），非中文界面壳英文；无应用内开关。
 - **App（Android）**：Kotlin + Jetpack Compose；生产 HTTPS 用 **Cronet**（`AppHttp`，勿改回 `HttpURLConnection`）。引擎在 `android/engines`（纯 JVM，与 iOS 单测对拍）。见 `android/README.md`
-- **后端**：`backend/` FastAPI + SQLite；登录为 Apple / Google / 邮箱 OTP（短信路由仍保留，App 不展示）；AI（`AI_MODE=mock|openai`）；内部 `admin/`（Vite，Cookie 鉴权，白底浅灰分区蓝强调）
+- **后端**：`backend/` FastAPI + SQLite；登录为 Apple / Google / 邮箱 OTP（短信路由仍保留，App 不展示）；AI（`AI_MODE=mock|openai`）；内部 `admin/`（Vite，Cookie 鉴权，白底浅灰分区蓝强调，左侧运营／内容／设置）
 
 ## 目录与约定
 
@@ -57,9 +57,9 @@ cd android && ./gradlew :engines:test
 - **所问在告神幕**：`InvocationView`，句式「爻变开化之神在上 / 弟子今有…之事…望示一卦」（抬头淡字，不译英文；不加「弟子某某某」、不改回「圣卦」），空则「敬告」禁用。键盘延迟 0.35 秒聚焦。所问一路带到选法门、取数幕与揭卦幕
 - 金钱摇卦：摇手机（`ShakeDetector` CoreMotion，勿 `motionEnded`）或轻点铜钱，一次一爻，满六自动成卦；长按手选四象；「重来」作废。上爻在上、初爻在下。字阳 3、背阴 2
 - **三数取数幕 `NumberDrawActView`**：一次落一个数；可「随机」，无「一键随机」；落定锁 0.5 秒；「重来」作废。进页不自动弹键盘。**输入框只有一个，放在三个槽位下面**，勿塞进 `ForEach`（否则键盘会掉再弹）
-- 结果页与问答详情右上角 **同类**（同卦明细内已打开的结果不显示）。所问默认只读，点右侧编辑才改，提交不能空；**不展示取数**。悬浮 **问**：该占已有问答则直接打开（不必登录）；没有则自动生成（需登录）。刚起完的卦进入结果页约 2 秒后自动打开问答，**只自动一次**（未登录则先登录；正在改所问则不抢）。返回后再点「问」须复用已存解读，禁止重打 `analyze`。页标题 **问答**；一占一条、自动保存。点「可以接着问」直接发出。问答详情是一篇回示不是四张同模卡：页头本卦⟶之卦＋所问（数字起卦单爻动时箭头上标初…上，可点回结果页看辞）；主看经文淡引；事情背景在当下前，当下略大，其次方向／建议。须防不要叠成「须防：须防」。追问不要「回复」标题。等待用「正在玩辞…」，不用转圈当主角。机制见 `docs/ai-reading.md`；接口见 `docs/backend-min-spec.md`
+- 结果页右上角 **同类**（同卦明细内已打开的结果不显示）。问答页右上角 **重新解读**（确认后重打 `analyze`，替换本占问答含追问；失败保留旧稿）。所问默认只读，点右侧编辑才改，提交不能空；**不展示取数**。悬浮 **问**：该占已有问答则直接打开（不必登录）；没有则自动生成（需登录）。刚起完的卦进入结果页约 2 秒后自动打开问答，**只自动一次**（未登录则先登录；正在改所问则不抢）。返回后再点「问」须复用已存解读，禁止无操作重打 `analyze`。页标题 **问答**；一占一条、自动保存。点「可以接着问」直接发出。问答详情是一篇回示不是四张同模卡：页头本卦⟶之卦＋所问（数字起卦单爻动时箭头上标初…上，可点回结果页看辞）；主看经文淡引；事情背景在详细解读前，各段同字号。不再单独出方向、须防、建议。追问不要「回复」标题，也不另给建议。等待用「正在玩辞…」，不用转圈当主角。口播 `张庆祥讲易经案例_txt/` **不进** prompt（gitignore）；断卦规矩在 `backend/app/services/ai.py` 的 `ZH_ANALOGY`／`EN_ANALOGY`，案例最多 6 则。机制见 `docs/ai-reading.md`；接口见 `docs/backend-min-spec.md`
 - **AI 展示**：`AIAnswerFormatter`（iOS / Android）只在展示层按句分段，不改存盘原文
-- Debug API：iOS 模拟器 `127.0.0.1:8080`，真机改 `AuthAPI` 局域网 IP；安卓 Debug 改 `android/app/build.gradle.kts`（明文 HTTP 靠 `android/app/src/debug/res/xml/network_security_config.xml`，主配置会覆盖 `usesCleartextTraffic`）。**Release** 仅海外：`https://api.yiwanjia.work`。安卓须 Cronet + Build Variant = release。国内 iPhone 11：开代理测生产；勿改 App 基址 / 上 iOS Cronet「救」直连（见 TLS 规则）
+- Debug API：iOS 模拟器 `127.0.0.1:8080`，真机改 `AuthAPI` 局域网 IP；安卓 Debug 改 `android/app/build.gradle.kts`（明文 HTTP 靠 `android/app/src/debug/res/xml/network_security_config.xml`，主配置会覆盖 `usesCleartextTraffic`）。iOS `AuthAPI.session` 空闲 **20 秒**；问答必须走 `aiSession`（空闲 **180 秒**），勿并回 20 秒会话，否则「重新解读」会掐掉再填旧稿。**Release** 仅海外：`https://api.yiwanjia.work`。安卓须 Cronet + Build Variant = release。国内 iPhone 11：开代理测生产；勿改 App 基址 / 上 iOS Cronet「救」直连（见 TLS 规则）
 - 登录页：iOS 主按钮 Apple；Android 默认邮箱，Google 在「其他登录方式」；点登录先检查协议。改 `.env` 后须重启后端；rsync 源若是 `backend/` 须 `--exclude '.env'`（排除 `backend/.env` 挡不住）
 - 生产 TLS/HTTP/3 避坑：`.cursor/rules/prod-tls-http3.mdc`、`docs/deploy.md`
 - **`main` 保护**：禁止直推，经 PR 合并（https://github.com/zhiyi199501-creator/yizhidao）
@@ -82,5 +82,7 @@ cd android && ./gradlew :engines:test
 **试用登录（Debug）**：`EMAIL_PROVIDER=mock`；有 `DEV_EMAIL_FIXED_CODE` 时任意合法邮箱用该码。Release：iOS Apple／邮箱，Android 邮箱／Google。审核包不要配 `EMAIL_TEST_ADDRESSES`。
 
 **国内 / 旧海外机（遗留）**：`yzd.codedance.work` 仍国内机；对照名已挂新加坡，App 不连。`43.128.104.104` 仅 videograb 等遗留。
+
+**本机未提交（2026-09-17，未部署）**：问答去建议／须防／方向、断卦规矩注入、案例 prompt 最多 6 则、`OPENAI_MAX_TOKENS` 默认 2500、问答页「重新解读」、iOS `aiSession` 180 秒、后台左侧二级菜单。生产镜像仍是此前版本，勿当成已上线。
 
 未做／待办：Play 封闭测试→正式轨；Android Play Billing（关掉赠送解锁）；iOS 审核结果／上架；商店 listing 英文。

@@ -94,8 +94,7 @@ struct ResultView: View {
         .navigationDestination(isPresented: $showAIAnalysis) {
             AIAnalysisView(
                 result: resultForAnalysis,
-                readingRecordID: aiRecordID ?? editableRecord?.id,
-                showSimilarHexagramButton: showSimilarHexagramButton
+                readingRecordID: aiRecordID ?? editableRecord?.id
             )
         }
         .sheet(isPresented: $showLoginForAI) {
@@ -538,11 +537,9 @@ struct HexagramReadingBody: View {
 struct AIAnalysisView: View {
     let result: CastResult
     private let readingRecordID: UUID?
-    private let showSimilarHexagramButton: Bool
     private let opensResultOnHeaderTap: Bool
 
     @Environment(\.dismiss) private var dismiss
-    @Environment(AppNavigation.self) private var appNavigation
     @State private var isLoading: Bool
     @State private var isFollowupLoading = false
     @State private var analysis: AuthAPI.AIAnalyzeResponse.Analysis?
@@ -552,6 +549,8 @@ struct AIAnalysisView: View {
     @State private var savedID: UUID?
     @State private var showUnlock = false
     @State private var showCastResult = false
+    @State private var showRereadConfirm = false
+    @State private var pendingRerun = false
 
     private var store: HexagramStore { .shared }
     private var canSendFollowup: Bool {
@@ -572,12 +571,10 @@ struct AIAnalysisView: View {
     init(
         result: CastResult,
         readingRecordID: UUID? = nil,
-        showSimilarHexagramButton: Bool = true,
         opensResultOnHeaderTap: Bool = false
     ) {
         self.result = result
         self.readingRecordID = readingRecordID
-        self.showSimilarHexagramButton = showSimilarHexagramButton
         self.opensResultOnHeaderTap = opensResultOnHeaderTap
         if let saved = SavedAIAnalysisStore.find(recordID: readingRecordID, result: result) {
             _analysis = State(initialValue: AuthAPI.AIAnalyzeResponse.Analysis(saved: saved.analysis))
@@ -592,10 +589,9 @@ struct AIAnalysisView: View {
         }
     }
 
-    init(saved: SavedAIAnalysis, showSimilarHexagramButton: Bool = true, opensResultOnHeaderTap: Bool = false) {
+    init(saved: SavedAIAnalysis, opensResultOnHeaderTap: Bool = false) {
         self.result = saved.toCastResult()
         self.readingRecordID = saved.readingRecordID
-        self.showSimilarHexagramButton = showSimilarHexagramButton
         self.opensResultOnHeaderTap = opensResultOnHeaderTap
         _analysis = State(initialValue: AuthAPI.AIAnalyzeResponse.Analysis(saved: saved.analysis))
         _followUps = State(initialValue: saved.followUps)
@@ -621,15 +617,8 @@ struct AIAnalysisView: View {
                         if let leadJingwen {
                             epigraph(leadJingwen)
                         }
-                        readingSection(title: "事情背景".ui("Background"), text: analysis.summary, prominent: false)
-                        readingSection(title: "当下".ui("Now"), text: analysis.focus, prominent: true)
-                        if !analysis.direction.isEmpty {
-                            readingSection(title: "方向".ui("Direction"), text: analysis.direction, prominent: false)
-                        }
-                        let adviceItems = aiAdviceDisplayItems(advice: analysis.advice, risks: analysis.risks)
-                        if !adviceItems.isEmpty {
-                            bulletSection(title: "建议".ui("Advice"), items: adviceItems)
-                        }
+                        readingSection(title: "事情背景".ui("Background"), text: analysis.summary)
+                        readingSection(title: "详细解读".ui("Detailed reading"), text: analysis.focus)
                         if !analysis.askNext.isEmpty, followUps.isEmpty, !isLoading, !isFollowupLoading {
                             askNextSection(analysis.askNext)
                         }
@@ -649,8 +638,8 @@ struct AIAnalysisView: View {
 
                     if let errorMessage {
                         Text(errorMessage.zh)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                            .font(.subheadline)
+                            .foregroundStyle(AppTheme.accent)
                     }
                 }
                 .padding()
@@ -670,23 +659,38 @@ struct AIAnalysisView: View {
         .sheet(isPresented: $showUnlock) {
             NavigationStack {
                 UnlockReadingsView {
-                    if analysis == nil {
-                        Task { await runAnalysis() }
+                    let shouldRerun = pendingRerun || analysis == nil
+                    pendingRerun = false
+                    if shouldRerun {
+                        Task { await runAnalysis(force: true) }
                     }
                 }
             }
         }
         .toolbar {
-            if showSimilarHexagramButton {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        appNavigation.openSimilarHexagram(for: result)
-                    } label: {
-                        Label("同类".ui("Similar"), systemImage: "rectangle.stack")
+            ToolbarItem(placement: .topBarTrailing) {
+                Button("重新解读".ui("Reread")) {
+                    if analysis != nil {
+                        showRereadConfirm = true
+                    } else {
+                        Task { await runAnalysis(force: true) }
                     }
-                    .accessibilityLabel("查看同类卦".ui("Similar hexagrams"))
                 }
+                .disabled(isLoading || isFollowupLoading)
+                .accessibilityLabel("重新解读".ui("Reread"))
             }
+        }
+        .confirmationDialog(
+            "重新解读这一卦？".ui("Read this hexagram again?"),
+            isPresented: $showRereadConfirm,
+            titleVisibility: .visible
+        ) {
+            Button("重新解读".ui("Reread")) {
+                Task { await runAnalysis(force: true) }
+            }
+            Button("取消".ui("Cancel"), role: .cancel) {}
+        } message: {
+            Text("现有问答会被替换。".ui("This will replace the current reading."))
         }
         .task {
             if analysis == nil {
@@ -699,23 +703,37 @@ struct AIAnalysisView: View {
     }
 
     private var composerBar: some View {
-        HStack(alignment: .bottom, spacing: 8) {
-            TextField("追问或补充背景".ui("Ask further, or add background"), text: $draft, axis: .vertical)
+        HStack(alignment: .center, spacing: 12) {
+            TextField("还有不懂的，问一句".ui("Ask if anything is unclear"), text: $draft, axis: .vertical)
+                .textFieldStyle(.plain)
+                .font(.body)
                 .lineLimit(1...4)
-                .appTextFieldStyle()
             Button {
                 Task { await sendFollowup() }
             } label: {
-                Image(systemName: "arrow.up.circle.fill")
-                    .font(.system(size: 32))
-                    .foregroundStyle(canSendFollowup ? AppTheme.accent : Color.secondary.opacity(0.4))
+                Image(systemName: "arrow.up")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .frame(width: 32, height: 32)
+                    .background(
+                        Circle().fill(
+                            canSendFollowup
+                                ? AppTheme.accent
+                                : Color(red: 0.54, green: 0.50, blue: 0.47)
+                        )
+                    )
             }
             .disabled(!canSendFollowup)
             .accessibilityLabel("发送".ui("Send"))
         }
-        .padding(.horizontal)
-        .padding(.vertical, 10)
-        .background(AppTheme.cardFill)
+        .padding(.horizontal, 20)
+        .padding(.vertical, 12)
+        .background(AppTheme.parchmentBottom)
+        .overlay(alignment: .top) {
+            Rectangle()
+                .fill(Color.white.opacity(0.55))
+                .frame(height: 1)
+        }
     }
 
     private func followUpTurn(_ turn: SavedAIFollowUp, isLatest: Bool) -> some View {
@@ -737,12 +755,6 @@ struct AIAnalysisView: View {
                     .lineSpacing(7)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .fixedSize(horizontal: false, vertical: true)
-            }
-            if !turn.advice.isEmpty {
-                bulletSection(
-                    title: "建议".ui("Advice"),
-                    items: aiAdviceDisplayItems(advice: turn.advice, risks: [])
-                )
             }
             if isLatest, !isFollowupLoading {
                 let nextQuestions = turn.askNext.isEmpty ? (analysis?.askNext ?? []) : turn.askNext
@@ -826,36 +838,17 @@ struct AIAnalysisView: View {
         }
     }
 
-    private func readingSection(title: String, text: String, prominent: Bool) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text(title.zh)
-                .font(prominent ? .headline.weight(.semibold) : .subheadline.weight(.semibold))
-                .foregroundStyle(AppTheme.accent)
-            ForEach(Array(AIAnswerFormatter.paragraphs(in: text).enumerated()), id: \.offset) { _, paragraph in
-                Text(paragraph.zh)
-                    .font(prominent ? .title3 : .body)
-                    .lineSpacing(prominent ? 8 : 6)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-        }
-    }
-
-    private func bulletSection(title: String, items: [String]) -> some View {
+    private func readingSection(title: String, text: String) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             Text(title.zh)
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(AppTheme.accent)
-            ForEach(Array(items.enumerated()), id: \.offset) { index, item in
-                HStack(alignment: .top, spacing: 8) {
-                    Text("\(index + 1).".zh)
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(AppTheme.accent)
-                    Text(item.zh)
-                        .font(.body)
-                        .lineSpacing(5)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
+            ForEach(Array(AIAnswerFormatter.paragraphs(in: text).enumerated()), id: \.offset) { _, paragraph in
+                Text(paragraph.zh)
+                    .font(.body)
+                    .lineSpacing(6)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
     }
@@ -865,9 +858,6 @@ struct AIAnalysisView: View {
             Text("可以接着问".ui("Ask next"))
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(AppTheme.accent)
-            Text("点一句直接发出。".ui("Tap a line to send it."))
-                .font(.caption)
-                .foregroundStyle(.secondary)
             ForEach(Array(questions.enumerated()), id: \.offset) { _, question in
                 Button {
                     Task { await sendFollowup(prefilled: question) }
@@ -922,14 +912,20 @@ struct AIAnalysisView: View {
     }
 
     @MainActor
-    private func runAnalysis() async {
-        if applySavedAnalysisIfAvailable() {
+    private func runAnalysis(force: Bool = false) async {
+        if !force, applySavedAnalysisIfAvailable() {
             return
         }
         guard let token = LocalAuthStore.load().accessToken else {
             errorMessage = "请先登录"
             isLoading = false
             return
+        }
+        let previousAnalysis = analysis
+        let previousFollowUps = followUps
+        if force {
+            analysis = nil
+            followUps = []
         }
         isLoading = true
         errorMessage = nil
@@ -940,8 +936,13 @@ struct AIAnalysisView: View {
             followUps = []
             persistCurrent(analysis: response.analysis, followUps: [])
         } catch {
+            if force {
+                analysis = previousAnalysis
+                followUps = previousFollowUps
+            }
             errorMessage = error.localizedDescription
             if LoginError.isDailyQuotaExhausted(error), !UnlockStore.shared.isUnlocked {
+                pendingRerun = true
                 showUnlock = true
             }
         }
